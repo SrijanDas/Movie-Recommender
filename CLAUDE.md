@@ -1,6 +1,6 @@
 # movie-recom
 
-Movie recommendation web app. **Status:** freshly scaffolded with `create-next-app` — no product features, data layer, or tests exist yet. `app/page.tsx` is still the template landing page.
+Movie recommendation web app. **Status:** freshly scaffolded with `create-next-app` — Supabase auth and Drizzle are wired up, but there are no tables, product features, or tests yet. `app/page.tsx` is still the template landing page.
 
 This file is the **hub**: it holds the rules that apply to every task and links to **spoke** docs in [docs/](docs/) for detail. Read the spoke that matches your task before changing code in that area.
 
@@ -8,6 +8,8 @@ This file is the **hub**: it holds the rules that apply to every task and links 
 
 - Next.js **16.4.2** (App Router, Turbopack) · React **19.3** · TypeScript 5 (strict)
 - Tailwind CSS **v4**, loaded through `@tailwindcss/turbopack` (no PostCSS config)
+- **Auth:** Supabase (`@supabase/ssr`) — auth only
+- **Database:** Supabase Postgres via **Drizzle ORM** — never `supabase.from()`
 - Package manager: **bun** 1.3.2
 - ESLint 9 flat config with `eslint-config-next`
 
@@ -18,7 +20,8 @@ This file is the **hub**: it holds the rules that apply to every task and links 
 3. **Use bun**, not npm/yarn/pnpm, for installs and scripts.
 4. **Server Components by default.** Add `"use client"` only for interactivity or browser APIs.
 5. **Import via the `@/` alias** (maps to the repo root).
-6. Run `bun run lint` and `bun run build` before declaring work done — there is no test suite yet.
+6. **Supabase is for auth only; all data access goes through Drizzle.** See [docs/auth.md](docs/auth.md) and [docs/database.md](docs/database.md).
+7. Run `bun run lint` and `bun run build` before declaring work done — there is no test suite yet.
 
 ## Commands
 
@@ -28,6 +31,8 @@ bun dev            # dev server on http://localhost:3000
 bun run build      # production build (also type-checks)
 bun run start      # serve the production build
 bun run lint       # eslint
+bun run db:generate  # generate a migration from lib/db/schema.ts
+bun run db:migrate   # apply migrations
 ```
 
 ## Spokes
@@ -37,6 +42,8 @@ bun run lint       # eslint
 | [docs/architecture.md](docs/architecture.md) | adding routes, components, or data fetching; deciding where code lives |
 | [docs/nextjs-16.md](docs/nextjs-16.md) | touching `next.config.ts`, caching, prefetching, layouts/pages typing |
 | [docs/styling.md](docs/styling.md) | writing UI, adding colors/fonts/theme tokens, dark mode |
+| [docs/auth.md](docs/auth.md) | touching sign-in/out, sessions, `proxy.ts`, or checking who the user is |
+| [docs/database.md](docs/database.md) | adding tables, writing queries, or running migrations |
 | [docs/development.md](docs/development.md) | setting up, running, linting, building, or managing dependencies |
 
 ## Keeping docs current

@@ -10,11 +10,18 @@ app/
   page.tsx      # "/" — still the create-next-app template
   globals.css   # Tailwind import + theme tokens
   favicon.ico
+lib/
+  auth.ts       # getCurrentUserId() — verified Supabase user id
+  supabase/     # auth-only clients: server.ts, client.ts, proxy.ts (session refresh)
+  db/           # Drizzle: schema.ts (tables), index.ts (db client)
+drizzle/        # generated SQL migrations
+proxy.ts        # Next 16 proxy — refreshes the Supabase session
+drizzle.config.ts
 public/         # static assets served from "/" (template SVGs)
 next.config.ts  # framework config — see nextjs-16.md
 ```
 
-There are no API routes, data sources, components directory, or shared libraries yet.
+There are no API routes, tables, or components directory yet.
 
 ## Conventions for new code
 
@@ -25,11 +32,15 @@ There are no API routes, data sources, components directory, or shared libraries
 - **Caching:** with Cache Components enabled, wrap cacheable fetches (e.g. movie metadata) in `"use cache"` functions with `cacheLife`/`cacheTag`; leave per-user data (personal recommendations) dynamic and stream it behind `<Suspense>`. Details in [nextjs-16.md](nextjs-16.md).
 - **Mutations:** prefer Server Actions for form submissions such as rating a movie.
 
+## Decided
+
+- **Auth:** Supabase Auth only → [auth.md](auth.md)
+- **Persistence:** Supabase Postgres through Drizzle ORM (no Supabase Data API) → [database.md](database.md)
+
 ## Open decisions
 
 Record the choice here (and add a spoke if it's substantial) once made:
 
 - Movie data source (e.g. TMDB, OMDb, local dataset)
 - Recommendation approach (content-based, collaborative filtering, LLM-assisted)
-- Persistence and auth for user ratings/watchlists
 - Test framework

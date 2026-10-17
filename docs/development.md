@@ -37,3 +37,9 @@ There is no test suite yet. When one is added, document it here and add the test
 ## Environment variables
 
 Put secrets in `.env.local` (gitignored via `.env*`). Only `NEXT_PUBLIC_`-prefixed variables are exposed to the browser. List each required variable here when introduced.
+
+| Variable | Used by |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase auth clients |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase auth clients (public, safe in the browser) |
+| `DATABASE_URL` | Drizzle (`lib/db`, `drizzle.config.ts`) — Supabase transaction pooler string, server-only |
