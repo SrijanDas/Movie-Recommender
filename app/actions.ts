@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import {
   deleteMovies,
   getSnapshot,
@@ -54,8 +55,20 @@ function parseRated(list: unknown, max: number): RatedMovie[] | null {
   return rated;
 }
 
-function failure(error: unknown): ActionResult {
+// Postgres foreign_key_violation: the session's user isn't in auth.users.
+const isMissingUser = (error: unknown) =>
+  error instanceof Error && (error.cause as { code?: string } | undefined)?.code === "23503";
+
+async function failure(error: unknown): Promise<ActionResult> {
   console.error(error);
+  // getClaims() checks the JWT locally, so a deleted account keeps a valid-
+  // looking session until it expires. Drop it so the user can sign in again.
+  if (isMissingUser(error)) {
+    const supabase = await createClient();
+    await supabase.auth.signOut({ scope: "local" });
+    revalidatePath("/", "layout");
+    return { ok: false, error: "Your account wasn't found. Sign in again." };
+  }
   return { ok: false, error: "Something went wrong talking to the movie database. Try again." };
 }
 
