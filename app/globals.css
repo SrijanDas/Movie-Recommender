@@ -1,26 +1,194 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Design system: see DESIGN.md (single source of truth).
+ * The brand is dark-canvas only — there is no light theme. <html> always
+ * carries `.dark` so shadcn's `dark:` variants resolve against these tokens.
+ */
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ── shadcn semantic colors ─────────────────────────────── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* ── DESIGN.md brand palette (bg-canvas, text-mute, border-hairline…) ── */
+  --color-primary-soft: var(--brand-primary-soft);
+  --color-primary-deep: var(--brand-primary-deep);
+  --color-canvas: var(--brand-canvas);
+  --color-canvas-soft: var(--brand-canvas-soft);
+  --color-canvas-text-soft: var(--brand-canvas-text-soft);
+  --color-ink: var(--brand-ink);
+  --color-ink-strong: var(--brand-ink-strong);
+  --color-body: var(--brand-body);
+  --color-mute: var(--brand-mute);
+  --color-hairline: var(--brand-hairline);
+  --color-hairline-soft: var(--brand-hairline-soft);
+
+  /* ── Fonts: Inter + Geist Mono (DESIGN.md's free SF Mono substitute) ── */
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  /* ── Radius: sm 6px (buttons, inputs) · md 8px (cards) ──────── */
+  --radius-xs: 4px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-2xl: 8px;
+  --radius-3xl: 8px;
+  --radius-4xl: 8px;
+
+  /* ── Elevation (hairline is level 1; these are levels 2 and 3) ── */
+  --shadow-glow: 0 0 15px rgba(92, 88, 85, 0.2);
+  --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.7), inset 0 0 0 1px rgba(148, 163, 184, 0.1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ── Type scale from DESIGN.md: text-display-xl, text-body-md, text-code… ── */
+@theme {
+  --text-display-xl: 3.75rem;
+  --text-display-xl--line-height: 1;
+  --text-display-xl--letter-spacing: -0.65px;
+  --text-display-xl--font-weight: 400;
+  --text-display-lg: 2.25rem;
+  --text-display-lg--line-height: 2.5rem;
+  --text-display-lg--letter-spacing: -0.9px;
+  --text-display-lg--font-weight: 400;
+  --text-display-md: 1.5rem;
+  --text-display-md--line-height: 2rem;
+  --text-display-md--letter-spacing: -0.6px;
+  --text-display-md--font-weight: 700;
+  --text-display-sm: 1.25rem;
+  --text-display-sm--line-height: 1.75rem;
+  --text-display-sm--font-weight: 600;
+  --text-eyebrow: 0.875rem;
+  --text-eyebrow--line-height: 1.25rem;
+  --text-eyebrow--letter-spacing: 2.52px;
+  --text-eyebrow--font-weight: 600;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.75rem;
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.625rem;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-code: 0.8125rem;
+  --text-code--line-height: 1.125rem;
+}
+
+:root {
+  /* Raw brand tokens — values copied from DESIGN.md `colors` */
+  --brand-primary: #00d992;
+  --brand-primary-soft: #2fd6a1;
+  --brand-primary-deep: #10b981;
+  --brand-on-primary: #101010;
+  --brand-ink: #f2f2f2;
+  --brand-ink-strong: #ffffff;
+  --brand-body: #bdbdbd;
+  --brand-mute: #8b949e;
+  --brand-hairline: #3d3a39;
+  --brand-hairline-soft: #b8b3b0;
+  --brand-canvas: #101010;
+  --brand-canvas-soft: #1a1a1a;
+  --brand-canvas-text-soft: #f5f6f7;
+
+  /* shadcn semantic mapping */
+  --background: var(--brand-canvas);
+  --foreground: var(--brand-ink);
+  --card: var(--brand-canvas);
+  --card-foreground: var(--brand-ink);
+  --popover: var(--brand-canvas-soft);
+  --popover-foreground: var(--brand-ink);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--brand-on-primary);
+  --secondary: var(--brand-canvas-soft);
+  --secondary-foreground: var(--brand-ink);
+  --muted: var(--brand-canvas-soft);
+  --muted-foreground: var(--brand-mute);
+  --accent: var(--brand-canvas-soft);
+  --accent-foreground: var(--brand-ink);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: var(--brand-hairline);
+  --input: var(--brand-hairline);
+  --ring: var(--brand-primary-soft);
+  --chart-1: var(--brand-primary);
+  --chart-2: var(--brand-primary-deep);
+  --chart-3: var(--brand-body);
+  --chart-4: var(--brand-mute);
+  --chart-5: var(--brand-hairline);
+  --radius: 0.375rem;
+  --sidebar: var(--brand-canvas);
+  --sidebar-foreground: var(--brand-ink);
+  --sidebar-primary: var(--brand-primary);
+  --sidebar-primary-foreground: var(--brand-on-primary);
+  --sidebar-accent: var(--brand-canvas-soft);
+  --sidebar-accent-foreground: var(--brand-ink);
+  --sidebar-border: var(--brand-hairline);
+  --sidebar-ring: var(--brand-primary-soft);
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  html {
+    @apply font-sans;
+    font-feature-settings: "calt", "rlig";
+  }
+  body {
+    @apply bg-background text-foreground text-body-md;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--brand-primary) 30%, transparent);
+    color: var(--brand-ink-strong);
+  }
+  input,
+  textarea {
+    caret-color: var(--brand-primary);
+  }
+  a {
+    text-underline-offset: 3px;
+  }
+  html {
+    scrollbar-color: var(--brand-hairline) var(--brand-canvas);
+  }
 }

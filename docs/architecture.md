@@ -10,7 +10,11 @@ app/
   page.tsx      # "/" — still the create-next-app template
   globals.css   # Tailwind import + theme tokens
   favicon.ico
+components/
+  ui/           # shadcn/ui components (owned source, added via the shadcn CLI)
+components.json # shadcn config
 lib/
+  utils.ts      # cn() class merging
   auth.ts       # getCurrentUserId() — verified Supabase user id
   supabase/     # auth-only clients: server.ts, client.ts, proxy.ts (session refresh)
   db/           # Drizzle: schema.ts (tables), index.ts (db client)
@@ -21,7 +25,7 @@ public/         # static assets served from "/" (template SVGs)
 next.config.ts  # framework config — see nextjs-16.md
 ```
 
-There are no API routes, tables, or components directory yet.
+There are no API routes or tables yet; `components/ui/` holds only `button`.
 
 ## Conventions for new code
 

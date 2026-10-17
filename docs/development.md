@@ -30,7 +30,7 @@
 
 1. `bun run lint` passes.
 2. `bun run build` passes (catches type errors and Cache Components prerender errors).
-3. For UI changes, check the page in `bun dev` in both light and dark mode.
+3. For UI changes, check the page in `bun dev` at desktop and mobile widths (the app is dark-only — see [styling.md](styling.md)).
 
 There is no test suite yet. When one is added, document it here and add the test command to the hub.
 
