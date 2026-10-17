@@ -1,34 +1,69 @@
 "use client";
 
-import { Loader2Icon, MailCheckIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2Icon, MailCheckIcon } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useActionState } from "react";
-import { signInWithEmail, type SignInState } from "@/app/auth/actions";
+import { useActionState, useState } from "react";
+import { signInWithEmail, signInWithPassword, type SignInState } from "@/app/auth/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 
+// "link" emails a magic link; the other two use a password.
+type Mode = "link" | "sign-in" | "sign-up";
+type FormState = SignInState & { mode?: Mode };
+
+const SUBMIT: Record<Mode, string> = {
+  link: "Email me a sign-in link",
+  "sign-in": "Sign in",
+  "sign-up": "Create account",
+};
+
+async function submit(prev: FormState, formData: FormData): Promise<FormState> {
+  const mode = formData.get("intent") as Mode;
+  const result =
+    mode === "link" ? await signInWithEmail(prev, formData) : await signInWithPassword(prev, formData);
+  return { ...result, mode };
+}
+
+function Sent({ title, email, body }: { title: string; email: string; body: string }) {
+  return (
+    <div className="flex flex-col gap-3" role="status">
+      <MailCheckIcon className="size-6 text-primary" aria-hidden />
+      <h2 className="text-display-sm text-ink">{title}</h2>
+      <p className="text-body-md text-body">
+        We sent a link to <span className="text-ink">{email}</span>. {body}
+      </p>
+    </div>
+  );
+}
+
 export function SignInForm() {
-  const [state, action, pending] = useActionState<SignInState, FormData>(signInWithEmail, { status: "idle" });
+  const [state, action, pending] = useActionState<FormState, FormData>(submit, { status: "idle" });
   const linkFailed = useSearchParams().get("error") === "link";
+  const [mode, setMode] = useState<Mode>("link");
+  // Controlled so a failed attempt or a mode switch never clears what was typed.
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   if (state.status === "sent") {
-    return (
-      <div className="flex flex-col gap-3" role="status">
-        <MailCheckIcon className="size-6 text-primary" aria-hidden />
-        <h2 className="text-display-sm text-ink">Check your inbox</h2>
-        <p className="text-body-md text-body">
-          We sent a sign-in link to <span className="text-ink">{state.message}</span>. Open it on this device to keep
-          the films you’ve picked so far.
-        </p>
-      </div>
-    );
+    return <Sent title="Check your inbox" email={state.message!} body="Open it on this device to keep the films you’ve picked so far." />;
+  }
+  if (state.status === "confirm") {
+    return <Sent title="Confirm your email" email={state.message!} body="Open it on this device to finish creating your account." />;
   }
 
-  const error = state.status === "error" ? state.message : linkFailed ? "That link expired or was already used. Send a new one." : null;
+  // Only show an error from the mode the user is looking at.
+  const failed = state.status === "error" && state.mode === mode;
+  const error = failed ? state.message : mode === "link" && linkFailed ? "That link expired or was already used. Send a new one." : null;
+  const emailError = error && (!failed || state.field !== "password") ? error : null;
+  const passwordError = failed && state.field === "password" ? error : null;
+  const usesPassword = mode !== "link";
 
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
+      <input type="hidden" name="intent" value={mode} />
       <div className="flex flex-col gap-2">
         <Label htmlFor="email" className="text-body-sm text-body">
           Email
@@ -37,24 +72,110 @@ export function SignInForm() {
           id="email"
           name="email"
           type="email"
-          autoComplete="email"
+          autoComplete={usesPassword ? "username" : "email"}
+          inputMode="email"
           required
           placeholder="you@example.com"
-          aria-invalid={error ? true : undefined}
-          aria-describedby={error ? "email-error" : undefined}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          aria-invalid={emailError ? true : undefined}
+          aria-describedby={emailError ? "email-error" : undefined}
           className="h-11 bg-muted px-4 text-body-md"
         />
-        {error && (
-          <p id="email-error" className="text-body-sm text-destructive">
-            {error}
+        {emailError && (
+          <p id="email-error" role="alert" className="text-body-sm text-destructive">
+            {emailError}
           </p>
         )}
       </div>
+
+      {usesPassword && (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="password" className="text-body-sm text-body">
+            Password
+          </Label>
+          <InputGroup className="h-11 bg-muted dark:bg-muted">
+            <InputGroupInput
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
+              autoFocus
+              required
+              minLength={mode === "sign-up" ? 8 : undefined}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={passwordError ? true : undefined}
+              aria-describedby={passwordError ? "password-error" : mode === "sign-up" ? "password-hint" : undefined}
+              className="h-full px-4 text-body-md"
+            />
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                size="icon-sm"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+          {passwordError ? (
+            <p id="password-error" role="alert" className="text-body-sm text-destructive">
+              {passwordError}
+            </p>
+          ) : (
+            mode === "sign-up" && (
+              <p id="password-hint" className="text-body-sm text-mute">
+                At least 8 characters.
+              </p>
+            )
+          )}
+        </div>
+      )}
+
       <Button type="submit" disabled={pending}>
         {pending && <Loader2Icon className="animate-spin" />}
-        Email me a sign-in link
+        {SUBMIT[mode]}
       </Button>
-      <p className="text-caption text-mute">No password. Films you picked before signing in move to your account.</p>
+
+      {usesPassword ? (
+        <div className="flex flex-col items-start gap-1">
+          <p className="text-body-sm text-body">
+            {mode === "sign-in" ? "New here?" : "Already have an account?"}
+            <Button
+              type="button"
+              variant="ghostGreen"
+              size="sm"
+              className="h-8 px-1.5 text-body-sm"
+              onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
+            >
+              {mode === "sign-in" ? "Create an account" : "Sign in"}
+            </Button>
+          </p>
+          <Button
+            type="button"
+            variant="ghostGreen"
+            size="sm"
+            className="-ml-1.5 h-8 px-1.5 text-body-sm"
+            onClick={() => setMode("link")}
+          >
+            {mode === "sign-in" ? "Forgot it? Email me a link" : "Email me a link instead"}
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="ghostGreen"
+          size="sm"
+          className="-ml-1.5 h-8 self-start px-1.5 text-body-sm"
+          onClick={() => setMode("sign-in")}
+        >
+          Use a password instead
+        </Button>
+      )}
+
+      <p className="text-caption text-mute">Films you picked before signing in move to your account.</p>
     </form>
   );
 }
