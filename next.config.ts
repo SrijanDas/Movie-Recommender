@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   partialPrefetching: true,
+  images: {
+    // TMDB posters (see lib/tmdb/images.ts).
+    remotePatterns: [
+      { protocol: "https", hostname: "image.tmdb.org", port: "", pathname: "/t/p/**", search: "" },
+    ],
+  },
   turbopack: {
     rules: {
       "*.css": {

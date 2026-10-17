@@ -37,3 +37,7 @@ Don't create tables in the Supabase dashboard or with `supabase migration` — s
 `DATABASE_URL` is Supabase's **transaction pooler** string (Dashboard → Connect → Transaction pooler, port `6543`). The client sets `prepare: false` because that pooler doesn't support prepared statements. If drizzle-kit has trouble migrating through it, run migrations against the session pooler (port `5432`) instead.
 
 drizzle-kit loads `.env.local` through `@next/env`, the same way Next does.
+
+## CI
+
+[.github/workflows/migrate.yml](../.github/workflows/migrate.yml) runs `bun run db:migrate` on every push to `main` that touches `drizzle/`, `lib/db/schema.ts`, or `drizzle.config.ts` (and on manual dispatch). It reads the `DATABASE_URL` repo secret. Use the session pooler string (port `5432`) there. Commit generated migrations with the schema change, because CI only applies them and never generates them.

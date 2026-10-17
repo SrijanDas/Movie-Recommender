@@ -12,6 +12,8 @@
 | `lib/supabase/client.ts` | `createClient()` for Client Components (sign-in forms, OAuth buttons, sign-out). |
 | `lib/supabase/proxy.ts` + `proxy.ts` | Refreshes the session cookie on every non-static request. |
 | `lib/auth.ts` | `getCurrentUserId()` — verified user id (`claims.sub`) or `null`. |
+| `app/sign-in/page.tsx` + `app/auth/actions.ts` | Email magic link (`signInWithOtp`) and `signOut`. |
+| `app/auth/confirm/route.ts` | Magic-link landing: handles `code` (PKCE) and `token_hash` links, then merges the anonymous cookie list into the account. |
 
 ## Rules
 
@@ -21,5 +23,10 @@
 - `proxy.ts` must return the response built by `updateSession` (or copy its cookies and cache headers onto yours). Don't add a second session-refresh path; refresh tokens are single-use.
 - Next.js 16 uses `proxy.ts` / `export function proxy` — not `middleware.ts`.
 - Only the publishable key is used. Never put a secret/`service_role` key in a `NEXT_PUBLIC_` var.
+
+## Setup
+
+- Supabase dashboard → Authentication → URL Configuration: add `http://localhost:3000/auth/confirm` (and the production URL) to the redirect allow list.
+- Optional `NEXT_PUBLIC_SITE_URL` sets the magic-link origin; otherwise the request's `Origin` header is used.
 
 Docs: https://supabase.com/docs/guides/auth/server-side/nextjs

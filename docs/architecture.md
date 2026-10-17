@@ -6,26 +6,29 @@
 
 ```
 app/
-  layout.tsx    # root layout: <html>/<body>, Geist fonts, globals.css
-  page.tsx      # "/" — still the create-next-app template
-  globals.css   # Tailwind import + theme tokens
-  favicon.ico
+  layout.tsx          # root layout: header, footer (TMDB attribution), toaster
+  page.tsx            # "/" — favourites picker (starter grid + search, min 3)
+  recommendations/    # "/recommendations" — poster grid with reasons + feedback
+  my-movies/          # "/my-movies" — edit the list, add liked films
+  sign-in/            # "/sign-in" — email magic link
+  auth/confirm/       # route handler: finishes sign-in, merges the anonymous list
+  auth/actions.ts     # signInWithEmail, signOut
+  actions.ts          # movie Server Actions (search, favourites, like, feedback, remove)
 components/
-  ui/           # shadcn/ui components (owned source, added via the shadcn CLI)
-components.json # shadcn config
+  ui/                 # shadcn components (restyled to DESIGN.md)
+  movies/             # poster, search, favourites picker, recommendation card, list controls
+  site/               # header, nav, sign-in form
 lib/
-  utils.ts      # cn() class merging
-  auth.ts       # getCurrentUserId() — verified Supabase user id
-  supabase/     # auth-only clients: server.ts, client.ts, proxy.ts (session refresh)
-  db/           # Drizzle: schema.ts (tables), index.ts (db client)
-drizzle/        # generated SQL migrations
-proxy.ts        # Next 16 proxy — refreshes the Supabase session
-drizzle.config.ts
-public/         # static assets served from "/" (template SVGs)
-next.config.ts  # framework config — see nextjs-16.md
+  auth.ts             # getCurrentUserId() — verified Supabase user id
+  supabase/           # auth-only clients: server.ts, client.ts, proxy.ts (session refresh)
+  db/                 # Drizzle: schema.ts (tables), index.ts (db client)
+  tmdb/               # TMDB client, types, image helpers
+  recommend/          # recommendation engine (pure functions + candidate gathering)
+  movies/store.ts     # user list: Postgres when signed in, cookie when not
+drizzle/              # generated SQL migrations
+proxy.ts              # Next 16 proxy — refreshes the Supabase session
+next.config.ts        # framework config — see nextjs-16.md
 ```
-
-There are no API routes or tables yet; `components/ui/` holds only `button`.
 
 ## Conventions for new code
 
@@ -40,11 +43,12 @@ There are no API routes or tables yet; `components/ui/` holds only `button`.
 
 - **Auth:** Supabase Auth only → [auth.md](auth.md)
 - **Persistence:** Supabase Postgres through Drizzle ORM (no Supabase Data API) → [database.md](database.md)
+- **Movie data:** TMDB API → [recommendations.md](recommendations.md)
+- **Recommendation approach:** weighted content-based scoring with explained reasons → [recommendations.md](recommendations.md)
+- **Anonymous use:** lists live in a cookie until sign-in, then merge into Postgres → [recommendations.md](recommendations.md)
 
 ## Open decisions
 
 Record the choice here (and add a spoke if it's substantial) once made:
 
-- Movie data source (e.g. TMDB, OMDb, local dataset)
-- Recommendation approach (content-based, collaborative filtering, LLM-assisted)
 - Test framework

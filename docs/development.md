@@ -36,7 +36,14 @@ There is no test suite yet. When one is added, document it here and add the test
 
 ## Environment variables
 
-Put secrets in `.env.local` (gitignored via `.env*`). Only `NEXT_PUBLIC_`-prefixed variables are exposed to the browser. List each required variable here when introduced.
+Put secrets in `.env.local` (gitignored via `.env*`). Only `NEXT_PUBLIC_`-prefixed variables are exposed to the browser.
+
+| Variable | Used for |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase auth ([auth.md](auth.md)) |
+| `DATABASE_URL` | Drizzle / Postgres, transaction pooler string ([database.md](database.md)) |
+| `TMDB_API_TOKEN` | TMDB API read access token ([recommendations.md](recommendations.md)) |
+| `NEXT_PUBLIC_SITE_URL` (optional) | Origin used in magic-link emails |
 
 | Variable | Used by |
 | --- | --- |

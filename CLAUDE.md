@@ -1,6 +1,8 @@
 # movie-recom
 
-Movie recommendation web app. **Status:** freshly scaffolded with `create-next-app` — Supabase auth and Drizzle are wired up, but there are no tables, product features, or tests yet. `app/page.tsx` is still the template landing page.
+Movie recommendation web app. **Status:** MVP built: favourites picker (min 3), recommendations with reasons and feedback, a "My films" page, and magic-link sign-in. Movie data comes from TMDB. There is no test suite.
+
+**What we're building and why:** [PRODUCT.md](PRODUCT.md). Read it before changing product behaviour.
 
 This file is the **hub**: it holds the rules that apply to every task and links to **spoke** docs in [docs/](docs/) for detail. Read the spoke that matches your task before changing code in that area.
 
@@ -22,10 +24,11 @@ This file is the **hub**: it holds the rules that apply to every task and links 
 4. **Server Components by default.** Add `"use client"` only for interactivity or browser APIs.
 5. **Import via the `@/` alias** (maps to the repo root).
 6. **Supabase is for auth only; all data access goes through Drizzle.** See [docs/auth.md](docs/auth.md) and [docs/database.md](docs/database.md).
-7. **[DESIGN.md](DESIGN.md) is the design system.** All UI follows its tokens and component specs; it wins over existing code.
-8. **Use shadcn/ui components; don't build components from scratch.** Install with `bunx --bun shadcn@latest add <name>` and compose/restyle them. See [docs/styling.md](docs/styling.md).
-9. **Always use the `/impeccable` skill for UI generation** — new screens, components, and visual changes.
-10. Run `bun run lint` and `bun run build` before declaring work done — there is no test suite yet.
+7. **Mobile-first, always.** Design every screen for a ~390px phone first, then scale up. Keep flows simple: tap over type, one obvious next step.
+8. **[DESIGN.md](DESIGN.md) is the design system.** All UI follows its tokens and component specs; it wins over existing code.
+9. **Use shadcn/ui components; don't build components from scratch.** Install with `bunx --bun shadcn@latest add <name>` and compose/restyle them. See [docs/styling.md](docs/styling.md).
+10. **Always use the `/impeccable` skill for UI generation** — new screens, components, and visual changes.
+11. Run `bun run lint` and `bun run build` before declaring work done — there is no test suite yet.
 
 ## Commands
 
@@ -47,6 +50,7 @@ bun run db:migrate   # apply migrations
 | [docs/nextjs-16.md](docs/nextjs-16.md) | touching `next.config.ts`, caching, prefetching, layouts/pages typing |
 | [docs/styling.md](docs/styling.md) | writing any UI: DESIGN.md → token mapping, adding shadcn components, type scale, radius |
 | [docs/auth.md](docs/auth.md) | touching sign-in/out, sessions, `proxy.ts`, or checking who the user is |
+| [docs/recommendations.md](docs/recommendations.md) | touching TMDB calls, the recommendation engine, its weights, or the user's movie list |
 | [docs/database.md](docs/database.md) | adding tables, writing queries, or running migrations |
 | [docs/development.md](docs/development.md) | setting up, running, linting, building, or managing dependencies |
 
