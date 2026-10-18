@@ -20,7 +20,19 @@ export type RatedMovie = {
   // Favourites only: 0 is the film the user loves most. Null/undefined for
   // other signals, or for favourites saved before ranking existed.
   rank?: number | null;
+  // Favourites only: the "Seen it" answer it also carries (one of
+  // SEEN_ANSWERS). Null/undefined for other signals.
+  seenSignal?: Signal | null;
 };
+
+// The answers to "Seen it", worst to best. A favourite carries one in
+// seenSignal (DEFAULT_SEEN_ANSWER when it was never answered) and turns back
+// into it when it leaves the favourites.
+export const SEEN_ANSWERS = ["quit", "no_rewatch", "up", "liked", "peak"] as const;
+export type SeenAnswer = (typeof SEEN_ANSWERS)[number];
+export const DEFAULT_SEEN_ANSWER: SeenAnswer = "peak";
+export const isSeenAnswer = (signal: Signal | null | undefined): signal is SeenAnswer =>
+  SEEN_ANSWERS.includes(signal as SeenAnswer);
 
 // Picks needed before we recommend anything.
 export const MIN_FAVORITES = 3;

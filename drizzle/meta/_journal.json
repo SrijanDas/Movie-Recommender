@@ -50,6 +50,13 @@
       "when": 1792314317434,
       "tag": "0006_someday_and_peak",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792320631223,
+      "tag": "0007_favorite_seen_signal",
+      "breakpoints": true
     }
   ]
 }

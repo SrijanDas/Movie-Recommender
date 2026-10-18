@@ -35,6 +35,9 @@ import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 type Filter = "all" | Feedback;
 type Tab = "favorites" | "seen";
 
+// A film's "Seen it" answer. A favourite carries its own in seenSignal.
+const answerOf = (m: ListedMovie) => (m.signal === "favorite" ? m.seenSignal : m.signal);
+
 // Removing a seen film undoes its answer, so ask first.
 function ConfirmRemoveButton({ movie }: { movie: ListedMovie }) {
   const [open, setOpen] = useState(false);
@@ -63,6 +66,7 @@ function ConfirmRemoveButton({ movie }: { movie: ListedMovie }) {
         <div className="flex flex-col gap-2">
           <DialogTitle className="text-display-sm text-ink-strong">Remove {movie.title}?</DialogTitle>
           <DialogDescription className="text-body-sm text-body">
+            {movie.signal === "favorite" && "It also leaves your favourites. "}
             Your answer for it stops shaping your recommendations, and it may be recommended again.
           </DialogDescription>
         </div>
@@ -102,12 +106,14 @@ function FavoritesList({ favorites }: { favorites: ListedMovie[] }) {
 }
 
 // A seen film: change how it was, make it a favourite, or remove it. The new
-// answer shows at once; the refresh then moves it between the filters.
+// answer shows at once; the refresh then moves it between the filters. A
+// favourite shows a filled star; it leaves the favourites from their Edit page.
 function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: boolean }) {
   const router = useRouter();
   const [rating, startRating] = useTransition();
   const [promoting, startPromoting] = useTransition();
-  const [answer, setAnswer] = useOptimistic(movie.signal, (_, next: Feedback) => next);
+  const isFavorite = movie.signal === "favorite";
+  const [answer, setAnswer] = useOptimistic(answerOf(movie), (_, next: Feedback) => next);
   const current = ANSWERS.some((a) => a.feedback === answer) ? (answer as Feedback) : null;
   const rate = (feedback: Feedback) =>
     startRating(async () => {
@@ -118,6 +124,12 @@ function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: 
       router.refresh();
     });
   const promote = () => {
+    if (isFavorite) {
+      toast(`${movie.title} is one of your favourites`, {
+        action: { label: "Edit", onClick: () => router.push("/my-movies/favourites") },
+      });
+      return;
+    }
     if (favoritesFull) {
       toast(`You have ${MAX_FAVORITES} favourites. Remove one to add another.`);
       return;
@@ -133,13 +145,13 @@ function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: 
       <Button
         variant="ghost"
         size="icon-lg"
-        className="text-mute hover:text-primary-soft"
-        aria-label={`Make ${movie.title} a favourite`}
-        title="Make a favourite"
+        className={isFavorite ? "text-primary-soft" : "text-mute hover:text-primary-soft"}
+        aria-label={isFavorite ? `${movie.title} is a favourite` : `Make ${movie.title} a favourite`}
+        title={isFavorite ? "One of your favourites" : "Make a favourite"}
         disabled={rating || promoting}
         onClick={promote}
       >
-        {promoting ? <Loader2Icon className="animate-spin" /> : <StarIcon />}
+        {promoting ? <Loader2Icon className="animate-spin" /> : <StarIcon className={isFavorite ? "fill-current" : undefined} />}
       </Button>
       <ConfirmRemoveButton movie={movie} />
     </FilmRow>
@@ -169,13 +181,14 @@ export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters:
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
   const room = Math.max(0, MAX_FAVORITES - favorites.length);
-  // Newest first. "Seen it" holds every film you've watched and answered for
-  // (legacy "seen" rows show only under All). "Not interested" (down),
-  // "Might watch someday" and watchlist films weren't seen and aren't listed here.
-  const unseen = new Set(["favorite", "down", "someday", "watchlist"]);
+  // Newest first. "Seen it" holds every film you've watched and answered for,
+  // favourites included (legacy "seen" rows show only under All). "Not
+  // interested" (down), "Might watch someday" and watchlist films weren't seen
+  // and aren't listed here.
+  const unseen = new Set(["down", "someday", "watchlist"]);
   const seen = movies.filter((m) => !unseen.has(m.signal)).reverse();
-  const countOf = (f: Filter) => (f === "all" ? seen.length : seen.filter((m) => m.signal === f).length);
-  const shown = filter === "all" ? seen : seen.filter((m) => m.signal === filter);
+  const countOf = (f: Filter) => (f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length);
+  const shown = filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
 
   return (
     <div className="flex flex-col gap-6">

@@ -35,6 +35,9 @@ export const userMovies = pgTable(
     // Null for every other signal, and for favourites saved before ranking
     // existed, which then sort by created_at.
     rank: smallint("rank"),
+    // Favourites only: the "Seen it" answer it also carries (a favourite was
+    // seen, so it lists under Seen it too). Null for every other signal.
+    seenSignal: movieSignal("seen_signal"),
     // Display snapshot so lists render without a TMDB round-trip.
     title: text("title").notNull(),
     posterPath: text("poster_path"),

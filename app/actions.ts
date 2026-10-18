@@ -9,10 +9,17 @@ import {
   getUserMovies,
   putMovies,
   rankFavorites,
+  unfavoriteMovies,
   type UserMovie,
 } from "@/lib/movies/store";
 import { markOnboarded } from "@/lib/onboarding";
-import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
+import {
+  DEFAULT_SEEN_ANSWER,
+  isSeenAnswer,
+  MAX_FAVORITES,
+  MIN_FAVORITES,
+  type SeenAnswer,
+} from "@/lib/recommend/types";
 import { searchMovies } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
@@ -56,6 +63,14 @@ async function failure(error: unknown): Promise<ActionResult> {
   return { ok: false, error: "Something went wrong talking to the movie database. Try again." };
 }
 
+// The "Seen it" answer a film keeps once it's a favourite: the one it already
+// has, or DEFAULT_SEEN_ANSWER.
+function seenAnswerOf(movie: UserMovie | undefined): SeenAnswer {
+  if (isSeenAnswer(movie?.signal)) return movie.signal;
+  if (isSeenAnswer(movie?.seenSignal)) return movie.seenSignal;
+  return DEFAULT_SEEN_ANSWER;
+}
+
 function done(): ActionResult {
   revalidatePath("/", "layout");
   return { ok: true };
@@ -82,8 +97,8 @@ export async function searchMoviesAction(query: unknown): Promise<SearchResult[]
 }
 
 // Onboarding: save the favourites picked, in the order picked (first =
-// loved most), and mark onboarding done. Favourites that were unpicked are
-// removed; other signals (likes, feedback) are left alone.
+// loved most), and mark onboarding done. Favourites that were unpicked go
+// back to their "Seen it" answer; other signals (likes, feedback) are left alone.
 export async function setFavorites(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
@@ -106,10 +121,11 @@ export async function setFavorites(ids: unknown): Promise<ActionResult> {
       tmdbId,
       signal: "favorite",
       rank: i,
+      seenSignal: seenAnswerOf(current.find((m) => m.tmdbId === tmdbId)),
       ...snapshots[i]!,
     }));
 
-    await deleteMovies(userId, unpicked);
+    await unfavoriteMovies(userId, unpicked);
     await putMovies(userId, favorites);
     await markOnboarded(userId);
     return done();
@@ -119,7 +135,8 @@ export async function setFavorites(ids: unknown): Promise<ActionResult> {
 }
 
 // Save an edit of the favourites list: `ids` are the favourites to keep, in
-// order (first = loved most); any favourite left out is removed.
+// order (first = loved most); any favourite left out goes back to its "Seen
+// it" answer.
 export async function saveFavoritesEdit(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
@@ -144,13 +161,14 @@ export async function saveFavoritesEdit(ids: unknown): Promise<ActionResult> {
 
 // Make these films favourites, appended in this order to the bottom of the
 // list, up to MAX_FAVORITES in all. Each may already be in the list under
-// another signal (from "Seen it") or be new.
+// another signal (from "Seen it"), whose answer it keeps, or be new.
 export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
   if (!isIdList(ids) || ids.length === 0) return { ok: false, error: "Unknown movie." };
   try {
-    const favorites = (await getUserMovies(userId)).filter((m) => m.signal === "favorite");
+    const current = await getUserMovies(userId);
+    const favorites = current.filter((m) => m.signal === "favorite");
     const fresh = ids.filter((id) => !favorites.some((m) => m.tmdbId === id));
     if (favorites.length + fresh.length > MAX_FAVORITES) {
       return { ok: false, error: `You can have ${MAX_FAVORITES} favourites. Remove one to add another.` };
@@ -160,7 +178,13 @@ export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
     const next = favorites.reduce((max, m) => Math.max(max, m.rank ?? -1), -1) + 1;
     await putMovies(
       userId,
-      fresh.map((tmdbId, i) => ({ tmdbId, signal: "favorite", rank: next + i, ...snapshots[i]! })),
+      fresh.map((tmdbId, i) => ({
+        tmdbId,
+        signal: "favorite",
+        rank: next + i,
+        seenSignal: seenAnswerOf(current.find((m) => m.tmdbId === tmdbId)),
+        ...snapshots[i]!,
+      })),
     );
     return done();
   } catch (error) {
@@ -203,7 +227,13 @@ export async function rateRecommendation(id: unknown, feedback: unknown): Promis
   try {
     const snapshot = await getSnapshot(id);
     if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
-    await putMovies(userId, [{ tmdbId: id, signal: feedback as Feedback, ...snapshot }]);
+    // A favourite stays a favourite; a "Seen it" answer only changes the one it carries.
+    const existing = (await getUserMovies(userId)).find((m) => m.tmdbId === id);
+    const movie: UserMovie =
+      existing?.signal === "favorite" && isSeenAnswer(feedback as Feedback)
+        ? { ...existing, ...snapshot, seenSignal: feedback as SeenAnswer }
+        : { tmdbId: id, signal: feedback as Feedback, ...snapshot };
+    await putMovies(userId, [movie]);
     // No revalidation: the recommendations page removes just this card and
     // recomputes only when the user taps Refresh.
     return { ok: true };

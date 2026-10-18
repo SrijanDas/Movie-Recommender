@@ -1,8 +1,9 @@
 import "server-only";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userMovies } from "@/lib/db/schema";
 import { getMovie } from "@/lib/tmdb/client";
+import { DEFAULT_SEEN_ANSWER } from "@/lib/recommend/types";
 import { releaseYear } from "@/lib/tmdb/images";
 import type { ListedMovie, MovieSnapshot, UserMovie } from "./types";
 
@@ -41,6 +42,7 @@ export async function getUserMovies(userId: string): Promise<UserMovie[]> {
     tmdbId: r.tmdbId,
     signal: r.signal,
     rank: r.rank,
+    seenSignal: r.seenSignal,
     title: r.title,
     posterPath: r.posterPath,
     year: r.year,
@@ -52,22 +54,47 @@ export async function putMovies(userId: string, movies: UserMovie[]) {
   for (const m of movies) {
     await db
       .insert(userMovies)
-      .values({ userId, ...m, rank: m.rank ?? null })
+      .values({ userId, ...m, rank: m.rank ?? null, seenSignal: m.seenSignal ?? null })
       .onConflictDoUpdate({
         target: [userMovies.userId, userMovies.tmdbId],
-        set: { signal: m.signal, rank: m.rank ?? null, title: m.title, posterPath: m.posterPath, year: m.year },
+        set: {
+          signal: m.signal,
+          rank: m.rank ?? null,
+          seenSignal: m.seenSignal ?? null,
+          title: m.title,
+          posterPath: m.posterPath,
+          year: m.year,
+        },
       });
   }
 }
 
-// Put the user's favourites in this order, deleting `removed` in the same
+// Take these films out of the favourites. Each turns back into its "Seen it"
+// answer, so it stays listed under Seen it.
+async function unfavorite(tx: Pick<typeof db, "update">, userId: string, tmdbIds: number[]) {
+  if (tmdbIds.length === 0) return;
+  await tx
+    .update(userMovies)
+    .set({
+      signal: sql`coalesce(${userMovies.seenSignal}, ${DEFAULT_SEEN_ANSWER}::movie_signal)`,
+      seenSignal: null,
+      rank: null,
+    })
+    .where(
+      and(eq(userMovies.userId, userId), eq(userMovies.signal, "favorite"), inArray(userMovies.tmdbId, tmdbIds)),
+    );
+}
+
+export async function unfavoriteMovies(userId: string, tmdbIds: number[]) {
+  await unfavorite(db, userId, tmdbIds);
+}
+
+// Put the user's favourites in this order, unfavouriting `removed` in the same
 // transaction so an edit saves all at once or not at all. Together the two
 // lists must be exactly the ids that are currently favourites.
 export async function rankFavorites(userId: string, tmdbIds: number[], removed: number[] = []) {
   await db.transaction(async (tx) => {
-    if (removed.length > 0) {
-      await tx.delete(userMovies).where(and(eq(userMovies.userId, userId), inArray(userMovies.tmdbId, removed)));
-    }
+    await unfavorite(tx, userId, removed);
     for (const [rank, tmdbId] of tmdbIds.entries()) {
       await tx
         .update(userMovies)
