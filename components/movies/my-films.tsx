@@ -30,7 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ListedMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
-import { MIN_FAVORITES } from "@/lib/recommend/types";
+import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 
 type Filter = "all" | Feedback;
 type Tab = "favorites" | "seen";
@@ -103,7 +103,7 @@ function FavoritesList({ favorites }: { favorites: ListedMovie[] }) {
 
 // A seen film: change how it was, make it a favourite, or remove it. The new
 // answer shows at once; the refresh then moves it between the filters.
-function SeenRow({ movie }: { movie: ListedMovie }) {
+function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: boolean }) {
   const router = useRouter();
   const [rating, startRating] = useTransition();
   const [promoting, startPromoting] = useTransition();
@@ -117,11 +117,16 @@ function SeenRow({ movie }: { movie: ListedMovie }) {
       toast(ANSWERS.find((a) => a.feedback === feedback)?.ack);
       router.refresh();
     });
-  const promote = () =>
+  const promote = () => {
+    if (favoritesFull) {
+      toast(`You have ${MAX_FAVORITES} favourites. Remove one to add another.`);
+      return;
+    }
     startPromoting(async () => {
       const result = await favoriteMovies([movie.tmdbId]);
       if (result.ok) toast.success(`${movie.title} is now a favourite`);
     });
+  };
   return (
     <FilmRow movie={movie}>
       <SeenItMenu title={movie.title} current={current} onRate={rate} variant="row" disabled={rating || promoting} />
@@ -163,6 +168,7 @@ export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters:
   const known = new Set(movies.map((m) => m.tmdbId));
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
+  const room = Math.max(0, MAX_FAVORITES - favorites.length);
   // Newest first. "Seen it" holds every film you've watched and answered for
   // (legacy "seen" rows show only under All). "Not interested" (down),
   // "Might watch someday" and watchlist films weren't seen and aren't listed here.
@@ -194,7 +200,9 @@ export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters:
             <p className="min-w-0 flex-1 text-body-sm text-mute">
               {favorites.length < MIN_FAVORITES
                 ? `Pick at least ${MIN_FAVORITES} to unlock recommendations.`
-                : "Loved most at the top."}
+                : room === 0
+                  ? `Loved most at the top. ${MAX_FAVORITES} is the most; remove one to add another.`
+                  : "Loved most at the top."}
             </p>
             {favorites.length > 0 && (
               <Button
@@ -208,23 +216,26 @@ export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters:
                 Edit
               </Button>
             )}
-            <AddFilmsSheet
-              title="Add favourites"
-              description="Tap the films you love. They join the bottom of your list; you can move them up next."
-              starters={starters}
-              lockedReason={(m) => (favoriteIds.has(m.tmdbId) ? "Favourite" : null)}
-              add={async (picks) => {
-                const result = await favoriteMovies(picks.map((m) => m.tmdbId));
-                if (result.ok) {
-                  // New favourites land at the bottom; offer the shortcut to rank them.
-                  toast.success(filmsAdded(picks.length), {
-                    description: "Added at the bottom of your list.",
-                    action: { label: "Rank them", onClick: () => router.push("/my-movies/favourites") },
-                  });
-                }
-                return result.ok;
-              }}
-            />
+            {room > 0 && (
+              <AddFilmsSheet
+                title="Add favourites"
+                description="Tap the films you love. They join the bottom of your list; you can move them up next."
+                starters={starters}
+                lockedReason={(m) => (favoriteIds.has(m.tmdbId) ? "Favourite" : null)}
+                max={room}
+                add={async (picks) => {
+                  const result = await favoriteMovies(picks.map((m) => m.tmdbId));
+                  if (result.ok) {
+                    // New favourites land at the bottom; offer the shortcut to rank them.
+                    toast.success(filmsAdded(picks.length), {
+                      description: "Added at the bottom of your list.",
+                      action: { label: "Rank them", onClick: () => router.push("/my-movies/favourites") },
+                    });
+                  }
+                  return result.ok;
+                }}
+              />
+            )}
           </div>
           <FavoritesList favorites={favorites} />
         </TabsContent>
@@ -272,7 +283,7 @@ export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters:
           ) : (
             <ul className="divide-y divide-border border-y border-border">
               {shown.map((m) => (
-                <SeenRow key={m.tmdbId} movie={m} />
+                <SeenRow key={m.tmdbId} movie={m} favoritesFull={room === 0} />
               ))}
             </ul>
           )}

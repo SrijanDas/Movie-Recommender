@@ -17,7 +17,7 @@ Casual to avid movie watchers who know the films they love but struggle to pick 
 ## Core flows
 
 1. **Land and sign up.** A landing page explains the app; everything else needs an account. Sign-up asks one thing per screen: name, then email, then password. Sign-in is email + password, with an email link as a fallback. There is no anonymous mode.
-2. **Pick films you love (onboarding).** The first and only onboarding step: tap favourites from a ready-made grid of well-known films, or search for any film. At least 3 (up to 10) unlock recommendations; My films can add more favourites later, with no cap. Shown once; afterwards favourites are edited on My films.
+2. **Pick films you love (onboarding).** The first and only onboarding step: tap favourites from a ready-made grid of well-known films, or search for any film. At least 3 (up to 10) unlock recommendations; My films can add more favourites later, up to 10 in all. Shown once; afterwards favourites are edited on My films.
 3. **Get recommendations.** See a grid of films, each with the reasons it was picked ("Directed by Denis Villeneuve", "Stars Amy Adams"), plus a search bar to open any film. Tap one for its details: overview, director, cast, trailer, and where to watch it in your country (stream, free, rent or buy).
 4. **Give feedback or save for later.** Under each recommendation: "Seen it" (then say how it was: "Left midway", "Would not rewatch", "Kinda liked it", "Good movie" or "Peak"), and a bookmark icon to add it to the watchlist. A ⋯ menu on the poster's corner offers "Not interested" (fewer like it) and "Might watch someday" (hides it, taste unchanged).
 5. **Watchlist.** Films saved for later, newest first. Say how one was once you've watched it, and it moves to My films.

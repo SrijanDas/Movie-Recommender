@@ -2,27 +2,36 @@
 
 import { Loader2Icon, PlusIcon, XIcon } from "lucide-react";
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import type { SearchResult } from "@/app/actions";
 import { FilmGrid } from "@/components/movies/favorites-picker";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 // What the sheet is adding to. `add` saves the picks (in tap order) and
-// resolves true once they're saved.
+// resolves true once they're saved. `max` caps how many can be picked.
 type Props = {
   title: string;
   description: string;
   starters: SearchResult[];
   lockedReason: (movie: SearchResult) => string | null;
   add: (picks: SearchResult[]) => Promise<boolean>;
+  max?: number;
 };
 
-function Picker({ title, description, starters, lockedReason, add, onDone }: Props & { onDone: () => void }) {
+function Picker({ title, description, starters, lockedReason, add, max, onDone }: Props & { onDone: () => void }) {
   const [picked, setPicked] = useState<SearchResult[]>([]);
   const [pending, startTransition] = useTransition();
 
-  const toggle = (movie: SearchResult) =>
-    setPicked((p) => (p.some((m) => m.tmdbId === movie.tmdbId) ? p.filter((m) => m.tmdbId !== movie.tmdbId) : [...p, movie]));
+  const toggle = (movie: SearchResult) => {
+    if (picked.some((m) => m.tmdbId === movie.tmdbId)) {
+      setPicked(picked.filter((m) => m.tmdbId !== movie.tmdbId));
+    } else if (max !== undefined && picked.length >= max) {
+      toast("That fills your list. Unpick one to swap it.");
+    } else {
+      setPicked([...picked, movie]);
+    }
+  };
 
   const submit = () =>
     startTransition(async () => {
@@ -52,7 +61,8 @@ function Picker({ title, description, starters, lockedReason, add, onDone }: Pro
             "Tap films to pick them"
           ) : (
             <>
-              <span className="font-semibold text-ink">{picked.length}</span> picked
+              <span className="font-semibold text-ink">{picked.length}</span>
+              {max !== undefined && ` of ${max}`} picked
             </>
           )}
         </p>

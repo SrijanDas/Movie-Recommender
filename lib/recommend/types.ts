@@ -24,8 +24,8 @@ export type RatedMovie = {
 
 // Picks needed before we recommend anything.
 export const MIN_FAVORITES = 3;
-// Onboarding caps its picks here; My films can add favourites past it.
-export const MAX_ONBOARDING_FAVORITES = 10;
+// The most favourites a list can hold, at onboarding and in My films.
+export const MAX_FAVORITES = 10;
 
 // The attributes a movie is compared on, most important first.
 export const DIMENSIONS = [

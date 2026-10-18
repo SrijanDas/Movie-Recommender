@@ -10,7 +10,7 @@ import { saveFavorites } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { useMovieSearch } from "@/components/movies/use-movie-search";
 import { Button } from "@/components/ui/button";
-import { MAX_ONBOARDING_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
+import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
 
 function Tile({
@@ -163,8 +163,8 @@ export function FavoritesPicker({
   const toggle = (movie: SearchResult) => {
     if (picked.some((m) => m.tmdbId === movie.tmdbId)) {
       setPicked(picked.filter((m) => m.tmdbId !== movie.tmdbId));
-    } else if (picked.length >= MAX_ONBOARDING_FAVORITES) {
-      toast(`That’s ${MAX_ONBOARDING_FAVORITES}. Unpick one to swap it.`);
+    } else if (picked.length >= MAX_FAVORITES) {
+      toast(`That’s ${MAX_FAVORITES}. Unpick one to swap it.`);
     } else {
       setPicked([...picked, movie]);
     }
@@ -182,7 +182,7 @@ export function FavoritesPicker({
       <div className="flex flex-col gap-2">
         <h1 className="text-display-md text-ink-strong md:text-display-lg">Pick films you love</h1>
         <p className="text-body-md text-body">
-          Tap {MIN_FAVORITES} to {MAX_ONBOARDING_FAVORITES}, loved most first. We’ll match their directors, actors, genres
+          Tap {MIN_FAVORITES} to {MAX_FAVORITES}, loved most first. We’ll match their directors, actors, genres
           and themes. You can add more any time in My films.
         </p>
       </div>

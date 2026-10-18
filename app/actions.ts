@@ -12,7 +12,7 @@ import {
   type UserMovie,
 } from "@/lib/movies/store";
 import { markOnboarded } from "@/lib/onboarding";
-import { MAX_ONBOARDING_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
+import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { searchMovies } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
@@ -87,8 +87,8 @@ export async function searchMoviesAction(query: unknown): Promise<SearchResult[]
 export async function setFavorites(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
-  if (!isIdList(ids) || ids.length < MIN_FAVORITES || ids.length > MAX_ONBOARDING_FAVORITES) {
-    return { ok: false, error: `Pick between ${MIN_FAVORITES} and ${MAX_ONBOARDING_FAVORITES} different films.` };
+  if (!isIdList(ids) || ids.length < MIN_FAVORITES || ids.length > MAX_FAVORITES) {
+    return { ok: false, error: `Pick between ${MIN_FAVORITES} and ${MAX_FAVORITES} different films.` };
   }
 
   try {
@@ -143,8 +143,8 @@ export async function saveFavoritesEdit(ids: unknown): Promise<ActionResult> {
 }
 
 // Make these films favourites, appended in this order to the bottom of the
-// list. Each may already be in the list under another signal (from "Seen it")
-// or be new.
+// list, up to MAX_FAVORITES in all. Each may already be in the list under
+// another signal (from "Seen it") or be new.
 export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
@@ -152,6 +152,9 @@ export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
   try {
     const favorites = (await getUserMovies(userId)).filter((m) => m.signal === "favorite");
     const fresh = ids.filter((id) => !favorites.some((m) => m.tmdbId === id));
+    if (favorites.length + fresh.length > MAX_FAVORITES) {
+      return { ok: false, error: `You can have ${MAX_FAVORITES} favourites. Remove one to add another.` };
+    }
     const snapshots = await Promise.all(fresh.map(getSnapshot));
     if (snapshots.some((s) => !s)) return { ok: false, error: "A movie couldn't be found." };
     const next = favorites.reduce((max, m) => Math.max(max, m.rank ?? -1), -1) + 1;

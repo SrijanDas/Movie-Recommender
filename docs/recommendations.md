@@ -48,7 +48,7 @@ Weighted content-based scoring. It is deterministic and every result explains it
 
 | Signal | Weight |
 | --- | --- |
-| `favorite` | +2.5 for the favourite ranked first, falling linearly to +1.5 for the last (`FAVORITE_TOP`/`FAVORITE_BOTTOM`, `weighMovies`); the list averages +2. Order comes from `user_movies.rank` (0 = top); unranked favourites sort last by `created_at`. At least 3 (`MIN_FAVORITES`); onboarding caps its picks at 10 (`MAX_ONBOARDING_FAVORITES`), My films has no cap |
+| `favorite` | +2.5 for the favourite ranked first, falling linearly to +1.5 for the last (`FAVORITE_TOP`/`FAVORITE_BOTTOM`, `weighMovies`); the list averages +2. Order comes from `user_movies.rank` (0 = top); unranked favourites sort last by `created_at`. At least 3 (`MIN_FAVORITES`); at most 10 (`MAX_FAVORITES`), at onboarding and in My films |
 | `peak` | +1.5 ("Peak") |
 | `liked` | +1 (added on My films, or "Good movie"; was "Loved it") |
 | `up` | +0.5 ("Kinda liked it") |
