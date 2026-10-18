@@ -6,28 +6,36 @@
 
 ```
 app/
-  layout.tsx          # root layout: header, footer (TMDB attribution), toaster
-  page.tsx            # "/" — favourites picker (starter grid + search, min 3)
-  recommendations/    # "/recommendations" — poster grid with reasons + feedback
-  my-movies/          # "/my-movies" — edit the list, add liked films
-  movie/[id]/         # "/movie/:tmdbId" — film details + "Seen it" answer
-  sign-in/            # "/sign-in" — email magic link
-  auth/confirm/       # route handler: finishes sign-in, merges the anonymous list
-  auth/actions.ts     # signInWithEmail, signOut
-  actions.ts          # movie Server Actions (search, favourites, like, feedback, remove)
+  layout.tsx          # root layout: fonts, viewport/PWA meta, toaster, service worker
+  manifest.ts         # PWA manifest (start_url /recommendations); icons in public/icons, app/icon.svg, app/apple-icon.png
+  page.tsx            # "/" — public landing page (poster wall, how it works)
+  sign-in/            # "/sign-in" — email link or password (public)
+  offline/            # "/offline" — served by public/sw.js when the network is down (public)
+  onboarding/         # "/onboarding" — favourites picker; shown once, until profiles row exists
+  (app)/layout.tsx    # app shell: top bar, bottom tab bar (phones), onboarding gate
+  (app)/recommendations/  # poster grid with reasons, feedback, film search
+  (app)/watchlist/    # films saved for later
+  (app)/my-movies/    # edit the list, add liked films
+  (app)/movie/[id]/   # film details + "Seen it" answer + watchlist toggle
+  (app)/account/      # email, install the app, sign out, TMDB attribution
+  auth/confirm/       # route handler: finishes email-link sign-in
+  auth/actions.ts     # signInWithEmail, signInWithPassword, signOut
+  actions.ts          # movie Server Actions (search, favourites, like, feedback, watchlist, remove)
 components/
   ui/                 # shadcn components (restyled to DESIGN.md)
-  movies/             # poster, search, favourites picker, recommendation card, list controls
-  site/               # header, nav, sign-in form
+  movies/             # poster, search, favourites picker, recommendation card, watchlist grid, list controls
+  site/               # logo, headers, tab bar, sign-in form, PWA (service worker + install prompt)
+public/sw.js          # service worker: network-only, /offline fallback for navigations
 lib/
-  auth.ts             # getCurrentUserId() — verified Supabase user id
+  auth.ts             # getCurrentUser(), getCurrentUserId(), requireUserId(), safeNext()
+  onboarding.ts       # isOnboarded(), markOnboarded(), homeFor()
   supabase/           # auth-only clients: server.ts, client.ts, proxy.ts (session refresh)
   db/                 # Drizzle: schema.ts (tables), index.ts (db client)
   tmdb/               # TMDB client, types, image helpers
   recommend/          # recommendation engine (pure functions + candidate gathering)
-  movies/store.ts     # user list: Postgres when signed in, cookie when not
+  movies/store.ts     # the user's movie list in Postgres
 drizzle/              # generated SQL migrations
-proxy.ts              # Next 16 proxy — refreshes the Supabase session
+proxy.ts              # Next 16 proxy — refreshes the session; signed-out users only reach /, /sign-in, /offline, /auth/*
 next.config.ts        # framework config — see nextjs-16.md
 ```
 
@@ -46,7 +54,8 @@ next.config.ts        # framework config — see nextjs-16.md
 - **Persistence:** Supabase Postgres through Drizzle ORM (no Supabase Data API) → [database.md](database.md)
 - **Movie data:** TMDB API → [recommendations.md](recommendations.md)
 - **Recommendation approach:** weighted content-based scoring with explained reasons → [recommendations.md](recommendations.md)
-- **Anonymous use:** lists live in a cookie until sign-in, then merge into Postgres → [recommendations.md](recommendations.md)
+- **No anonymous use:** every app screen needs an account (`proxy.ts`), and a finished onboarding (`app/(app)/layout.tsx` → `/onboarding`).
+- **PWA:** manifest + icons + a minimal service worker (offline page only; pages are never cached). The Account tab offers install via `beforeinstallprompt`, with iOS instructions.
 
 ## Open decisions
 

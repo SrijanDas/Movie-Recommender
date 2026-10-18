@@ -16,9 +16,9 @@ How a user's films become recommendations. The product rules behind this are in 
 - **Reliability:** `tmdbFetch` allows at most 8 requests in flight per process and retries network errors, 429s and 5xx three times with backoff.
 - **Env:** `TMDB_API_TOKEN` in `.env.local`, set to the API Read Access Token (v4 bearer) from themoviedb.org → Settings → API. Never prefix it with `NEXT_PUBLIC_`. Without it, `/recommendations` shows a setup notice and search returns nothing.
 - **Caching:** `getMovie`/`getRelated`/`getStarterMovies` use `cacheLife("weeks")`; `searchMovies`/`discover` use `cacheLife("days")`. `getMovie` returns `null` for unknown ids.
-- **Starter grid:** `getStarterMovies()` returns TMDB's 40 most-voted films (`discover`, `sort_by=vote_count.desc`), i.e. the films most people have seen. The home page fetches it only after reading cookies, so the build never calls TMDB.
+- **Starter grid:** `getStarterMovies()` returns TMDB's 40 most-voted films (`discover`, `sort_by=vote_count.desc`), i.e. the films most people have seen. Onboarding and the landing page's poster wall use it, both at request time (after cookies / `connection()`), so the build never calls TMDB.
 - **Images:** posters load straight from TMDB's CDN with `unoptimized` (they're pre-sized), falling back to the title if an image fails.
-- **Terms:** the free API is non-commercial and requires the attribution shown in the site footer (`components/site/header.tsx`). Don't remove it.
+- **Terms:** the free API is non-commercial and requires visible attribution (`TmdbAttribution` in `components/site/header.tsx`, shown on the landing page, sign-in and Account). Don't remove it.
 
 ## Engine: `lib/recommend/`
 
@@ -55,10 +55,11 @@ Weighted content-based scoring. It is deterministic and every result explains it
 | `down` | −1: "Not interested" on a recommendation card (formerly "Not for me"). Counts against that film's director, cast, themes |
 | `quit` | −1.5 ("Left midway": the strongest dislike) |
 | `seen` | 0: legacy, from before "Seen it" asked how it was. Never recommended, no effect on taste |
+| `watchlist` | 0: saved for later from a card's bookmark icon or the film page. Never recommended, no effect on taste. Answering "Seen it" overwrites it, which moves the film off the watchlist |
 
-Favourites come from the home-screen picker (saved in the order picked), from "Add a favourite" on My films, or by tapping ★ on a "Seen it" row (moves the film into favourites, at the bottom). On My films the Favourites tab is ranked: ▲/▼ swap neighbours and save through `reorderFavorites` (`reorderLocalFavorites` for guests). Favourites rank as seeds too, so the top ones' related lists are always pulled.
+Favourites come from the onboarding picker (saved in the order picked; `setFavorites` also marks onboarding done), from "Add a favourite" on My films, or by tapping ★ on a "Seen it" row (moves the film into favourites, at the bottom). On My films the Favourites tab is ranked: drag to reorder, saved through `reorderFavorites`. Favourites rank as seeds too, so the top ones' related lists are always pulled.
 
-The recommendation card's poster and title open `/movie/[id]` (TMDB details, cast, trailer via `getTrailerUrl`, and the same "Seen it" menu, which shows and changes your answer). A "Not interested" button under "Seen it" saves `down` and offers Undo. The card has a single "Seen it" button; tapping it opens a dropdown asking how it was, worst to best: "Left midway / Would not rewatch / Kinda liked it / Loved it", and writes `quit`, `no_rewatch`, `up` or `liked` via `rateRecommendation`. The answers live in `components/movies/feedback.ts`; My films filters its "Seen it" list by the same answers.
+The recommendation card's poster and title open `/movie/[id]` (TMDB details, cast, trailer via `getTrailerUrl`, and the same "Seen it" menu, which shows and changes your answer). The card's action row is "Seen it" followed by two icon buttons: bookmark (`addToWatchlist`, with Undo) and "Not interested" (saves `down`, with Undo). "Seen it" tapping it opens a dropdown asking how it was, worst to best: "Left midway / Would not rewatch / Kinda liked it / Loved it", and writes `quit`, `no_rewatch`, `up` or `liked` via `rateRecommendation`. The answers live in `components/movies/feedback.ts`; My films filters its "Seen it" list by the same answers.
 
 ### Pipeline (`index.ts`)
 
@@ -67,9 +68,9 @@ The recommendation card's poster and title open `/movie/[id]` (TMDB details, cas
 3. **Score** each candidate: `Σ weight_dim × clamp(Σ profile weight of its features ÷ strongest weight in that dimension, −1, 1)`, plus `0.05 × vote_average/10`, discounted when there are fewer than 500 votes.
 4. **Reasons:** the two strongest positive matches ("Directed by …", "Stars …"), never the bare "Live action" format. Each reason carries the liked titles that share the feature.
 
-Recommendations are computed per request (dynamic, streamed behind `<Suspense>`). Acting on a card (an answer or "Not interested") removes only that card, with Undo: `rateRecommendation`/`undoRating` deliberately don't revalidate. The list is recomputed only when the user taps **Refresh** (`components/movies/recommendation-list.tsx`: `router.refresh()` signed in, a new `recommendFor` call for guests). TMDB details are cached, so repeat visits are fast; a cold first visit makes about 100 TMDB calls and takes around 6 seconds.
+Recommendations are computed per request (dynamic, streamed behind `<Suspense>`). Acting on a card (an answer or "Not interested") removes only that card, with Undo: `rateRecommendation`/`undoRating` deliberately don't revalidate. The list is recomputed only when the user taps **Refresh** (`components/movies/recommendation-list.tsx`: `router.refresh()`). TMDB details are cached, so repeat visits are fast; a cold first visit makes about 100 TMDB calls and takes around 6 seconds.
 
-`/recommendations` requires at least `MIN_FAVORITES` (3) positive films (favourite, liked or kinda liked) and otherwise sends the user back to pick more.
+`/recommendations` requires at least `MIN_FAVORITES` (3) positive films (favourite, liked or kinda liked) and otherwise links to My films to add more. Its search bar (`components/movies/film-search.tsx`) opens any film's page.
 
 ### Tuning
 
@@ -77,10 +78,6 @@ Change `DIMENSION_WEIGHTS` in `score.ts` or `signalWeight` in `profile.ts`. Keep
 
 ## User lists: `lib/movies/store.ts`
 
-One API whether or not the user is signed in:
+The `user_movies` table: one row per user and film, with its `signal` and a title/poster/year snapshot for display. See [database.md](database.md). There is no anonymous list; every user is signed in.
 
-- **Signed in:** the `user_movies` table (one row per user and film; `signal`, and a title/poster/year snapshot for display). See [database.md](database.md).
-- **Anonymous:** an httpOnly cookie `mr_list` holding `[[tmdbId, signal], …]`, capped at 100 entries.
-- `mergeCookieIntoAccount()` runs from `/auth/confirm` after sign-in. It adds cookie films the account doesn't have; rows already in the account win.
-
-Mutations are Server Actions in `app/actions.ts` (`setFavorites`, `reorderFavorites`, `addFavoriteMovie`, `addLikedMovie`, `rateRecommendation`, `removeMovie`, `searchMoviesAction`). Each validates its input and re-checks the id against TMDB before writing.
+Mutations are Server Actions in `app/actions.ts` (`setFavorites`, `reorderFavorites`, `addFavoriteMovie`, `addLikedMovie`, `rateRecommendation`, `addToWatchlist`, `undoRating`, `removeMovie`, `searchMoviesAction`), wrapped for client components by `components/movies/movie-actions.ts`. Each validates its input and re-checks the id against TMDB before writing.

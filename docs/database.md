@@ -13,6 +13,8 @@ The database is Supabase's Postgres, accessed **only** through Drizzle ORM (`dri
 | `drizzle.config.ts` | drizzle-kit config. Manages the `public` schema only. |
 | `drizzle/` | Generated SQL migrations. Commit them; don't hand-edit. |
 
+**Tables:** `user_movies` (every film a user has an opinion on, incl. the watchlist) and `profiles` (one row per user who finished onboarding; `0005_backfill_profiles.sql` is a custom migration from `drizzle-kit generate --custom` that marks pre-existing users with favourites as onboarded).
+
 ## Workflow
 
 ```bash

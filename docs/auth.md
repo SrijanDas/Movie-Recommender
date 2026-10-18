@@ -10,10 +10,11 @@
 | --- | --- |
 | `lib/supabase/server.ts` | `createClient()` for Server Components, Server Actions, Route Handlers. One per request. |
 | `lib/supabase/client.ts` | `createClient()` for Client Components (sign-in forms, OAuth buttons, sign-out). |
-| `lib/supabase/proxy.ts` + `proxy.ts` | Refreshes the session cookie on every non-static request. |
-| `lib/auth.ts` | `getCurrentUserId()` — verified user id (`claims.sub`) or `null`. |
-| `app/sign-in/page.tsx` + `app/auth/actions.ts` | Email magic link (`signInWithEmail`), password sign-in / sign-up (`signInWithPassword`, `intent=sign-up` creates the account), and `signOut`. |
-| `app/auth/confirm/route.ts` | Magic-link landing: handles `code` (PKCE) and `token_hash` links, then merges the anonymous cookie list into the account. |
+| `lib/supabase/proxy.ts` + `proxy.ts` | Refreshes the session cookie on every non-static request, and gates routes: signed-out users may only reach `/`, `/sign-in`, `/offline` and `/auth/*` (others redirect to `/sign-in?next=…`); signed-in users skip `/` and `/sign-in`. Redirects go through `redirectWithSession` so refreshed cookies survive. |
+| `lib/auth.ts` | `getCurrentUser()` / `getCurrentUserId()` — verified user (cached per request) or `null`; `requireUserId()` redirects to `/sign-in`; `safeNext()` validates `next` params. |
+| `lib/onboarding.ts` | `homeFor(userId)`: `/onboarding` until the user has a `profiles` row, then `/recommendations`. Sign-in and `/auth/confirm` send users there (or to `next` once onboarded). |
+| `app/sign-in/page.tsx` + `app/auth/actions.ts` | Email + password is the default form (`signInWithPassword`; `intent=sign-up` creates the account). Email magic link (`signInWithEmail`) is the fallback ("Forgot it? Email me a link"), and the form opens on it after an expired link (`?error=link`). Plus `signOut`. |
+| `app/auth/confirm/route.ts` | Magic-link landing: handles `code` (PKCE) and `token_hash` links, then redirects to `homeFor(user)`. |
 
 ## Rules
 

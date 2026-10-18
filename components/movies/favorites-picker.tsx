@@ -2,15 +2,13 @@
 
 import { CheckIcon, Loader2Icon, SearchIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { SearchResult } from "@/app/actions";
 import { saveFavorites } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { useMovieSearch } from "@/components/movies/use-movie-search";
 import { Button } from "@/components/ui/button";
-import { useLocalMovies } from "@/lib/movies/local";
-import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
 
@@ -61,20 +59,14 @@ function Tile({
 
 export function FavoritesPicker({
   starters,
-  signedIn,
   saved,
 }: {
   starters: SearchResult[];
-  signedIn: boolean;
-  // Favourites from the account; guests' come from localStorage.
+  // Favourites already in the account, if any.
   saved: SearchResult[];
 }) {
-  const local = useLocalMovies();
-  const localFavorites = useMemo(() => favoritesInOrder(local ?? []), [local]);
-  // Until the user changes something, show what's saved.
-  const [edited, setEdited] = useState<SearchResult[] | null>(null);
-  const picked = edited ?? (signedIn ? saved : localFavorites);
-  const setPicked = (update: (p: SearchResult[]) => SearchResult[]) => setEdited(update(picked));
+  const [picked, setPickedState] = useState<SearchResult[]>(saved);
+  const setPicked = (update: (p: SearchResult[]) => SearchResult[]) => setPickedState(update(picked));
   const { query, setQuery, trimmed, active, results, loading } = useMovieSearch();
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -98,11 +90,9 @@ export function FavoritesPicker({
 
   const submit = () =>
     startTransition(async () => {
-      const result = await saveFavorites(
-        signedIn,
-        picked.map((m) => ({ ...m, signal: "favorite" })),
-      );
-      if (result.ok) router.push("/recommendations");
+      const result = await saveFavorites(picked.map((m) => ({ ...m, signal: "favorite" })));
+      // Replace, so Back never returns to onboarding.
+      if (result.ok) router.replace("/recommendations");
     });
 
   return (
@@ -110,7 +100,8 @@ export function FavoritesPicker({
       <div className="flex flex-col gap-2">
         <h1 className="text-display-md text-ink-strong md:text-display-lg">Pick films you love</h1>
         <p className="text-body-md text-body">
-          Tap at least {MIN_FAVORITES}. We’ll match their directors, actors, genres and themes.
+          Tap at least {MIN_FAVORITES}, loved most first. We’ll match their directors, actors, genres and themes.
+          You can change them any time in My films.
         </p>
       </div>
 

@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCurrentUserId } from "@/lib/auth";
+import { requireUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
 import { getMovie, getTrailerUrl, isTmdbConfigured } from "@/lib/tmdb/client";
 import { profileUrl, releaseYear } from "@/lib/tmdb/images";
@@ -65,8 +65,8 @@ async function MovieDetails({ id: raw }: { id: string }) {
   const movie = id ? await getMovie(id) : null;
   if (!id || !movie) notFound();
 
-  const [userId, trailer] = await Promise.all([getCurrentUserId(), getTrailerUrl(id).catch(() => null)]);
-  const saved = userId ? ((await getUserMovies(userId)).find((m) => m.tmdbId === id)?.signal ?? null) : null;
+  const [userId, trailer] = await Promise.all([requireUserId(), getTrailerUrl(id).catch(() => null)]);
+  const saved = (await getUserMovies(userId)).find((m) => m.tmdbId === id)?.signal ?? null;
 
   const year = releaseYear(movie.release_date);
   const runtime = formatRuntime(movie.runtime);
@@ -118,7 +118,6 @@ async function MovieDetails({ id: raw }: { id: string }) {
           <MovieVerdict
             tmdbId={id}
             snapshot={{ title: movie.title, posterPath: movie.poster_path, year }}
-            signedIn={Boolean(userId)}
             saved={saved}
           />
           {movie.tagline && <p className="text-body-lg text-pretty text-ink">{movie.tagline}</p>}

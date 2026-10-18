@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { safeNext } from "@/lib/auth";
+import { homeFor } from "@/lib/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
 export type SignInState = {
@@ -24,10 +26,16 @@ async function siteOrigin() {
   return process.env.NEXT_PUBLIC_SITE_URL ?? (await headers()).get("origin") ?? "http://localhost:3000";
 }
 
+// The magic-link landing URL, carrying the page the user was sent from.
+async function confirmUrl(formData: FormData) {
+  const next = safeNext(formData.get("next"));
+  return `${await siteOrigin()}/auth/confirm${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+}
+
 const INVALID_EMAIL: SignInState = { status: "error", field: "email", message: "Enter a valid email address." };
 
-// Email a magic link. The link lands on /auth/confirm, which signs the user
-// in and merges their anonymous list into the account.
+// Email a magic link. It creates the account if needed and lands on
+// /auth/confirm, which signs the user in.
 export async function signInWithEmail(
   _prev: SignInState,
   formData: FormData,
@@ -38,7 +46,7 @@ export async function signInWithEmail(
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/recommendations` },
+    options: { emailRedirectTo: await confirmUrl(formData) },
   });
   if (error) {
     console.error(error);
@@ -48,7 +56,7 @@ export async function signInWithEmail(
 }
 
 // Sign in with a password, or create an account when intent is "sign-up".
-// The guest list is imported client-side by <ImportLocalList> after redirect.
+// New accounts go to onboarding; returning users to where they were headed.
 export async function signInWithPassword(
   _prev: SignInState,
   formData: FormData,
@@ -63,11 +71,12 @@ export async function signInWithPassword(
   }
 
   const supabase = await createClient();
+  let userId: string;
   if (signUp) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${await siteOrigin()}/auth/confirm?next=/recommendations` },
+      options: { emailRedirectTo: await confirmUrl(formData) },
     });
     if (error) {
       if (error.code === "weak_password") {
@@ -81,9 +90,10 @@ export async function signInWithPassword(
     }
     // With email confirmation on there is no session yet. Supabase also lands
     // here for an existing email, so the message stays neutral.
-    if (!data.session) return { status: "confirm", message: email };
+    if (!data.session || !data.user) return { status: "confirm", message: email };
+    userId = data.user.id;
   } else {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       if (error.code === "invalid_credentials") {
         return {
@@ -98,10 +108,12 @@ export async function signInWithPassword(
       console.error(error);
       return { status: "error", message: "We couldn't sign you in. Try again in a minute." };
     }
+    userId = data.user.id;
   }
 
+  const home = await homeFor(userId);
   revalidatePath("/", "layout");
-  redirect("/recommendations");
+  redirect(home === "/onboarding" ? home : (safeNext(formData.get("next")) ?? home));
 }
 
 export async function signOut() {

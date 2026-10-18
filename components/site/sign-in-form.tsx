@@ -40,15 +40,20 @@ function Sent({ title, email, body }: { title: string; email: string; body: stri
 
 export function SignInForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(submit, { status: "idle" });
-  const linkFailed = useSearchParams().get("error") === "link";
-  const [mode, setMode] = useState<Mode>("link");
+  const params = useSearchParams();
+  const linkFailed = params.get("error") === "link";
+  // Where the proxy sent us from, so sign-in can return there.
+  const next = params.get("next");
+  // Email and password by default; an expired email link opens on the link
+  // form so its error shows next to "send a new one".
+  const [mode, setMode] = useState<Mode>(linkFailed ? "link" : "sign-in");
   // Controlled so a failed attempt or a mode switch never clears what was typed.
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   if (state.status === "sent") {
-    return <Sent title="Check your inbox" email={state.message!} body="Open it on this device to keep the films you’ve picked so far." />;
+    return <Sent title="Check your inbox" email={state.message!} body="Open it to sign in. New here? The same link creates your account." />;
   }
   if (state.status === "confirm") {
     return <Sent title="Confirm your email" email={state.message!} body="Open it on this device to finish creating your account." />;
@@ -64,6 +69,7 @@ export function SignInForm() {
   return (
     <form action={action} className="flex flex-col gap-4" noValidate>
       <input type="hidden" name="intent" value={mode} />
+      {next && <input type="hidden" name="next" value={next} />}
       <div className="flex flex-col gap-2">
         <Label htmlFor="email" className="text-body-sm text-body">
           Email
@@ -100,7 +106,9 @@ export function SignInForm() {
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
-              autoFocus
+              // Only after switching modes with an email already typed;
+              // on first load the email field comes first.
+              autoFocus={email !== ""}
               required
               minLength={mode === "sign-up" ? 8 : undefined}
               value={password}
@@ -175,7 +183,6 @@ export function SignInForm() {
         </Button>
       )}
 
-      <p className="text-caption text-mute">Films you picked before signing in move to your account.</p>
     </form>
   );
 }

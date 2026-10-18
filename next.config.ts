@@ -13,6 +13,19 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "image.tmdb.org", port: "", pathname: "/t/p/**", search: "" },
     ],
   },
+  async headers() {
+    return [
+      {
+        // The service worker must never be served stale (see components/site/pwa.tsx).
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {

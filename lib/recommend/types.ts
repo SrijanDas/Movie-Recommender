@@ -5,11 +5,12 @@
 // favorite: picked on the home screen. liked: added on My films or "Loved it".
 // up: "Kinda liked it". no_rewatch: "Would not rewatch". quit: "Left midway".
 // down: "Not interested" (on a recommendation card).
+// watchlist: saved to watch later; no effect on taste, never recommended.
 // Legacy, no longer written: seen (hides a film only).
-export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch"] as const;
+export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch", "watchlist"] as const;
 export type Signal = (typeof SIGNALS)[number];
 
-// One movie in a user's list (from the DB or the guest's localStorage).
+// One movie in a user's list.
 export type RatedMovie = {
   tmdbId: number;
   signal: Signal;

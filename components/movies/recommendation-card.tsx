@@ -1,6 +1,6 @@
 "use client";
 
-import { BanIcon } from "lucide-react";
+import { BanIcon, BookmarkPlusIcon } from "lucide-react";
 import Link from "next/link";
 import type { Rating } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
@@ -15,10 +15,12 @@ export function RecommendationCard({
   movie,
   preload,
   onRate,
+  onWatchlist,
 }: {
   movie: Recommendation;
   preload?: boolean;
   onRate: (rating: Rating) => void;
+  onWatchlist: () => void;
 }) {
   const because = movie.reasons.flatMap((r) => r.because);
   const becauseTitles = [...new Set(because)].slice(0, 2);
@@ -64,11 +66,28 @@ export function RecommendationCard({
         )}
       </div>
 
-      <div className="mt-auto flex flex-col gap-1">
-        <SeenItMenu title={movie.title} onRate={onRate} />
-        <Button variant="ghost" className="h-9 w-full text-body-sm font-normal text-mute" onClick={() => onRate("down")}>
+      {/* One row: Seen it takes the room left by the two icon buttons. */}
+      <div className="mt-auto flex items-center gap-1.5">
+        <SeenItMenu title={movie.title} onRate={onRate} compact className="min-w-0 flex-1" />
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-10 shrink-0 text-body hover:text-primary-soft"
+          aria-label={`Add ${movie.title} to your watchlist`}
+          title="Add to watchlist"
+          onClick={onWatchlist}
+        >
+          <BookmarkPlusIcon />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="size-10 shrink-0 text-mute hover:text-ink"
+          aria-label={`Not interested in ${movie.title}`}
+          title="Not interested"
+          onClick={() => onRate("down")}
+        >
           <BanIcon />
-          Not interested
         </Button>
       </div>
     </article>

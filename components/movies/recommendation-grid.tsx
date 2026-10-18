@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Shared by the signed-in (server) and guest (client) recommendation views.
-// The interactive grid itself is RecommendationList.
+// States around the recommendation grid. The interactive grid itself is
+// RecommendationList.
 
 export const GRID = "grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-5";
 
@@ -39,11 +39,11 @@ export function Notice({ title, body, action }: { title: string; body: string; a
 export function NeedMoreNotice({ loved, min }: { loved: number; min: number }) {
   return (
     <Notice
-      title={loved === 0 ? "Start with films you love" : `Pick ${min - loved} more`}
-      body={`Recommendations come from the films you love. Pick at least ${min} and we’ll take it from there.`}
+      title={loved === 0 ? "Start with films you love" : `Add ${min - loved} more`}
+      body={`Recommendations come from the films you love. Add at least ${min} favourites and we’ll take it from there.`}
       action={
-        <Button render={<Link href="/" />} nativeButton={false}>
-          Pick films
+        <Button render={<Link href="/my-movies" />} nativeButton={false}>
+          Add favourites
         </Button>
       }
     />

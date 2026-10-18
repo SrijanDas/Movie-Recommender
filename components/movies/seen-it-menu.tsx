@@ -20,11 +20,14 @@ export function SeenItMenu({
   title,
   current,
   onRate,
+  compact,
   className,
 }: {
   title: string;
   current?: Feedback | null;
   onRate: (feedback: Feedback) => void;
+  // Narrow rows (recommendation cards): drop the leading icon, tighter padding.
+  compact?: boolean;
   className?: string;
 }) {
   const answered = ANSWERS.find((a) => a.feedback === current);
@@ -35,12 +38,16 @@ export function SeenItMenu({
         render={
           <Button
             variant="outline"
-            className={cn("h-10 w-full text-body-sm aria-expanded:border-primary-soft", className)}
+            className={cn(
+              "h-10 w-full text-body-sm aria-expanded:border-primary-soft",
+              compact && "gap-1 px-2",
+              className,
+            )}
             aria-label={answered ? `You said ${answered.label}. Change` : undefined}
           />
         }
       >
-        <TriggerIcon className={cn(answered?.feedback === "liked" && "text-primary-soft")} />
+        {!compact && <TriggerIcon className={cn(answered?.feedback === "liked" && "text-primary-soft")} />}
         {answered?.label ?? "Seen it"}
         <ChevronDownIcon className="text-mute" />
       </DropdownMenuTrigger>

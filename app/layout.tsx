@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SiteFooter, SiteHeader } from "@/components/site/header";
+import { ServiceWorker } from "@/components/site/pwa";
 import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({
@@ -15,8 +15,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Next Reel", template: "%s · Next Reel" },
-  description: "Tell us your five favourite films and we'll tell you what to watch next, and why.",
+  title: { default: "Next Movie", template: "%s · Next Movie" },
+  description: "Tap a few films you love and we’ll tell you what to watch next, and why.",
+  applicationName: "Next Movie",
+  // Installed on iOS: full screen, content runs under the status bar (the
+  // headers pad by env(safe-area-inset-top)).
+  appleWebApp: { capable: true, title: "Next Movie", statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#101010",
+  colorScheme: "dark",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -25,11 +36,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`dark ${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <SiteHeader />
-        <main className="flex flex-1 flex-col">{children}</main>
-        <SiteFooter />
-        <Toaster position="bottom-center" />
+      <body className="flex min-h-full flex-col">
+        {children}
+        {/* On phones, toasts sit above the app's bottom tab bar. */}
+        <Toaster position="bottom-center" mobileOffset={{ bottom: "calc(5rem + env(safe-area-inset-bottom))" }} />
+        <ServiceWorker />
       </body>
     </html>
   );

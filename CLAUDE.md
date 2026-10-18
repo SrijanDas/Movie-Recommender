@@ -1,6 +1,6 @@
 # movie-recom
 
-Movie recommendation web app. **Status:** MVP built: favourites picker (min 3), recommendations with reasons and feedback, a "My films" page, and magic-link sign-in. Movie data comes from TMDB. There is no test suite.
+Movie recommendation web app. **Status:** MVP built: landing page, required sign-in, one-step onboarding (favourites picker, min 3), recommendations with reasons, search and feedback, a watchlist, a "My films" page, and an installable PWA shell with a bottom tab bar. Movie data comes from TMDB. There is no test suite.
 
 **What we're building and why:** [PRODUCT.md](PRODUCT.md). Read it before changing product behaviour.
 

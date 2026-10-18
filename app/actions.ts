@@ -7,26 +7,16 @@ import {
   deleteMovies,
   getSnapshot,
   getUserMovies,
-  importMovies,
   putMovies,
   rankFavorites,
   type UserMovie,
 } from "@/lib/movies/store";
-import { GUEST_MOVIE_LIMIT } from "@/lib/movies/types";
-import { getRecommendations } from "@/lib/recommend";
-import {
-  MAX_FAVORITES,
-  MIN_FAVORITES,
-  SIGNALS,
-  type RatedMovie,
-  type Recommendation,
-  type Signal,
-} from "@/lib/recommend/types";
+import { markOnboarded } from "@/lib/onboarding";
+import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { searchMovies } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
-// Mutations here are for signed-in users and write to Postgres. Guests write
-// to localStorage in the browser (lib/movies/local.ts) instead.
+// Every mutation is for the signed-in user and writes to Postgres.
 
 export type ActionResult = { ok: true } | { ok: false; error: string };
 
@@ -37,27 +27,10 @@ export type SearchResult = {
   posterPath: string | null;
 };
 
-const SIGN_IN_REQUIRED: ActionResult = { ok: false, error: "Sign in to save to your account." };
+const SIGN_IN_REQUIRED: ActionResult = { ok: false, error: "Your session ended. Sign in again." };
 
 const isTmdbId = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
-
-const isSignal = (value: unknown): value is Signal =>
-  typeof value === "string" && (SIGNALS as readonly string[]).includes(value);
-
-const isRank = (value: unknown): value is number =>
-  typeof value === "number" && Number.isInteger(value) && value >= 0 && value < MAX_FAVORITES;
-
-// Parse an untrusted list of { tmdbId, signal, rank? } from the browser.
-function parseRated(list: unknown, max: number): RatedMovie[] | null {
-  if (!Array.isArray(list) || list.length > max) return null;
-  const rated: RatedMovie[] = [];
-  for (const m of list) {
-    if (!m || !isTmdbId(m.tmdbId) || !isSignal(m.signal)) return null;
-    rated.push({ tmdbId: m.tmdbId, signal: m.signal, rank: m.signal === "favorite" && isRank(m.rank) ? m.rank : null });
-  }
-  return rated;
-}
 
 // A list of distinct TMDB ids, at most MAX_FAVORITES long.
 const isIdList = (ids: unknown): ids is number[] =>
@@ -103,38 +76,9 @@ export async function searchMoviesAction(query: unknown): Promise<SearchResult[]
   }
 }
 
-// Recommendations for a guest, whose list lives in their browser.
-export async function recommendFor(
-  list: unknown,
-): Promise<{ ok: true; recommendations: Recommendation[] } | { ok: false; error: string }> {
-  const rated = parseRated(list, GUEST_MOVIE_LIMIT);
-  if (!rated) return { ok: false, error: "That list doesn't look right. Try picking your films again." };
-  try {
-    return { ok: true, recommendations: await getRecommendations(rated) };
-  } catch (error) {
-    console.error(error);
-    return { ok: false, error: "We couldn't reach the movie database. Try again in a moment." };
-  }
-}
-
-// After sign-in: move the guest's localStorage list into the account.
-export async function importLocalMovies(list: unknown): Promise<ActionResult & { added?: number }> {
-  const userId = await getCurrentUserId();
-  if (!userId) return SIGN_IN_REQUIRED;
-  const rated = parseRated(list, GUEST_MOVIE_LIMIT);
-  if (!rated) return { ok: false, error: "Couldn't read the films saved on this device." };
-  try {
-    const added = await importMovies(userId, rated);
-    revalidatePath("/", "layout");
-    return { ok: true, added };
-  } catch (error) {
-    return failure(error);
-  }
-}
-
-// Replace the favourites picked on the home screen, in the order picked
-// (first = loved most). Favourites that were unpicked are removed; other
-// signals (likes, feedback) are left alone.
+// Onboarding: save the favourites picked, in the order picked (first =
+// loved most), and mark onboarding done. Favourites that were unpicked are
+// removed; other signals (likes, feedback) are left alone.
 export async function setFavorites(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
@@ -162,6 +106,7 @@ export async function setFavorites(ids: unknown): Promise<ActionResult> {
 
     await deleteMovies(userId, unpicked);
     await putMovies(userId, favorites);
+    await markOnboarded(userId);
     return done();
   } catch (error) {
     return failure(error);
@@ -243,6 +188,26 @@ export async function rateRecommendation(id: unknown, feedback: unknown): Promis
     await putMovies(userId, [{ tmdbId: id, signal: feedback as Feedback, ...snapshot }]);
     // No revalidation: the recommendations page removes just this card and
     // recomputes only when the user taps Refresh.
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// Save a film to watch later. Never overwrites a film already in the list
+// (a favourite or a "Seen it" answer); like ratings, it doesn't revalidate.
+export async function addToWatchlist(id: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  try {
+    const existing = (await getUserMovies(userId)).find((m) => m.tmdbId === id);
+    if (existing) {
+      return existing.signal === "watchlist" ? { ok: true } : { ok: false, error: "That film is already in My films." };
+    }
+    const snapshot = await getSnapshot(id);
+    if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
+    await putMovies(userId, [{ tmdbId: id, signal: "watchlist", ...snapshot }]);
     return { ok: true };
   } catch (error) {
     return failure(error);

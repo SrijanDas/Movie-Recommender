@@ -47,3 +47,12 @@ export const userMovies = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.tmdbId] })],
 ).enableRLS();
+
+// One row per user who has finished onboarding (picked their first
+// favourites). The picker is shown until this exists, and never again after.
+export const profiles = pgTable("profiles", {
+  userId: uuid("user_id")
+    .primaryKey()
+    .references(() => authUsers.id, { onDelete: "cascade" }),
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }).notNull().defaultNow(),
+}).enableRLS();

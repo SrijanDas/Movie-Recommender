@@ -19,7 +19,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVerticalIcon, Loader2Icon, StarIcon, XIcon } from "lucide-react";
-import Link from "next/link";
 import { useId, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ANSWERS, verdictOf } from "@/components/movies/feedback";
@@ -33,11 +32,9 @@ import {
 import { MovieSearch } from "@/components/movies/movie-search";
 import { Poster } from "@/components/movies/poster";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { useLocalMovies } from "@/lib/movies/local";
-import { GUEST_MOVIE_LIMIT, type UserMovie } from "@/lib/movies/types";
+import type { UserMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { cn } from "@/lib/utils";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
@@ -45,7 +42,7 @@ import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 type Filter = "all" | Feedback;
 type Tab = "favorites" | "seen";
 
-function RemoveButton({ movie, signedIn }: { movie: UserMovie; signedIn: boolean }) {
+function RemoveButton({ movie }: { movie: UserMovie }) {
   const [pending, startTransition] = useTransition();
   return (
     <Button
@@ -53,7 +50,7 @@ function RemoveButton({ movie, signedIn }: { movie: UserMovie; signedIn: boolean
       size="icon"
       aria-label={`Remove ${movie.title}`}
       disabled={pending}
-      onClick={() => startTransition(async () => void (await forgetMovie(signedIn, movie.tmdbId)))}
+      onClick={() => startTransition(async () => void (await forgetMovie(movie.tmdbId)))}
     >
       {pending ? <Loader2Icon className="animate-spin" /> : <XIcon />}
     </Button>
@@ -96,7 +93,7 @@ function Row({
 
 // One favourite, dragged by its grip. The handle alone starts a drag, so
 // scrolling the list on a phone never reorders it by accident.
-function SortableFavorite({ movie, rank, signedIn }: { movie: UserMovie; rank: number; signedIn: boolean }) {
+function SortableFavorite({ movie, rank }: { movie: UserMovie; rank: number }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: movie.tmdbId,
   });
@@ -124,14 +121,14 @@ function SortableFavorite({ movie, rank, signedIn }: { movie: UserMovie; rank: n
         </>
       }
     >
-      <RemoveButton movie={movie} signedIn={signedIn} />
+      <RemoveButton movie={movie} />
     </Row>
   );
 }
 
 // Favourites, ranked by drag and drop (keyboard: focus a grip, Space, arrows,
 // Space). The new order shows at once and is saved in the background.
-function FavoritesList({ favorites, signedIn }: { favorites: UserMovie[]; signedIn: boolean }) {
+function FavoritesList({ favorites }: { favorites: UserMovie[] }) {
   const [order, setOrder] = useOptimistic(favorites, (_, next: UserMovie[]) => next);
   const [pending, startTransition] = useTransition();
   const dndId = useId(); // stable ids, so server and client HTML match
@@ -147,22 +144,13 @@ function FavoritesList({ favorites, signedIn }: { favorites: UserMovie[]; signed
     const next = arrayMove(order, from, to);
     startTransition(async () => {
       setOrder(next);
-      await reorderFavorites(
-        signedIn,
-        next.map((m) => m.tmdbId),
-      );
+      await reorderFavorites(next.map((m) => m.tmdbId));
     });
   };
 
   if (order.length === 0) {
     return (
-      <p className="text-body-sm text-mute">
-        Nothing yet. Add films above, or{" "}
-        <Link href="/" className="font-semibold text-primary-soft underline">
-          pick from the grid
-        </Link>
-        .
-      </p>
+      <p className="text-body-sm text-mute">Nothing yet. Search above to add the films you love most.</p>
     );
   }
 
@@ -177,7 +165,7 @@ function FavoritesList({ favorites, signedIn }: { favorites: UserMovie[]; signed
       <SortableContext items={order.map((m) => m.tmdbId)} strategy={verticalListSortingStrategy}>
         <ol aria-label="Favourites, loved most first" aria-busy={pending} className="divide-y divide-border border-y border-border">
           {order.map((m, i) => (
-            <SortableFavorite key={m.tmdbId} movie={m} rank={i + 1} signedIn={signedIn} />
+            <SortableFavorite key={m.tmdbId} movie={m} rank={i + 1} />
           ))}
         </ol>
       </SortableContext>
@@ -185,12 +173,12 @@ function FavoritesList({ favorites, signedIn }: { favorites: UserMovie[]; signed
   );
 }
 
-function SeenRow({ movie, signedIn, showVerdict, favoritesFull }: { movie: UserMovie; signedIn: boolean; showVerdict: boolean; favoritesFull: boolean }) {
+function SeenRow({ movie, showVerdict, favoritesFull }: { movie: UserMovie; showVerdict: boolean; favoritesFull: boolean }) {
   const [pending, startTransition] = useTransition();
   const verdict = showVerdict ? verdictOf(movie.signal) : undefined;
   const promote = () =>
     startTransition(async () => {
-      const result = await favoriteMovie(signedIn, movie);
+      const result = await favoriteMovie(movie);
       if (result.ok) toast.success(`${movie.title} is now a favourite`);
     });
   return (
@@ -216,69 +204,31 @@ function SeenRow({ movie, signedIn, showVerdict, favoritesFull }: { movie: UserM
       >
         {pending ? <Loader2Icon className="animate-spin" /> : <StarIcon />}
       </Button>
-      <RemoveButton movie={movie} signedIn={signedIn} />
+      <RemoveButton movie={movie} />
     </Row>
-  );
-}
-
-function GuestUsage({ count }: { count: number }) {
-  const full = count >= GUEST_MOVIE_LIMIT;
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border border-border p-4">
-      <div className="flex items-baseline justify-between gap-3 text-body-sm">
-        <span className="text-body">Saved on this device</span>
-        <span className="font-mono text-code text-ink">
-          {count}/{GUEST_MOVIE_LIMIT}
-        </span>
-      </div>
-      <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
-        <div
-          className={full ? "h-full bg-primary-soft" : "h-full bg-body"}
-          style={{ width: `${Math.min(100, (count / GUEST_MOVIE_LIMIT) * 100)}%` }}
-        />
-      </div>
-      <p className="text-body-sm text-mute">
-        {full ? "This device is full. " : ""}
-        <Link href="/sign-in" className="font-semibold text-primary-soft underline">
-          Sign in
-        </Link>{" "}
-        to sync your films to all your devices and save more than {GUEST_MOVIE_LIMIT}.
-      </p>
-    </div>
   );
 }
 
 const tabClass =
   "h-11 flex-1 gap-2 rounded-none border-0 px-2 text-body-md text-mute after:bottom-0 after:h-0.5 after:bg-primary data-active:text-ink";
 
-export function MyFilms({ signedIn, saved }: { signedIn: boolean; saved: UserMovie[] }) {
-  const local = useLocalMovies();
+export function MyFilms({ movies }: { movies: UserMovie[] }) {
   const [, startTransition] = useTransition();
   const [tab, setTab] = useState<Tab>("favorites");
   const [filter, setFilter] = useState<Filter>("all");
 
-  if (!signedIn && local === null) {
-    return (
-      <div className="flex flex-col gap-4" aria-hidden>
-        <Skeleton className="h-11" />
-        <Skeleton className="h-64" />
-      </div>
-    );
-  }
-  const movies = signedIn ? saved : (local ?? []);
   const known = new Set(movies.map((m) => m.tmdbId));
   const favorites = favoritesInOrder(movies);
   const favoritesFull = favorites.length >= MAX_FAVORITES;
   // Newest first. "Seen it" holds every film you've watched and answered for
-  // (legacy "seen" rows show only under All). "Not interested" (down) films
-  // weren't seen and aren't listed; they only steer recommendations.
-  const seen = movies.filter((m) => m.signal !== "favorite" && m.signal !== "down").reverse();
+  // (legacy "seen" rows show only under All). "Not interested" (down) and
+  // watchlist films weren't seen and aren't listed here.
+  const seen = movies.filter((m) => m.signal !== "favorite" && m.signal !== "down" && m.signal !== "watchlist").reverse();
   const countOf = (f: Filter) => (f === "all" ? seen.length : seen.filter((m) => m.signal === f).length);
   const shown = filter === "all" ? seen : seen.filter((m) => m.signal === filter);
 
   return (
     <div className="flex flex-col gap-6">
-      {!signedIn && <GuestUsage count={movies.length} />}
       <Tabs value={tab} onValueChange={(next) => setTab(next as Tab)} className="gap-6">
         <TabsList variant="line" className="w-full gap-0 border-b border-border p-0">
           <TabsTrigger value="favorites" className={tabClass}>
@@ -302,7 +252,7 @@ export function MyFilms({ signedIn, saved }: { signedIn: boolean; saved: UserMov
             }
             onPick={(movie) =>
               startTransition(async () => {
-                const result = await favoriteMovie(signedIn, { ...movie, signal: "favorite" });
+                const result = await favoriteMovie({ ...movie, signal: "favorite" });
                 if (result.ok) toast.success(`Added ${movie.title}`);
               })
             }
@@ -313,7 +263,7 @@ export function MyFilms({ signedIn, saved }: { signedIn: boolean; saved: UserMov
               : "Loved most at the top. The higher a film sits, the more it shapes your picks. "}
             Up to {MAX_FAVORITES}.
           </p>
-          <FavoritesList favorites={favorites} signedIn={signedIn} />
+          <FavoritesList favorites={favorites} />
         </TabsContent>
 
         <TabsContent value="seen" className="flex flex-col gap-4">
@@ -324,7 +274,7 @@ export function MyFilms({ signedIn, saved }: { signedIn: boolean; saved: UserMov
             disabledReason={(m) => (known.has(m.tmdbId) ? "In your list" : null)}
             onPick={(movie) =>
               startTransition(async () => {
-                const result = await likeMovie(signedIn, { ...movie, signal: "liked" });
+                const result = await likeMovie({ ...movie, signal: "liked" });
                 if (result.ok) toast.success(`Added ${movie.title}`);
               })
             }
@@ -357,7 +307,7 @@ export function MyFilms({ signedIn, saved }: { signedIn: boolean; saved: UserMov
           ) : (
             <ul className="divide-y divide-border border-y border-border">
               {shown.map((m) => (
-                <SeenRow key={m.tmdbId} movie={m} signedIn={signedIn} showVerdict={filter === "all"} favoritesFull={favoritesFull} />
+                <SeenRow key={m.tmdbId} movie={m} showVerdict={filter === "all"} favoritesFull={favoritesFull} />
               ))}
             </ul>
           )}

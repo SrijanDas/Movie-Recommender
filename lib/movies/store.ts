@@ -4,11 +4,9 @@ import { db } from "@/lib/db";
 import { userMovies } from "@/lib/db/schema";
 import { getMovie } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
-import type { RatedMovie } from "@/lib/recommend/types";
 import type { MovieSnapshot, UserMovie } from "./types";
 
-// A signed-in user's movie list in Postgres. Guests keep theirs in
-// localStorage (lib/movies/local.ts). See docs/recommendations.md.
+// The signed-in user's movie list in Postgres. See docs/recommendations.md.
 // Every function takes the verified user id; callers get it from
 // getCurrentUserId() and must not pass anything else.
 
@@ -69,27 +67,4 @@ export async function deleteMovies(userId: string, tmdbIds: number[]) {
   await db
     .delete(userMovies)
     .where(and(eq(userMovies.userId, userId), inArray(userMovies.tmdbId, tmdbIds)));
-}
-
-// Copy a guest's localStorage list into the account after sign-in.
-// Rows already in the account win. Returns how many films were added.
-export async function importMovies(userId: string, movies: RatedMovie[]): Promise<number> {
-  const existing = await db
-    .select({ tmdbId: userMovies.tmdbId })
-    .from(userMovies)
-    .where(eq(userMovies.userId, userId));
-  const have = new Set(existing.map((r) => r.tmdbId));
-  let added = 0;
-  for (const m of movies) {
-    if (have.has(m.tmdbId)) continue;
-    // Re-derive display data server-side rather than trusting the browser.
-    const snap = await getSnapshot(m.tmdbId);
-    if (!snap) continue;
-    await db
-      .insert(userMovies)
-      .values({ userId, tmdbId: m.tmdbId, signal: m.signal, rank: m.rank ?? null, ...snap })
-      .onConflictDoNothing();
-    added++;
-  }
-  return added;
 }

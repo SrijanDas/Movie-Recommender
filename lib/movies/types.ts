@@ -9,7 +9,3 @@ export type MovieSnapshot = {
 };
 
 export type UserMovie = RatedMovie & MovieSnapshot;
-
-// Without an account, the list lives in this browser's localStorage and is
-// capped here. Signing in lifts the cap and syncs across devices.
-export const GUEST_MOVIE_LIMIT = 25;

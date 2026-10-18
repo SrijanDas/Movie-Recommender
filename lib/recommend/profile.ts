@@ -53,6 +53,7 @@ export function signalWeight(signal: Signal): number {
     case "quit": // "Left midway"
       return -1.5;
     case "seen":
+    case "watchlist": // saved for later: hidden from recommendations, no taste signal
       return 0;
   }
 }

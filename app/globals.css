@@ -190,5 +190,29 @@
   }
   html {
     scrollbar-color: var(--brand-hairline) var(--brand-canvas);
+    /* App feel: no grey tap flash, no double-tap zoom delay. */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  body {
+    /* No rubber-band reveal of the browser chrome behind the canvas. */
+    overscroll-behavior-y: none;
+  }
+}
+
+/* Landing poster wall: each column loops through two copies of its posters. */
+@keyframes poster-drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+@utility animate-poster-drift {
+  animation: poster-drift var(--drift-duration, 90s) linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
