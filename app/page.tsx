@@ -25,35 +25,36 @@ async function starters(): Promise<TmdbMovieSummary[]> {
 }
 
 const COLUMNS = 8;
-// Alternate speeds so the columns never line up.
-const DURATIONS = ["95s", "120s", "105s", "130s", "100s", "115s", "125s", "110s"];
 // Phones show 3 columns, tablets 4, laptops 6, wide screens 8.
 const VISIBILITY = ["flex", "flex", "flex", "hidden sm:flex", "hidden lg:flex", "hidden lg:flex", "hidden xl:flex", "hidden xl:flex"];
 
-// Full-bleed wall of posters drifting upward behind the hero, fading into
-// the canvas where the headline sits. Static when motion is reduced.
+// Full-bleed wall of posters drifting upward as one piece behind the hero,
+// fading into the canvas where the headline sits. Static when motion is reduced.
 async function PosterWall() {
   const films = await starters();
-  if (films.length < COLUMNS * 3) return null;
-  const columns = Array.from({ length: COLUMNS }, (_, c) => films.filter((_, i) => i % COLUMNS === c));
+  // Every column holds the same number of posters, so the whole grid repeats
+  // with one period and a single -50% translate loops seamlessly.
+  const perColumn = Math.floor(films.length / COLUMNS);
+  if (perColumn < 3) return null;
+  const columns = Array.from({ length: COLUMNS }, (_, c) => films.slice(c * perColumn, (c + 1) * perColumn));
   return (
     <div
       aria-hidden
       className="absolute inset-0 overflow-hidden opacity-50 [mask-image:linear-gradient(to_bottom,black_0%,black_30%,transparent_78%)] md:opacity-35 md:[mask-image:linear-gradient(to_bottom,black_0%,black_15%,transparent_70%)]"
     >
-      <div className="-mx-[8%] -mt-[10%] grid origin-top -rotate-6 grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-        {columns.map((column, c) => (
-          <div
-            key={c}
-            className={cn("animate-poster-drift flex-col gap-3", VISIBILITY[c], c % 2 === 1 && "mt-16")}
-            style={{ "--drift-duration": DURATIONS[c] } as React.CSSProperties}
-          >
-            {/* Two copies, so translating by -50% loops seamlessly. */}
-            {[...column, ...column].map((m, i) => (
-              <Poster key={`${m.id}-${i}`} path={m.poster_path} title={m.title} sizes="(min-width: 1280px) 13vw, (min-width: 1024px) 18vw, 33vw" />
-            ))}
-          </div>
-        ))}
+      <div className="-mx-[8%] -mt-[10%] origin-top -rotate-6">
+        <div className="animate-poster-drift grid grid-cols-3 gap-x-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+          {columns.map((column, c) => (
+            // pb-3 matches the gap, so each column is exactly two periods tall.
+            // The stagger is a transform, not a margin, so it can't change that height.
+            <div key={c} className={cn("flex-col gap-3 pb-3", VISIBILITY[c], c % 2 === 1 && "-translate-y-16")}>
+              {/* Two copies of the column, so translating by -50% loops seamlessly. */}
+              {[...column, ...column].map((m, i) => (
+                <Poster key={`${m.id}-${i}`} path={m.poster_path} title={m.title} sizes="(min-width: 1280px) 13vw, (min-width: 1024px) 18vw, 33vw" />
+              ))}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

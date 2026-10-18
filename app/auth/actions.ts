@@ -97,6 +97,12 @@ export type SignUpState = {
   field?: "name" | "email" | "password";
 };
 
+const ACCOUNT_EXISTS: SignUpState = {
+  status: "error",
+  field: "email",
+  message: "That email already has an account. Sign in instead.",
+};
+
 // Create an account (the /sign-up steps). The name is display-only and lives
 // in Supabase user_metadata, never used for authorization. New accounts go
 // to onboarding.
@@ -121,14 +127,14 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
     if (error.code === "weak_password") {
       return { status: "error", field: "password", message: "Pick a stronger password: longer, and not a common one." };
     }
-    if (error.code === "user_already_exists" || error.code === "email_exists") {
-      return { status: "error", field: "email", message: "That email already has an account. Sign in instead." };
-    }
+    if (error.code === "user_already_exists" || error.code === "email_exists") return ACCOUNT_EXISTS;
     console.error(error);
     return { status: "error", message: "We couldn't create your account. Try again in a minute." };
   }
-  // With email confirmation on there is no session yet. Supabase also lands
-  // here for an existing email, so the message stays neutral.
+  // With email confirmation on, Supabase answers an existing email with a
+  // fake user that has no identities instead of an error. Nothing is created.
+  if (data.user?.identities?.length === 0) return ACCOUNT_EXISTS;
+  // Otherwise no session means the confirmation email went out.
   if (!data.session) return { status: "confirm", message: email };
 
   revalidatePath("/", "layout");

@@ -200,7 +200,7 @@
   }
 }
 
-/* Landing poster wall: each column loops through two copies of its posters. */
+/* Landing poster wall: the grid loops through two copies of its posters. */
 @keyframes poster-drift {
   from {
     transform: translateY(0);
@@ -211,7 +211,8 @@
 }
 
 @utility animate-poster-drift {
-  animation: poster-drift var(--drift-duration, 90s) linear infinite;
+  animation: poster-drift 60s linear infinite;
+  will-change: transform;
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
