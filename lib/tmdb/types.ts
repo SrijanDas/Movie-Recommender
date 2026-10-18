@@ -57,6 +57,23 @@ export type TmdbVideo = {
   official: boolean;
 };
 
+export type TmdbProvider = {
+  provider_id: number;
+  provider_name: string; // "Netflix"
+  logo_path: string | null;
+  display_priority: number; // lower shows first
+};
+
+// One country's offers. `link` is TMDB's watch page for the film there.
+export type TmdbRegionProviders = {
+  link: string;
+  flatrate?: TmdbProvider[]; // subscription
+  free?: TmdbProvider[];
+  ads?: TmdbProvider[];
+  rent?: TmdbProvider[];
+  buy?: TmdbProvider[];
+};
+
 export type TmdbPage<T> = {
   page: number;
   results: T[];

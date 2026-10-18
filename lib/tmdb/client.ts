@@ -4,6 +4,7 @@ import type {
   TmdbMovieDetails,
   TmdbMovieSummary,
   TmdbPage,
+  TmdbRegionProviders,
   TmdbVideo,
 } from "./types";
 
@@ -135,6 +136,17 @@ export async function getTrailerUrl(id: number): Promise<string | null> {
     youtube.find((v) => v.type === "Trailer") ??
     youtube.find((v) => v.type === "Teaser");
   return pick ? `https://www.youtube.com/watch?v=${pick.key}` : null;
+}
+
+// Where the film streams, rents and sells, by ISO 3166-1 country code. Data
+// comes from JustWatch, which TMDB requires us to credit.
+export async function getWatchProviders(id: number): Promise<Record<string, TmdbRegionProviders>> {
+  "use cache";
+  cacheLife("days");
+  const { results } = await tmdbFetch<{ results: Record<string, TmdbRegionProviders> }>(
+    `/movie/${id}/watch/providers`,
+  );
+  return results;
 }
 
 // TMDB's own "recommendations" plus "similar" lists for a movie.

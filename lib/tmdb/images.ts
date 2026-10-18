@@ -11,6 +11,11 @@ export function profileUrl(path: string | null) {
   return path ? `https://image.tmdb.org/t/p/w185${path}` : null;
 }
 
+// Streaming-service logos (square). w92 stays sharp at 32px on 3x screens.
+export function logoUrl(path: string | null) {
+  return path ? `https://image.tmdb.org/t/p/w92${path}` : null;
+}
+
 export function releaseYear(releaseDate: string | null | undefined) {
   const year = releaseDate ? Number.parseInt(releaseDate.slice(0, 4), 10) : NaN;
   return Number.isFinite(year) ? year : null;

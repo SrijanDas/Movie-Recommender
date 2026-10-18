@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { MovieVerdict } from "@/components/movies/movie-verdict";
 import { Poster } from "@/components/movies/poster";
+import { WhereToWatch } from "@/components/movies/where-to-watch";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { BackButton } from "@/components/site/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -147,6 +148,10 @@ async function MovieDetails({ id: raw }: { id: string }) {
         </div>
       </div>
 
+      <Suspense fallback={<WhereToWatchSkeleton />}>
+        <WhereToWatch tmdbId={id} title={movie.title} />
+      </Suspense>
+
       {cast.length > 0 && (
         <section aria-labelledby="cast" className="flex flex-col gap-3">
           <h2 id="cast" className="text-display-sm text-ink">
@@ -166,6 +171,18 @@ async function MovieDetails({ id: raw }: { id: string }) {
         </section>
       )}
     </article>
+  );
+}
+
+function WhereToWatchSkeleton() {
+  return (
+    <div className="flex flex-col gap-3" aria-hidden>
+      <Skeleton className="h-7 w-44" />
+      <div className="flex flex-wrap gap-2">
+        <Skeleton className="h-11 w-32 rounded-lg" />
+        <Skeleton className="h-11 w-28 rounded-lg" />
+      </div>
+    </div>
   );
 }
 
