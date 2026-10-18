@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
-export type CurrentUser = { id: string; email: string | null };
+// `name` is display-only (Supabase user_metadata, set at sign-up): users can
+// edit it, so never use it for authorization.
+export type CurrentUser = { id: string; email: string | null; name: string | null };
 
 // The verified Supabase user (JWT `sub` and email), or null when signed out.
 // Cached per request, so layouts and pages can both ask.
@@ -11,7 +13,9 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
   if (error || !data) return null;
-  return { id: data.claims.sub, email: typeof data.claims.email === "string" ? data.claims.email : null };
+  const { sub, email, user_metadata: meta } = data.claims;
+  const name = typeof meta?.full_name === "string" && meta.full_name.trim() ? meta.full_name.trim() : null;
+  return { id: sub, email: typeof email === "string" ? email : null, name };
 });
 
 // The verified user id, or null. Use this to scope Drizzle queries.

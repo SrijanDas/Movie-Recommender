@@ -1,6 +1,7 @@
 "use client";
 
 import { EyeIcon, EyeOffIcon, Loader2Icon, MailCheckIcon } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { signInWithEmail, signInWithPassword, type SignInState } from "@/app/auth/actions";
@@ -9,14 +10,14 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Label } from "@/components/ui/label";
 
-// "link" emails a magic link; the other two use a password.
-type Mode = "link" | "sign-in" | "sign-up";
+// "link" emails a magic link; "sign-in" uses a password. New accounts are
+// made on /sign-up (components/site/sign-up-form.tsx).
+type Mode = "link" | "sign-in";
 type FormState = SignInState & { mode?: Mode };
 
 const SUBMIT: Record<Mode, string> = {
   link: "Email me a sign-in link",
   "sign-in": "Sign in",
-  "sign-up": "Create account",
 };
 
 async function submit(prev: FormState, formData: FormData): Promise<FormState> {
@@ -26,7 +27,7 @@ async function submit(prev: FormState, formData: FormData): Promise<FormState> {
   return { ...result, mode };
 }
 
-function Sent({ title, email, body }: { title: string; email: string; body: string }) {
+export function Sent({ title, email, body }: { title: string; email: string; body: string }) {
   return (
     <div className="flex flex-col gap-3" role="status">
       <MailCheckIcon className="size-6 text-primary" aria-hidden />
@@ -53,10 +54,7 @@ export function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
 
   if (state.status === "sent") {
-    return <Sent title="Check your inbox" email={state.message!} body="Open it to sign in. New here? The same link creates your account." />;
-  }
-  if (state.status === "confirm") {
-    return <Sent title="Confirm your email" email={state.message!} body="Open it on this device to finish creating your account." />;
+    return <Sent title="Check your inbox" email={state.message!} body="Open it on this device to sign in." />;
   }
 
   // Only show an error from the mode the user is looking at.
@@ -105,16 +103,15 @@ export function SignInForm() {
               id="password"
               name="password"
               type={showPassword ? "text" : "password"}
-              autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
+              autoComplete="current-password"
               // Only after switching modes with an email already typed;
               // on first load the email field comes first.
               autoFocus={email !== ""}
               required
-              minLength={mode === "sign-up" ? 8 : undefined}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               aria-invalid={passwordError ? true : undefined}
-              aria-describedby={passwordError ? "password-error" : mode === "sign-up" ? "password-hint" : undefined}
+              aria-describedby={passwordError ? "password-error" : undefined}
               className="h-full px-4 text-body-md"
             />
             <InputGroupAddon align="inline-end">
@@ -128,16 +125,10 @@ export function SignInForm() {
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
-          {passwordError ? (
+          {passwordError && (
             <p id="password-error" role="alert" className="text-body-sm text-destructive">
               {passwordError}
             </p>
-          ) : (
-            mode === "sign-up" && (
-              <p id="password-hint" className="text-body-sm text-mute">
-                At least 8 characters.
-              </p>
-            )
           )}
         </div>
       )}
@@ -150,15 +141,15 @@ export function SignInForm() {
       {usesPassword ? (
         <div className="flex flex-col items-start gap-1">
           <p className="text-body-sm text-body">
-            {mode === "sign-in" ? "New here?" : "Already have an account?"}
+            New here?
             <Button
-              type="button"
               variant="ghostGreen"
               size="sm"
               className="h-8 px-1.5 text-body-sm"
-              onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
+              render={<Link href={next ? `/sign-up?next=${encodeURIComponent(next)}` : "/sign-up"} />}
+              nativeButton={false}
             >
-              {mode === "sign-in" ? "Create an account" : "Sign in"}
+              Create an account
             </Button>
           </p>
           <Button
@@ -168,7 +159,7 @@ export function SignInForm() {
             className="-ml-1.5 h-8 px-1.5 text-body-sm"
             onClick={() => setMode("link")}
           >
-            {mode === "sign-in" ? "Forgot it? Email me a link" : "Email me a link instead"}
+            Forgot it? Email me a link
           </Button>
         </div>
       ) : (

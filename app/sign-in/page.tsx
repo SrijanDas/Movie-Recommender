@@ -11,10 +11,8 @@ export default function SignInPage() {
       <PlainHeader />
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:pt-16">
         <div className="flex flex-col gap-2">
-          <h1 className="text-display-md text-ink-strong md:text-display-lg">Sign in to Next Movie</h1>
-          <p className="text-body-md text-body">
-            Sign in with your email and password. New here? Create an account, then pick a few films you love.
-          </p>
+          <h1 className="text-display-md text-ink-strong md:text-display-lg">Welcome back</h1>
+          <p className="text-body-md text-body">Sign in to Next Movie with your email and password.</p>
         </div>
         <div className="rounded-xl border border-border bg-muted p-5 sm:p-6">
           <Suspense>

@@ -9,7 +9,8 @@ app/
   layout.tsx          # root layout: fonts, viewport/PWA meta, toaster, service worker
   manifest.ts         # PWA manifest (start_url /recommendations); icons in public/icons, app/icon.svg, app/apple-icon.png
   page.tsx            # "/" — public landing page (poster wall, how it works)
-  sign-in/            # "/sign-in" — email link or password (public)
+  sign-in/            # "/sign-in" — email + password, or an email link (public)
+  sign-up/            # "/sign-up" — name → email → password, one field per screen (public)
   offline/            # "/offline" — served by public/sw.js when the network is down (public)
   onboarding/         # "/onboarding" — favourites picker; shown once, until profiles row exists
   (app)/layout.tsx    # app shell: top bar, bottom tab bar (phones), onboarding gate
@@ -35,7 +36,7 @@ lib/
   recommend/          # recommendation engine (pure functions + candidate gathering)
   movies/store.ts     # the user's movie list in Postgres
 drizzle/              # generated SQL migrations
-proxy.ts              # Next 16 proxy — refreshes the session; signed-out users only reach /, /sign-in, /offline, /auth/*
+proxy.ts              # Next 16 proxy — refreshes the session; signed-out users only reach /, /sign-in, /sign-up, /offline, /auth/*
 next.config.ts        # framework config — see nextjs-16.md
 ```
 

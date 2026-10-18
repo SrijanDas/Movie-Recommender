@@ -10,9 +10,14 @@ import { getCurrentUser } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Account" };
 
-async function Email() {
+async function Who() {
   const user = await getCurrentUser();
-  return <p className="truncate text-body-md text-ink">{user?.email ?? "Signed in"}</p>;
+  return (
+    <div className="flex min-w-0 flex-col">
+      {user?.name && <p className="truncate text-display-sm text-ink">{user.name}</p>}
+      <p className="truncate text-body-md text-body">{user?.email ?? "Signed in"}</p>
+    </div>
+  );
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -30,8 +35,8 @@ export default function AccountPage() {
       <h1 className="text-display-md text-ink-strong md:text-display-lg">Account</h1>
       <div className="flex flex-col">
         <Section title="Signed in as">
-          <Suspense fallback={<Skeleton className="h-6 w-48" />}>
-            <Email />
+          <Suspense fallback={<Skeleton className="h-12 w-48" />}>
+            <Who />
           </Suspense>
         </Section>
         <Section title="Get the app">

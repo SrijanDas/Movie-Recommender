@@ -2,9 +2,9 @@ import type { NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 // Signed-out visitors may only see these; everything else needs an account.
-const PUBLIC = new Set(["/", "/sign-in", "/offline"]);
-// Signed-in users skip the landing page and sign-in.
-const SIGNED_OUT_ONLY = new Set(["/", "/sign-in"]);
+const PUBLIC = new Set(["/", "/sign-in", "/sign-up", "/offline"]);
+// Signed-in users skip the landing page, sign-in and sign-up.
+const SIGNED_OUT_ONLY = new Set(["/", "/sign-in", "/sign-up"]);
 
 export async function proxy(request: NextRequest) {
   const { response, userId } = await updateSession(request);

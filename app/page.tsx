@@ -157,7 +157,7 @@ function FeedbackVisual() {
 
 function GetStarted({ className }: { className?: string }) {
   return (
-    <Button render={<Link href="/sign-in" />} nativeButton={false} className={cn("h-12 px-6 text-body-md", className)}>
+    <Button render={<Link href="/sign-up" />} nativeButton={false} className={cn("h-12 px-6 text-body-md", className)}>
       Get started
     </Button>
   );
