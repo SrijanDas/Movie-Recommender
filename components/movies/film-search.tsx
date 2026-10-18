@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { MovieSearch } from "@/components/movies/movie-search";
 
 // Search any film and open its page, where it can be marked seen or saved

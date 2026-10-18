@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeftIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { Button } from "@/components/ui/button";
 
 // Back where you came from; to `fallback` when the page was opened directly.

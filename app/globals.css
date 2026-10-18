@@ -217,3 +217,8 @@
     animation: none;
   }
 }
+
+/* Page-load bar (@bprogress/next): below the iOS status bar when installed. */
+body .bprogress .bar {
+  top: env(safe-area-inset-top);
+}

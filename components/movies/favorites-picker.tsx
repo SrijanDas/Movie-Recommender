@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckIcon, Loader2Icon, SearchIcon, XIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@bprogress/next/app";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { SearchResult } from "@/app/actions";
