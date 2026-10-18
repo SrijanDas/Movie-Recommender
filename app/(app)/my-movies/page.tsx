@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { MyFilms } from "@/components/movies/my-films";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
-import { getUserMovies } from "@/lib/movies/store";
+import { getUserMovies, withScores } from "@/lib/movies/store";
 import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "My films" };
 
 async function Lists() {
   const [movies, starters] = await Promise.all([
-    getUserMovies(await requireUserId()),
+    getUserMovies(await requireUserId()).then(withScores),
     isTmdbConfigured() ? getStarterMovies().catch(() => []) : [],
   ]);
   return (
@@ -22,6 +22,8 @@ async function Lists() {
         title: m.title,
         year: releaseYear(m.release_date),
         posterPath: m.poster_path,
+        voteAverage: m.vote_average,
+        voteCount: m.vote_count,
       }))}
     />
   );

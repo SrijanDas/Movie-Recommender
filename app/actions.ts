@@ -25,6 +25,9 @@ export type SearchResult = {
   title: string;
   year: number | null;
   posterPath: string | null;
+  // TMDB's score; missing for films taken from the user's own list.
+  voteAverage?: number;
+  voteCount?: number;
 };
 
 const SIGN_IN_REQUIRED: ActionResult = { ok: false, error: "Your session ended. Sign in again." };
@@ -69,6 +72,8 @@ export async function searchMoviesAction(query: unknown): Promise<SearchResult[]
       title: m.title,
       year: releaseYear(m.release_date),
       posterPath: m.poster_path,
+      voteAverage: m.vote_average,
+      voteCount: m.vote_count,
     }));
   } catch (error) {
     console.error(error);

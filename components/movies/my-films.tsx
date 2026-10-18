@@ -20,19 +20,23 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { CheckIcon, GripVerticalIcon, Loader2Icon, PencilIcon, StarIcon, Trash2Icon, XIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { ANSWERS, verdictOf } from "@/components/movies/feedback";
+import { ANSWERS } from "@/components/movies/feedback";
 import type { SearchResult } from "@/app/actions";
 import { AddFilmsSheet } from "@/components/movies/add-films-sheet";
 import {
   favoriteMovies,
   forgetMovie,
   likeMovies,
+  rateMovie,
   reorderFavorites,
   type Feedback,
 } from "@/components/movies/movie-actions";
+import { FilmRating } from "@/components/movies/film-meta";
 import { Poster } from "@/components/movies/poster";
+import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,7 +48,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { UserMovie } from "@/lib/movies/types";
+import type { ListedMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { cn } from "@/lib/utils";
 import { MIN_FAVORITES } from "@/lib/recommend/types";
@@ -52,7 +56,7 @@ import { MIN_FAVORITES } from "@/lib/recommend/types";
 type Filter = "all" | Feedback;
 type Tab = "favorites" | "seen";
 
-function RemoveButton({ movie }: { movie: UserMovie }) {
+function RemoveButton({ movie }: { movie: ListedMovie }) {
   const [pending, startTransition] = useTransition();
   return (
     <Button
@@ -69,7 +73,7 @@ function RemoveButton({ movie }: { movie: UserMovie }) {
 }
 
 // Removing a seen film undoes its answer, so ask first.
-function ConfirmRemoveButton({ movie }: { movie: UserMovie }) {
+function ConfirmRemoveButton({ movie }: { movie: ListedMovie }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const remove = () =>
@@ -121,7 +125,7 @@ function Row({
   style,
   className,
 }: {
-  movie: UserMovie;
+  movie: ListedMovie;
   // Off while editing, so a stray tap mid-drag never navigates away.
   linked?: boolean;
   lead?: React.ReactNode;
@@ -137,9 +141,13 @@ function Row({
       <p className="min-w-0 flex-1">
         <span className="block truncate text-body-md text-ink group-hover:text-primary-soft">{movie.title}</span>
         <span className="flex items-center gap-1.5 text-caption text-mute">
-          {movie.year}
-          {meta && movie.year && <span aria-hidden>·</span>}
-          {meta}
+          {[
+            movie.year,
+            movie.voteCount ? <FilmRating key="rating" average={movie.voteAverage} count={movie.voteCount} /> : null,
+            meta,
+          ]
+            .filter(Boolean)
+            .flatMap((part, i) => (i > 0 ? [<span key={`dot-${i}`} aria-hidden>·</span>, part] : [part]))}
         </span>
       </p>
     </>
@@ -166,7 +174,7 @@ const rankClass = "w-4 shrink-0 text-center font-mono text-code text-mute tabula
 
 // One favourite in edit mode, dragged by its grip. The handle alone starts a
 // drag, so scrolling the list on a phone never reorders it by accident.
-function SortableFavorite({ movie, rank }: { movie: UserMovie; rank: number }) {
+function SortableFavorite({ movie, rank }: { movie: ListedMovie; rank: number }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: movie.tmdbId,
   });
@@ -203,8 +211,8 @@ function SortableFavorite({ movie, rank }: { movie: UserMovie; rank: number }) {
 // Favourites, loved most first. Tap a row to open the film; in edit mode,
 // drag to rank (keyboard: focus a grip, Space, arrows, Space) and remove.
 // A new order shows at once and is saved in the background.
-function FavoritesList({ favorites, editing }: { favorites: UserMovie[]; editing: boolean }) {
-  const [order, setOrder] = useOptimistic(favorites, (_, next: UserMovie[]) => next);
+function FavoritesList({ favorites, editing }: { favorites: ListedMovie[]; editing: boolean }) {
+  const [order, setOrder] = useOptimistic(favorites, (_, next: ListedMovie[]) => next);
   const [pending, startTransition] = useTransition();
   const dndId = useId(); // stable ids, so server and client HTML match
   const sensors = useSensors(
@@ -266,36 +274,40 @@ function FavoritesList({ favorites, editing }: { favorites: UserMovie[]; editing
   );
 }
 
-function SeenRow({ movie, showVerdict }: { movie: UserMovie; showVerdict: boolean }) {
-  const [pending, startTransition] = useTransition();
-  const verdict = showVerdict ? verdictOf(movie.signal) : undefined;
+// A seen film: change how it was, make it a favourite, or remove it. The new
+// answer shows at once; the refresh then moves it between the filters.
+function SeenRow({ movie }: { movie: ListedMovie }) {
+  const router = useRouter();
+  const [rating, startRating] = useTransition();
+  const [promoting, startPromoting] = useTransition();
+  const [answer, setAnswer] = useOptimistic(movie.signal, (_, next: Feedback) => next);
+  const current = ANSWERS.some((a) => a.feedback === answer) ? (answer as Feedback) : null;
+  const rate = (feedback: Feedback) =>
+    startRating(async () => {
+      setAnswer(feedback);
+      const result = await rateMovie({ ...movie, signal: feedback });
+      if (!result.ok) return;
+      toast(ANSWERS.find((a) => a.feedback === feedback)?.ack);
+      router.refresh();
+    });
   const promote = () =>
-    startTransition(async () => {
+    startPromoting(async () => {
       const result = await favoriteMovies([movie.tmdbId]);
       if (result.ok) toast.success(`${movie.title} is now a favourite`);
     });
   return (
-    <Row
-      movie={movie}
-      meta={
-        verdict && (
-          <>
-            <verdict.icon className="size-3" aria-hidden />
-            {verdict.label}
-          </>
-        )
-      }
-    >
+    <Row movie={movie}>
+      <SeenItMenu title={movie.title} current={current} onRate={rate} variant="row" disabled={rating || promoting} />
       <Button
         variant="ghost"
         size="icon-lg"
         className="text-mute hover:text-primary-soft"
         aria-label={`Make ${movie.title} a favourite`}
         title="Make a favourite"
-        disabled={pending}
+        disabled={rating || promoting}
         onClick={promote}
       >
-        {pending ? <Loader2Icon className="animate-spin" /> : <StarIcon />}
+        {promoting ? <Loader2Icon className="animate-spin" /> : <StarIcon />}
       </Button>
       <ConfirmRemoveButton movie={movie} />
     </Row>
@@ -307,8 +319,17 @@ const tabClass =
 
 const filmsAdded = (n: number) => (n === 1 ? "Added 1 film" : `Added ${n} films`);
 
-export function MyFilms({ movies, starters }: { movies: UserMovie[]; starters: SearchResult[] }) {
-  const [tab, setTab] = useState<Tab>("favorites");
+export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters: SearchResult[] }) {
+  // The tab lives in the URL (?tab=seen), so a refresh or a shared link keeps it.
+  const searchParams = useSearchParams();
+  const tab: Tab = searchParams.get("tab") === "seen" ? "seen" : "favorites";
+  const setTab = (next: Tab) => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "seen") params.set("tab", next);
+    else params.delete("tab");
+    const query = params.toString();
+    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  };
   const [filter, setFilter] = useState<Filter>("all");
   const [editing, setEditing] = useState(false);
 
@@ -431,7 +452,7 @@ export function MyFilms({ movies, starters }: { movies: UserMovie[]; starters: S
           ) : (
             <ul className="divide-y divide-border border-y border-border">
               {shown.map((m) => (
-                <SeenRow key={m.tmdbId} movie={m} showVerdict={filter === "all"} />
+                <SeenRow key={m.tmdbId} movie={m} />
               ))}
             </ul>
           )}

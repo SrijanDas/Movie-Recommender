@@ -9,3 +9,8 @@ export type MovieSnapshot = {
 };
 
 export type UserMovie = RatedMovie & MovieSnapshot;
+
+// TMDB's audience score. Not stored (scores drift): pages add it from the
+// cached TMDB details with withScores() before showing a list.
+export type TmdbScore = { voteAverage: number; voteCount: number };
+export type ListedMovie = UserMovie & Partial<TmdbScore>;

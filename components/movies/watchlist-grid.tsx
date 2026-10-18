@@ -5,16 +5,17 @@ import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ANSWERS } from "@/components/movies/feedback";
+import { FilmCardHeading } from "@/components/movies/film-meta";
 import { forgetMovie, rateMovie, undoRating, watchLater, type Feedback } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { GRID } from "@/components/movies/recommendation-grid";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Button } from "@/components/ui/button";
-import type { UserMovie } from "@/lib/movies/types";
+import type { ListedMovie } from "@/lib/movies/types";
 
 // Saved-for-later films. Saying how one was (it moves to My films → Seen it)
 // or removing it takes the card away at once, with Undo.
-export function WatchlistGrid({ movies }: { movies: UserMovie[] }) {
+export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
   const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
   const setShown = (id: number, shown: boolean) =>
     setHidden((prev) => {
@@ -30,7 +31,7 @@ export function WatchlistGrid({ movies }: { movies: UserMovie[] }) {
       .then((r) => (r.ok ? watchLater(tmdbId) : r))
       .then((r) => r.ok && setShown(tmdbId, true));
 
-  async function rate(movie: UserMovie, feedback: Feedback) {
+  async function rate(movie: ListedMovie, feedback: Feedback) {
     setShown(movie.tmdbId, false);
     const result = await rateMovie({ ...movie, signal: feedback });
     if (!result.ok) return setShown(movie.tmdbId, true);
@@ -41,7 +42,7 @@ export function WatchlistGrid({ movies }: { movies: UserMovie[] }) {
     });
   }
 
-  async function remove(movie: UserMovie) {
+  async function remove(movie: ListedMovie) {
     setShown(movie.tmdbId, false);
     const result = await forgetMovie(movie.tmdbId);
     if (!result.ok) return setShown(movie.tmdbId, true);
@@ -90,13 +91,15 @@ export function WatchlistGrid({ movies }: { movies: UserMovie[] }) {
                   sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
                   className="transition-shadow duration-200 group-hover:shadow-glow"
                 />
-                <h3 className="text-body-md font-semibold leading-snug text-ink">
-                  {movie.title}{" "}
-                  {movie.year && <span className="font-mono text-code font-normal text-mute">{movie.year}</span>}
-                </h3>
+                <FilmCardHeading
+                  title={movie.title}
+                  year={movie.year}
+                  voteAverage={movie.voteAverage}
+                  voteCount={movie.voteCount}
+                />
               </Link>
               <div className="mt-auto flex items-center gap-1.5">
-                <SeenItMenu title={movie.title} onRate={(f) => void rate(movie, f)} compact className="min-w-0 flex-1" />
+                <SeenItMenu title={movie.title} onRate={(f) => void rate(movie, f)} variant="compact" className="min-w-0 flex-1" />
                 <Button
                   variant="outline"
                   size="icon"

@@ -4,13 +4,13 @@ import { db } from "@/lib/db";
 import { userMovies } from "@/lib/db/schema";
 import { getMovie } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
-import type { MovieSnapshot, UserMovie } from "./types";
+import type { ListedMovie, MovieSnapshot, UserMovie } from "./types";
 
 // The signed-in user's movie list in Postgres. See docs/recommendations.md.
 // Every function takes the verified user id; callers get it from
 // getCurrentUserId() and must not pass anything else.
 
-export type { MovieSnapshot, UserMovie } from "./types";
+export type { ListedMovie, MovieSnapshot, UserMovie } from "./types";
 
 // Title/poster/year for a TMDB id, or null if TMDB doesn't know it.
 export async function getSnapshot(tmdbId: number): Promise<MovieSnapshot | null> {
@@ -18,6 +18,17 @@ export async function getSnapshot(tmdbId: number): Promise<MovieSnapshot | null>
   return movie
     ? { title: movie.title, posterPath: movie.poster_path, year: releaseYear(movie.release_date) }
     : null;
+}
+
+// Add each film's TMDB score for display. getMovie is cached for weeks and
+// already fetched when a film is saved, so these are almost always cache hits;
+// a film TMDB can't return just shows no score.
+export async function withScores(movies: UserMovie[]): Promise<ListedMovie[]> {
+  const details = await Promise.all(movies.map((m) => getMovie(m.tmdbId).catch(() => null)));
+  return movies.map((m, i) => {
+    const d = details[i];
+    return d ? { ...m, voteAverage: d.vote_average, voteCount: d.vote_count } : m;
+  });
 }
 
 export async function getUserMovies(userId: string): Promise<UserMovie[]> {

@@ -5,6 +5,7 @@ import { useRouter } from "@bprogress/next/app";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { SearchResult } from "@/app/actions";
+import { FilmRating } from "@/components/movies/film-meta";
 import { saveFavorites } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { useMovieSearch } from "@/components/movies/use-movie-search";
@@ -58,9 +59,15 @@ function Tile({
             </span>
           )}
         </span>
-        <span className="line-clamp-2 text-caption leading-tight text-body">
-          {movie.title}
-          {movie.year && <span className="text-mute"> · {movie.year}</span>}
+        <span className="flex flex-col gap-0.5">
+          <span className="line-clamp-2 text-caption leading-tight text-body">{movie.title}</span>
+          {(movie.year || !!movie.voteCount) && (
+            <span className="flex items-center gap-1.5 font-mono text-caption text-mute">
+              {movie.year}
+              {movie.year && !!movie.voteCount && <span aria-hidden>·</span>}
+              <FilmRating average={movie.voteAverage} count={movie.voteCount} />
+            </span>
+          )}
         </span>
       </button>
     </li>
@@ -89,7 +96,7 @@ export function FilmGrid({
 
   return (
     <>
-      <label className="flex h-11 items-center gap-3 rounded-lg border border-input bg-muted px-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
+      <label className="flex h-11 shrink-0 items-center gap-3 rounded-lg border border-input bg-muted px-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
         <SearchIcon className="size-5 shrink-0 text-mute" aria-hidden />
         <span className="sr-only">Search for a film</span>
         <input

@@ -1,4 +1,5 @@
-import { PlayIcon, StarIcon } from "lucide-react";
+import { PlayIcon } from "lucide-react";
+import { FilmRating } from "@/components/movies/film-meta";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -94,11 +95,7 @@ async function MovieDetails({ id: raw }: { id: string }) {
               {rated && (
                 <>
                   {(year || runtime) && <span aria-hidden>·</span>}
-                  <span className="inline-flex items-center gap-1" title={`${movie.vote_count.toLocaleString("en")} votes on TMDB`}>
-                    <StarIcon className="size-3.5 text-primary-soft" aria-hidden />
-                    <span className="sr-only">TMDB rating</span>
-                    {movie.vote_average.toFixed(1)}
-                  </span>
+                  <FilmRating average={movie.vote_average} count={movie.vote_count} />
                 </>
               )}
             </p>

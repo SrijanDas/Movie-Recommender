@@ -5,6 +5,7 @@ import { Loader2Icon, SearchIcon } from "lucide-react";
 import Image from "next/image";
 import { useId, useRef, useState } from "react";
 import type { SearchResult } from "@/app/actions";
+import { FilmRating } from "@/components/movies/film-meta";
 import { useMovieSearch } from "@/components/movies/use-movie-search";
 import { CommandItem, CommandList } from "@/components/ui/command";
 import { posterUrl } from "@/lib/tmdb/images";
@@ -109,7 +110,11 @@ export function MovieSearch({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-body-sm font-semibold text-ink">{movie.title}</span>
-                  <span className="block font-mono text-caption text-mute">{movie.year ?? "—"}</span>
+                  <span className="flex items-center gap-1.5 font-mono text-caption text-mute">
+                    {movie.year ?? "—"}
+                    {!!movie.voteCount && <span aria-hidden>·</span>}
+                    <FilmRating average={movie.voteAverage} count={movie.voteCount} />
+                  </span>
                 </span>
                 {reason && <span className="text-caption text-mute">{reason}</span>}
               </CommandItem>
