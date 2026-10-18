@@ -63,11 +63,11 @@ async function failure(error: unknown): Promise<ActionResult> {
   return { ok: false, error: "Something went wrong talking to the movie database. Try again." };
 }
 
-// The "Seen it" answer a film keeps once it's a favourite: the one it already
-// has, or DEFAULT_SEEN_ANSWER.
+// The "Seen it" answer a film carries as a favourite: DEFAULT_SEEN_ANSWER
+// ("peak") when it becomes one, whatever it was answered before. One that's
+// already a favourite keeps the answer it has.
 function seenAnswerOf(movie: UserMovie | undefined): SeenAnswer {
-  if (isSeenAnswer(movie?.signal)) return movie.signal;
-  if (isSeenAnswer(movie?.seenSignal)) return movie.seenSignal;
+  if (movie?.signal === "favorite" && isSeenAnswer(movie.seenSignal)) return movie.seenSignal;
   return DEFAULT_SEEN_ANSWER;
 }
 
@@ -161,7 +161,7 @@ export async function saveFavoritesEdit(ids: unknown): Promise<ActionResult> {
 
 // Make these films favourites, appended in this order to the bottom of the
 // list, up to MAX_FAVORITES in all. Each may already be in the list under
-// another signal (from "Seen it"), whose answer it keeps, or be new.
+// another signal (from "Seen it") or be new; either way it lists as "peak".
 export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
