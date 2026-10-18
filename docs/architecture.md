@@ -10,6 +10,7 @@ app/
   page.tsx            # "/" — favourites picker (starter grid + search, min 3)
   recommendations/    # "/recommendations" — poster grid with reasons + feedback
   my-movies/          # "/my-movies" — edit the list, add liked films
+  movie/[id]/         # "/movie/:tmdbId" — film details + "Seen it" answer
   sign-in/            # "/sign-in" — email magic link
   auth/confirm/       # route handler: finishes sign-in, merges the anonymous list
   auth/actions.ts     # signInWithEmail, signOut

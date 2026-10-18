@@ -33,6 +33,7 @@ function parse(raw: string | null): UserMovie[] {
             {
               tmdbId: m.tmdbId,
               signal: m.signal,
+              rank: Number.isInteger(m.rank) && m.rank >= 0 ? m.rank : null,
               title: m.title,
               posterPath: typeof m.posterPath === "string" ? m.posterPath : null,
               year: Number.isInteger(m.year) ? m.year : null,
@@ -106,6 +107,15 @@ export function putLocalMovies(movies: UserMovie[], { removeIds = [] as number[]
   }
   if (byId.size > GUEST_MOVIE_LIMIT) return { ok: false, reason: "limit" };
   return write([...byId.values()]) ? { ok: true } : { ok: false, reason: "storage" };
+}
+
+// Put the guest's favourites in this order (ids must be their favourites).
+export function reorderLocalFavorites(ids: number[]): LocalResult {
+  const rank = new Map(ids.map((id, i) => [id, i]));
+  const list = snapshot().map((m) =>
+    m.signal === "favorite" && rank.has(m.tmdbId) ? { ...m, rank: rank.get(m.tmdbId)! } : m,
+  );
+  return write(list) ? { ok: true } : { ok: false, reason: "storage" };
 }
 
 export function removeLocalMovies(ids: number[]) {

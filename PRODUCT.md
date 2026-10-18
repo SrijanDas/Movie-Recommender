@@ -17,9 +17,9 @@ Casual to avid movie watchers who know the films they love but struggle to pick 
 ## Core flows
 
 1. **Pick films you love.** Tap favourites from a ready-made grid of well-known films, or search for any film. At least 3 (up to 10) unlock recommendations. No account needed.
-2. **Get recommendations.** See a grid of films, each with the reasons it was picked ("Directed by Denis Villeneuve", "Stars Amy Adams").
-3. **Give feedback.** 👍 a recommendation you like, 👎 one you don't, or mark it "Seen it".
-4. **Add more over time.** Add other films you like whenever they come to mind.
+2. **Get recommendations.** See a grid of films, each with the reasons it was picked ("Directed by Denis Villeneuve", "Stars Amy Adams"). Tap one for its details: overview, director, cast and trailer.
+3. **Give feedback.** Tap "Not interested" on a recommendation you don't want to watch (fewer like it), or tap "Seen it" on a recommendation you've watched, then say how it was: "Left midway", "Would not rewatch", "Kinda liked it" or "Loved it".
+4. **Add more over time.** Add other films you like whenever they come to mind. "My films" has two tabs, Favourites and Seen it, each with a search box to add films. Favourites are ranked: drag them into order, and promote any film you've seen to a favourite with one tap.
 5. **Sign in to save.** Anyone can try the app first. Signing in keeps your list and feedback across devices, and anything added before signing in comes with you.
 
 ## How recommendations are chosen
@@ -35,7 +35,7 @@ Each film is described by six attributes, which count toward a match in this ord
 | Supporting actors | the next six billed cast |
 | Format | live action, animated, documentary, short |
 
-Favourites picked on the home screen count most. Other liked films and 👍 add to your profile. 👎 counts against that film's director, cast and themes. "Seen it" only hides a film. Every change takes effect the next time you load your recommendations, so they improve as you use the app.
+Favourites count most, and their order matters: the favourite at the top of your list shapes recommendations the most, the one at the bottom the least. Other liked films and "Loved it" add to your profile; "Kinda liked it" adds half as much. "Not interested" counts against that film's director, cast and themes; "Would not rewatch" counts slightly against that film's director, cast and themes, and "Left midway" counts against them strongly. Any answer hides the film from recommendations. Every change takes effect the next time you load your recommendations, so they improve as you use the app.
 
 ## Principles
 
@@ -50,8 +50,8 @@ Favourites picked on the home screen count most. Other liked films and 👍 add 
 **MVP**
 - Favourites picker: a tappable grid of well-known films plus search, minimum 3
 - Recommendations with reasons
-- 👍 / 👎 / "Seen it" feedback
-- A "My movies" page to edit the list
+- "Seen it" feedback: left midway / would not rewatch / kinda liked it / loved it
+- A "My films" page to edit the list: ranked favourites, and everything you've seen
 - Anonymous use, plus email sign-in that keeps the anonymous list
 
 **Later**
@@ -63,7 +63,7 @@ Favourites picked on the home screen count most. Other liked films and 👍 add 
 
 ## Success signals
 
-- Share of recommendations that get a 👍 rather than a 👎
+- Share of seen recommendations rated "Loved it" or "Kinda liked it" rather than "Would not rewatch" or "Left midway"
 - Share of users who come back to add movies or give feedback
 - Share of anonymous users who sign in to save
 

@@ -3,6 +3,7 @@ import { FavoritesPicker } from "@/components/movies/favorites-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
+import { favoritesInOrder } from "@/lib/recommend/profile";
 import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
@@ -17,9 +18,7 @@ async function Picker() {
   return (
     <FavoritesPicker
       signedIn={Boolean(userId)}
-      saved={movies
-        .filter((m) => m.signal === "favorite")
-        .map(({ tmdbId, title, year, posterPath }) => ({ tmdbId, title, year, posterPath }))}
+      saved={favoritesInOrder(movies).map(({ tmdbId, title, year, posterPath }) => ({ tmdbId, title, year, posterPath }))}
       starters={starters.map((m) => ({
         tmdbId: m.id,
         title: m.title,

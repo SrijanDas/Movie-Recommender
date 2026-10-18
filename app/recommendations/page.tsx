@@ -5,9 +5,9 @@ import {
   NeedMoreNotice,
   Notice,
   RanOutNotice,
-  RecommendationGrid,
   RecommendationSkeleton,
 } from "@/components/movies/recommendation-grid";
+import { RecommendationList } from "@/components/movies/recommendation-list";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
 import { getRecommendations } from "@/lib/recommend";
@@ -35,7 +35,7 @@ async function Results() {
 
   const recommendations = await getRecommendations(movies);
   if (recommendations.length === 0) return <RanOutNotice />;
-  return <RecommendationGrid recommendations={recommendations} signedIn />;
+  return <RecommendationList recommendations={recommendations} signedIn />;
 }
 
 export default function RecommendationsPage() {
@@ -44,7 +44,7 @@ export default function RecommendationsPage() {
       <div className="flex flex-col gap-2">
         <h1 className="text-display-md text-ink-strong md:text-display-lg">What to watch next</h1>
         <p className="max-w-2xl text-body-md text-body">
-          Matched to the films you love. Every thumbs up or down changes what comes next.
+          Matched to the films you love. Tell us how the ones you’ve seen were and the next batch gets sharper.
         </p>
       </div>
       <Suspense fallback={<RecommendationSkeleton />}>

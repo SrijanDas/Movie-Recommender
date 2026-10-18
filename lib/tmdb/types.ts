@@ -7,12 +7,14 @@ export type TmdbCastMember = {
   name: string;
   character: string;
   order: number;
+  profile_path: string | null;
 };
 
 export type TmdbCrewMember = {
   id: number;
   name: string;
   job: string;
+  profile_path: string | null;
 };
 
 export type TmdbKeyword = { id: number; name: string };
@@ -37,6 +39,7 @@ export type TmdbMovieDetails = {
   release_date: string;
   poster_path: string | null;
   overview: string;
+  tagline: string;
   vote_average: number;
   vote_count: number;
   popularity: number;
@@ -44,6 +47,14 @@ export type TmdbMovieDetails = {
   genres: TmdbGenre[];
   credits: { cast: TmdbCastMember[]; crew: TmdbCrewMember[] };
   keywords: { keywords: TmdbKeyword[] };
+};
+
+// `/movie/{id}/videos`
+export type TmdbVideo = {
+  key: string;
+  site: string; // "YouTube", "Vimeo"
+  type: string; // "Trailer", "Teaser", "Clip", …
+  official: boolean;
 };
 
 export type TmdbPage<T> = {

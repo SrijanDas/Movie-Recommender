@@ -1,30 +1,11 @@
 import Link from "next/link";
-import { RecommendationCard } from "@/components/movies/recommendation-card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Recommendation } from "@/lib/recommend/types";
 
 // Shared by the signed-in (server) and guest (client) recommendation views.
+// The interactive grid itself is RecommendationList.
 
-const GRID = "grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-5";
-
-export function RecommendationGrid({
-  recommendations,
-  signedIn,
-}: {
-  recommendations: Recommendation[];
-  signedIn: boolean;
-}) {
-  return (
-    <ul className={GRID}>
-      {recommendations.map((movie, i) => (
-        <li key={movie.tmdbId} className="flex">
-          <RecommendationCard movie={movie} signedIn={signedIn} preload={i < 4} />
-        </li>
-      ))}
-    </ul>
-  );
-}
+export const GRID = "grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-5";
 
 export function RecommendationSkeleton() {
   return (

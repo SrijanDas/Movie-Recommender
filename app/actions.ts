@@ -9,6 +9,7 @@ import {
   getUserMovies,
   importMovies,
   putMovies,
+  rankFavorites,
   type UserMovie,
 } from "@/lib/movies/store";
 import { GUEST_MOVIE_LIMIT } from "@/lib/movies/types";
@@ -44,16 +45,23 @@ const isTmdbId = (value: unknown): value is number =>
 const isSignal = (value: unknown): value is Signal =>
   typeof value === "string" && (SIGNALS as readonly string[]).includes(value);
 
-// Parse an untrusted list of { tmdbId, signal } from the browser.
+const isRank = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0 && value < MAX_FAVORITES;
+
+// Parse an untrusted list of { tmdbId, signal, rank? } from the browser.
 function parseRated(list: unknown, max: number): RatedMovie[] | null {
   if (!Array.isArray(list) || list.length > max) return null;
   const rated: RatedMovie[] = [];
   for (const m of list) {
     if (!m || !isTmdbId(m.tmdbId) || !isSignal(m.signal)) return null;
-    rated.push({ tmdbId: m.tmdbId, signal: m.signal });
+    rated.push({ tmdbId: m.tmdbId, signal: m.signal, rank: m.signal === "favorite" && isRank(m.rank) ? m.rank : null });
   }
   return rated;
 }
+
+// A list of distinct TMDB ids, at most MAX_FAVORITES long.
+const isIdList = (ids: unknown): ids is number[] =>
+  Array.isArray(ids) && ids.length <= MAX_FAVORITES && ids.every(isTmdbId) && new Set(ids).size === ids.length;
 
 // Postgres foreign_key_violation: the session's user isn't in auth.users.
 const isMissingUser = (error: unknown) =>
@@ -124,18 +132,13 @@ export async function importLocalMovies(list: unknown): Promise<ActionResult & {
   }
 }
 
-// Replace the favourites picked on the home screen. Favourites that were
-// unpicked are removed; other signals (likes, feedback) are left alone.
+// Replace the favourites picked on the home screen, in the order picked
+// (first = loved most). Favourites that were unpicked are removed; other
+// signals (likes, feedback) are left alone.
 export async function setFavorites(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
-  if (
-    !Array.isArray(ids) ||
-    ids.length < MIN_FAVORITES ||
-    ids.length > MAX_FAVORITES ||
-    !ids.every(isTmdbId) ||
-    new Set(ids).size !== ids.length
-  ) {
+  if (!isIdList(ids) || ids.length < MIN_FAVORITES) {
     return { ok: false, error: `Pick between ${MIN_FAVORITES} and ${MAX_FAVORITES} different films.` };
   }
 
@@ -153,11 +156,54 @@ export async function setFavorites(ids: unknown): Promise<ActionResult> {
     const favorites: UserMovie[] = ids.map((tmdbId, i) => ({
       tmdbId,
       signal: "favorite",
+      rank: i,
       ...snapshots[i]!,
     }));
 
     await deleteMovies(userId, unpicked);
     await putMovies(userId, favorites);
+    return done();
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// Put the user's favourites in this order: the ids must be exactly their
+// current favourites. Position feeds the recommendation weights.
+export async function reorderFavorites(ids: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isIdList(ids)) return { ok: false, error: "That order doesn't look right." };
+  try {
+    const current = await getUserMovies(userId);
+    const favorites = new Set(current.filter((m) => m.signal === "favorite").map((m) => m.tmdbId));
+    if (ids.length !== favorites.size || !ids.every((id) => favorites.has(id))) {
+      return { ok: false, error: "Your favourites changed. Reload and try again." };
+    }
+    await rankFavorites(userId, ids);
+    return done();
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// Make a film a favourite, at the bottom of the list. It may already be in
+// the list under another signal (from "Seen it") or be new.
+export async function addFavoriteMovie(id: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  try {
+    const current = await getUserMovies(userId);
+    const favorites = current.filter((m) => m.signal === "favorite");
+    if (favorites.some((m) => m.tmdbId === id)) return { ok: true };
+    if (favorites.length >= MAX_FAVORITES) {
+      return { ok: false, error: `You can have ${MAX_FAVORITES} favourites. Remove one to make room.` };
+    }
+    const snapshot = await getSnapshot(id);
+    if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
+    const rank = favorites.reduce((max, m) => Math.max(max, m.rank ?? -1), -1) + 1;
+    await putMovies(userId, [{ tmdbId: id, signal: "favorite", rank, ...snapshot }]);
     return done();
   } catch (error) {
     return failure(error);
@@ -180,7 +226,9 @@ export async function addLikedMovie(id: unknown): Promise<ActionResult> {
   }
 }
 
-const FEEDBACK = ["up", "down", "seen"] as const;
+// Answers to "Seen it" (see components/movies/feedback.ts), plus "down" from
+// a recommendation card's "Not interested".
+const FEEDBACK = ["quit", "no_rewatch", "up", "liked", "down"] as const;
 type Feedback = (typeof FEEDBACK)[number];
 
 export async function rateRecommendation(id: unknown, feedback: unknown): Promise<ActionResult> {
@@ -193,7 +241,23 @@ export async function rateRecommendation(id: unknown, feedback: unknown): Promis
     const snapshot = await getSnapshot(id);
     if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
     await putMovies(userId, [{ tmdbId: id, signal: feedback as Feedback, ...snapshot }]);
-    return done();
+    // No revalidation: the recommendations page removes just this card and
+    // recomputes only when the user taps Refresh.
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// Undo a rating made on a recommendation card. Like rateRecommendation, it
+// leaves the page alone; the card comes back on the client.
+export async function undoRating(id: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  try {
+    await deleteMovies(userId, [id]);
+    return { ok: true };
   } catch (error) {
     return failure(error);
   }

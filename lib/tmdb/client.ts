@@ -4,6 +4,7 @@ import type {
   TmdbMovieDetails,
   TmdbMovieSummary,
   TmdbPage,
+  TmdbVideo,
 } from "./types";
 
 // TMDB's alternate API host. Some ISPs reset TLS connections to
@@ -120,6 +121,20 @@ export async function getMovie(id: number): Promise<TmdbMovieDetails | null> {
     if (error instanceof TmdbError && error.status === 404) return null;
     throw error;
   }
+}
+
+// The film's YouTube trailer, official first, or null. Kept out of getMovie so
+// the recommendation engine's ~100 detail calls stay small.
+export async function getTrailerUrl(id: number): Promise<string | null> {
+  "use cache";
+  cacheLife("weeks");
+  const { results } = await tmdbFetch<{ results: TmdbVideo[] }>(`/movie/${id}/videos`);
+  const youtube = results.filter((v) => v.site === "YouTube");
+  const pick =
+    youtube.find((v) => v.type === "Trailer" && v.official) ??
+    youtube.find((v) => v.type === "Trailer") ??
+    youtube.find((v) => v.type === "Teaser");
+  return pick ? `https://www.youtube.com/watch?v=${pick.key}` : null;
 }
 
 // TMDB's own "recommendations" plus "similar" lists for a movie.

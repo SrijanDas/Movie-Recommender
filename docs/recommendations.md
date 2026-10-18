@@ -48,10 +48,17 @@ Weighted content-based scoring. It is deterministic and every result explains it
 
 | Signal | Weight |
 | --- | --- |
-| `favorite` | +2 (picked on the home screen; 3–10 required, see `MIN_FAVORITES`/`MAX_FAVORITES`) |
-| `liked`, `up` | +1 |
-| `down` | −1 (counts against that film's director, cast, themes) |
-| `seen` | 0: never recommended, no effect on taste |
+| `favorite` | +2.5 for the favourite ranked first, falling linearly to +1.5 for the last (`FAVORITE_TOP`/`FAVORITE_BOTTOM`, `weighMovies`); the list averages +2. Order comes from `user_movies.rank` (0 = top); unranked favourites sort last by `created_at`. 3–10 required, see `MIN_FAVORITES`/`MAX_FAVORITES` |
+| `liked` | +1 (added on My films, or "Loved it" on a recommendation) |
+| `up` | +0.5 ("Kinda liked it") |
+| `no_rewatch` | −0.5 ("Would not rewatch": watched it, mildly against) |
+| `down` | −1: "Not interested" on a recommendation card (formerly "Not for me"). Counts against that film's director, cast, themes |
+| `quit` | −1.5 ("Left midway": the strongest dislike) |
+| `seen` | 0: legacy, from before "Seen it" asked how it was. Never recommended, no effect on taste |
+
+Favourites come from the home-screen picker (saved in the order picked), from "Add a favourite" on My films, or by tapping ★ on a "Seen it" row (moves the film into favourites, at the bottom). On My films the Favourites tab is ranked: ▲/▼ swap neighbours and save through `reorderFavorites` (`reorderLocalFavorites` for guests). Favourites rank as seeds too, so the top ones' related lists are always pulled.
+
+The recommendation card's poster and title open `/movie/[id]` (TMDB details, cast, trailer via `getTrailerUrl`, and the same "Seen it" menu, which shows and changes your answer). A "Not interested" button under "Seen it" saves `down` and offers Undo. The card has a single "Seen it" button; tapping it opens a dropdown asking how it was, worst to best: "Left midway / Would not rewatch / Kinda liked it / Loved it", and writes `quit`, `no_rewatch`, `up` or `liked` via `rateRecommendation`. The answers live in `components/movies/feedback.ts`; My films filters its "Seen it" list by the same answers.
 
 ### Pipeline (`index.ts`)
 
@@ -60,9 +67,9 @@ Weighted content-based scoring. It is deterministic and every result explains it
 3. **Score** each candidate: `Σ weight_dim × clamp(Σ profile weight of its features ÷ strongest weight in that dimension, −1, 1)`, plus `0.05 × vote_average/10`, discounted when there are fewer than 500 votes.
 4. **Reasons:** the two strongest positive matches ("Directed by …", "Stars …"), never the bare "Live action" format. Each reason carries the liked titles that share the feature.
 
-Recommendations are computed per request (dynamic, streamed behind `<Suspense>`). TMDB details are cached, so repeat visits are fast; a cold first visit makes about 100 TMDB calls and takes around 6 seconds.
+Recommendations are computed per request (dynamic, streamed behind `<Suspense>`). Acting on a card (an answer or "Not interested") removes only that card, with Undo: `rateRecommendation`/`undoRating` deliberately don't revalidate. The list is recomputed only when the user taps **Refresh** (`components/movies/recommendation-list.tsx`: `router.refresh()` signed in, a new `recommendFor` call for guests). TMDB details are cached, so repeat visits are fast; a cold first visit makes about 100 TMDB calls and takes around 6 seconds.
 
-`/recommendations` requires at least `MIN_FAVORITES` (3) positive films (favourite, liked or 👍) and otherwise sends the user back to pick more.
+`/recommendations` requires at least `MIN_FAVORITES` (3) positive films (favourite, liked or kinda liked) and otherwise sends the user back to pick more.
 
 ### Tuning
 
@@ -76,4 +83,4 @@ One API whether or not the user is signed in:
 - **Anonymous:** an httpOnly cookie `mr_list` holding `[[tmdbId, signal], …]`, capped at 100 entries.
 - `mergeCookieIntoAccount()` runs from `/auth/confirm` after sign-in. It adds cookie films the account doesn't have; rows already in the account win.
 
-Mutations are Server Actions in `app/actions.ts` (`setFavorites`, `addLikedMovie`, `rateRecommendation`, `removeMovie`, `searchMoviesAction`). Each validates its input and re-checks the id against TMDB before writing.
+Mutations are Server Actions in `app/actions.ts` (`setFavorites`, `reorderFavorites`, `addFavoriteMovie`, `addLikedMovie`, `rateRecommendation`, `removeMovie`, `searchMoviesAction`). Each validates its input and re-checks the id against TMDB before writing.

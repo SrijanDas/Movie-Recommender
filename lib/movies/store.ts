@@ -31,6 +31,7 @@ export async function getUserMovies(userId: string): Promise<UserMovie[]> {
   return rows.map((r) => ({
     tmdbId: r.tmdbId,
     signal: r.signal,
+    rank: r.rank,
     title: r.title,
     posterPath: r.posterPath,
     year: r.year,
@@ -42,12 +43,25 @@ export async function putMovies(userId: string, movies: UserMovie[]) {
   for (const m of movies) {
     await db
       .insert(userMovies)
-      .values({ userId, ...m })
+      .values({ userId, ...m, rank: m.rank ?? null })
       .onConflictDoUpdate({
         target: [userMovies.userId, userMovies.tmdbId],
-        set: { signal: m.signal, title: m.title, posterPath: m.posterPath, year: m.year },
+        set: { signal: m.signal, rank: m.rank ?? null, title: m.title, posterPath: m.posterPath, year: m.year },
       });
   }
+}
+
+// Put the user's favourites in this order. Callers must pass exactly the
+// ids that are currently favourites.
+export async function rankFavorites(userId: string, tmdbIds: number[]) {
+  await db.transaction(async (tx) => {
+    for (const [rank, tmdbId] of tmdbIds.entries()) {
+      await tx
+        .update(userMovies)
+        .set({ rank })
+        .where(and(eq(userMovies.userId, userId), eq(userMovies.tmdbId, tmdbId)));
+    }
+  });
 }
 
 export async function deleteMovies(userId: string, tmdbIds: number[]) {
@@ -73,7 +87,7 @@ export async function importMovies(userId: string, movies: RatedMovie[]): Promis
     if (!snap) continue;
     await db
       .insert(userMovies)
-      .values({ userId, tmdbId: m.tmdbId, signal: m.signal, ...snap })
+      .values({ userId, tmdbId: m.tmdbId, signal: m.signal, rank: m.rank ?? null, ...snap })
       .onConflictDoNothing();
     added++;
   }

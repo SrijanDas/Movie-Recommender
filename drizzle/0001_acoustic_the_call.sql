@@ -1,0 +1,1 @@
+ALTER TYPE "public"."movie_signal" ADD VALUE 'quit';

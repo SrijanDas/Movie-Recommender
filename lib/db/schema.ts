@@ -31,6 +31,10 @@ export const userMovies = pgTable(
       .references(() => authUsers.id, { onDelete: "cascade" }),
     tmdbId: integer("tmdb_id").notNull(),
     signal: movieSignal("signal").notNull(),
+    // Position among the user's favourites (0 = the film they love most).
+    // Null for every other signal, and for favourites saved before ranking
+    // existed, which then sort by created_at.
+    rank: smallint("rank"),
     // Display snapshot so lists render without a TMDB round-trip.
     title: text("title").notNull(),
     posterPath: text("poster_path"),

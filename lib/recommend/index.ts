@@ -4,7 +4,7 @@ import { releaseYear } from "@/lib/tmdb/images";
 import type { TmdbMovieDetails } from "@/lib/tmdb/types";
 import { gatherCandidates } from "./candidates";
 import { extractFeatures } from "./features";
-import { buildProfile, signalWeight } from "./profile";
+import { buildProfile, weighMovies } from "./profile";
 import { scoreMovie } from "./score";
 import type { RatedMovie, Recommendation } from "./types";
 
@@ -29,9 +29,7 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
 const safeGetMovie = (id: number) => getMovie(id).catch(() => null);
 
 export async function getRecommendations(rated: RatedMovie[]): Promise<Recommendation[]> {
-  const weighted = rated
-    .map((m) => ({ ...m, weight: signalWeight(m.signal) }))
-    .filter((m) => m.weight !== 0);
+  const weighted = weighMovies(rated).filter((m) => m.weight !== 0);
   if (!weighted.some((m) => m.weight > 0)) return [];
 
   const ratedDetails = await mapLimit(weighted, FETCH_CONCURRENCY, (m) => safeGetMovie(m.tmdbId));
@@ -44,6 +42,7 @@ export async function getRecommendations(rated: RatedMovie[]): Promise<Recommend
     }),
   );
 
+  // Strongest first, so the top favourites' related lists are always pulled.
   const seeds = weighted
     .filter((m) => m.weight > 0)
     .sort((a, b) => b.weight - a.weight)

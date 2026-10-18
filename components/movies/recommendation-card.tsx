@@ -1,53 +1,38 @@
 "use client";
 
-import { EyeIcon, ThumbsDownIcon, ThumbsUpIcon } from "lucide-react";
-import { useOptimistic, useTransition } from "react";
-import { rateMovie } from "@/components/movies/movie-actions";
+import { BanIcon } from "lucide-react";
+import Link from "next/link";
+import type { Rating } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
+import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Recommendation } from "@/lib/recommend/types";
-import { cn } from "@/lib/utils";
 
-type Feedback = "up" | "down" | "seen";
-
-const ACK: Record<Feedback, string> = {
-  up: "Noted. More like this.",
-  down: "Noted. Fewer like this.",
-  seen: "Hidden. You’ve seen it.",
-};
-
+// Saving, removing and undo live in RecommendationList; the card only says
+// which action was taken.
 export function RecommendationCard({
   movie,
-  signedIn,
   preload,
+  onRate,
 }: {
   movie: Recommendation;
-  signedIn: boolean;
   preload?: boolean;
+  onRate: (rating: Rating) => void;
 }) {
-  const [given, setGiven] = useOptimistic<Feedback | null, Feedback>(null, (_, next) => next);
-  const [pending, startTransition] = useTransition();
-
-  const rate = (feedback: Feedback) =>
-    startTransition(async () => {
-      setGiven(feedback);
-      const { tmdbId, title, posterPath, year } = movie;
-      await rateMovie(signedIn, { tmdbId, title, posterPath, year, signal: feedback });
-    });
-
   const because = movie.reasons.flatMap((r) => r.because);
   const becauseTitles = [...new Set(because)].slice(0, 2);
 
   return (
-    <article
-      className={cn(
-        "group flex flex-col gap-3 transition-opacity duration-200",
-        given && "pointer-events-none opacity-40",
-      )}
-      aria-busy={pending}
-    >
-      <div className="relative">
+    <article className="group flex w-full flex-col gap-3">
+      {/* Poster and title open the film's page in a new tab, so the list and its
+          scroll position stay put; reasons and Seen it stay outside the link. */}
+      <Link
+        href={`/movie/${movie.tmdbId}`}
+        target="_blank"
+        rel="noopener"
+        className="flex flex-col gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
         <Poster
           path={movie.posterPath}
           title={movie.title}
@@ -55,18 +40,14 @@ export function RecommendationCard({
           sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
           className="transition-shadow duration-200 group-hover:shadow-glow"
         />
-        {given && (
-          <p className="absolute inset-x-2 bottom-2 rounded-lg bg-background/90 px-3 py-2 text-center text-body-sm text-ink">
-            {ACK[given]}
-          </p>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2">
         <h3 className="text-body-md font-semibold leading-snug text-ink">
           {movie.title}{" "}
           {movie.year && <span className="font-mono text-code font-normal text-mute">{movie.year}</span>}
         </h3>
+        <span className="sr-only">(opens in a new tab)</span>
+      </Link>
+
+      <div className="-mt-1 flex flex-col gap-2">
         {movie.reasons.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label="Why it was picked">
             {movie.reasons.map((r) => (
@@ -83,16 +64,11 @@ export function RecommendationCard({
         )}
       </div>
 
-      <div className="mt-auto flex gap-1" role="group" aria-label={`Feedback on ${movie.title}`}>
-        <Button variant="outline" size="icon" aria-label="More like this" title="More like this" onClick={() => rate("up")}>
-          <ThumbsUpIcon />
-        </Button>
-        <Button variant="outline" size="icon" aria-label="Not for me" title="Not for me" onClick={() => rate("down")}>
-          <ThumbsDownIcon />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-8 text-mute" onClick={() => rate("seen")}>
-          <EyeIcon />
-          Seen it
+      <div className="mt-auto flex flex-col gap-1">
+        <SeenItMenu title={movie.title} onRate={onRate} />
+        <Button variant="ghost" className="h-9 w-full text-body-sm font-normal text-mute" onClick={() => onRate("down")}>
+          <BanIcon />
+          Not interested
         </Button>
       </div>
     </article>

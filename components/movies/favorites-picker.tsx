@@ -10,6 +10,7 @@ import { Poster } from "@/components/movies/poster";
 import { useMovieSearch } from "@/components/movies/use-movie-search";
 import { Button } from "@/components/ui/button";
 import { useLocalMovies } from "@/lib/movies/local";
+import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +70,7 @@ export function FavoritesPicker({
   saved: SearchResult[];
 }) {
   const local = useLocalMovies();
-  const localFavorites = useMemo(() => (local ?? []).filter((m) => m.signal === "favorite"), [local]);
+  const localFavorites = useMemo(() => favoritesInOrder(local ?? []), [local]);
   // Until the user changes something, show what's saved.
   const [edited, setEdited] = useState<SearchResult[] | null>(null);
   const picked = edited ?? (signedIn ? saved : localFavorites);

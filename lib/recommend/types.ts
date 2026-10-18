@@ -2,14 +2,20 @@
 // safe to import from the DB schema, server code, and client components.
 
 // How a user feels about a movie. Stored in `user_movies.signal`.
-// favorite: picked on the home screen. liked: added later on My films.
-export const SIGNALS = ["favorite", "liked", "up", "down", "seen"] as const;
+// favorite: picked on the home screen. liked: added on My films or "Loved it".
+// up: "Kinda liked it". no_rewatch: "Would not rewatch". quit: "Left midway".
+// down: "Not interested" (on a recommendation card).
+// Legacy, no longer written: seen (hides a film only).
+export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch"] as const;
 export type Signal = (typeof SIGNALS)[number];
 
-// One movie in a user's list (from the DB or the anonymous cookie).
+// One movie in a user's list (from the DB or the guest's localStorage).
 export type RatedMovie = {
   tmdbId: number;
   signal: Signal;
+  // Favourites only: 0 is the film the user loves most. Null/undefined for
+  // other signals, or for favourites saved before ranking existed.
+  rank?: number | null;
 };
 
 // Picks needed before we recommend anything.

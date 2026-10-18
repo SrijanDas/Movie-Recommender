@@ -1,0 +1,1 @@
+ALTER TABLE "user_movies" ADD COLUMN "rank" smallint;

@@ -10,8 +10,18 @@ const NAV = [
   { href: "/my-movies", label: "My films", short: "Mine" },
 ];
 
+// The pathname is request data on dynamic routes (/movie/[id]), so the header
+// renders NavLinks inside <Suspense> with this fallback: same links, no
+// active underline.
+export function NavLinksFallback() {
+  return <Links pathname={null} />;
+}
+
 export function NavLinks() {
-  const pathname = usePathname();
+  return <Links pathname={usePathname()} />;
+}
+
+function Links({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="Main" className="flex min-w-0 flex-1 items-center gap-4 text-body-sm">
       {NAV.map((item) => {

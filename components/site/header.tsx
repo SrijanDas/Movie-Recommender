@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { signOut } from "@/app/auth/actions";
 import { ImportLocalList } from "@/components/movies/import-local-list";
-import { NavLinks } from "@/components/site/nav-links";
+import { NavLinks, NavLinksFallback } from "@/components/site/nav-links";
 import { Button } from "@/components/ui/button";
 import { getCurrentUserId } from "@/lib/auth";
 
@@ -35,7 +35,9 @@ export function SiteHeader() {
           </span>
           <span className="hidden sm:inline">Next Reel</span>
         </Link>
-        <NavLinks />
+        <Suspense fallback={<NavLinksFallback />}>
+          <NavLinks />
+        </Suspense>
         <Suspense fallback={<div className="h-8 w-16" />}>
           <Account />
         </Suspense>
