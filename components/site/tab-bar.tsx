@@ -1,6 +1,6 @@
 "use client";
 
-import { BookmarkIcon, CircleUserIcon, PopcornIcon, StarIcon, type LucideIcon } from "lucide-react";
+import { BookmarkIcon, PopcornIcon, StarIcon, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ export const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/recommendations", label: "Watch", icon: PopcornIcon },
   { href: "/watchlist", label: "Watchlist", icon: BookmarkIcon },
   { href: "/my-movies", label: "My films", icon: StarIcon },
-  { href: "/account", label: "Account", icon: CircleUserIcon },
 ];
 
 const isActive = (pathname: string | null, href: string) =>
@@ -42,7 +41,7 @@ function BottomTabs({ pathname }: { pathname: string | null }) {
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
-      <ul className="mx-auto grid h-16 max-w-md grid-cols-4">
+      <ul className="mx-auto grid h-16 max-w-md grid-cols-3">
         {TABS.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (

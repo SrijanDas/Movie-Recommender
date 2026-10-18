@@ -56,7 +56,7 @@ next.config.ts        # framework config — see nextjs-16.md
 - **Movie data:** TMDB API → [recommendations.md](recommendations.md)
 - **Recommendation approach:** weighted content-based scoring with explained reasons → [recommendations.md](recommendations.md)
 - **No anonymous use:** every app screen needs an account (`proxy.ts`), and a finished onboarding (`app/(app)/layout.tsx` → `/onboarding`).
-- **PWA:** manifest + icons + a minimal service worker (offline page only; pages are never cached). The Account tab offers install via `beforeinstallprompt`, with iOS instructions.
+- **PWA:** manifest + icons + a minimal service worker (offline page only; pages are never cached). The Account page (header avatar) offers install via `beforeinstallprompt`, with iOS instructions.
 
 ## Open decisions
 

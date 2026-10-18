@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import { AccountButton, AccountButtonFallback } from "@/components/site/account-button";
 import { Logo } from "@/components/site/logo";
 import { TabBar, TabBarFallback, TopNav, TopNavFallback } from "@/components/site/tab-bar";
+import { getCurrentUser } from "@/lib/auth";
 
 // Sticky top bar. In the installed iOS app it runs under the status bar, so
 // it pads by the safe area.
@@ -15,13 +17,24 @@ function Bar({ logoHref, children }: { logoHref: string; children?: React.ReactN
   );
 }
 
-// Inside the app: logo, plus the nav on tablet and up. Phones get <AppTabBar>.
+async function Account() {
+  const user = await getCurrentUser();
+  return <AccountButton name={user?.name ?? null} email={user?.email ?? null} />;
+}
+
+// Inside the app: logo, the nav on tablet and up (phones get <AppTabBar>),
+// and the account avatar on every size.
 export function AppHeader() {
   return (
     <Bar logoHref="/recommendations">
-      <Suspense fallback={<TopNavFallback />}>
-        <TopNav />
-      </Suspense>
+      <div className="flex items-center gap-3">
+        <Suspense fallback={<TopNavFallback />}>
+          <TopNav />
+        </Suspense>
+        <Suspense fallback={<AccountButtonFallback />}>
+          <Account />
+        </Suspense>
+      </div>
     </Bar>
   );
 }

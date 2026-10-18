@@ -22,7 +22,7 @@ Casual to avid movie watchers who know the films they love but struggle to pick 
 4. **Give feedback or save for later.** Under each recommendation: "Seen it" (then say how it was: "Left midway", "Would not rewatch", "Kinda liked it", "Good movie" or "Peak"), and a bookmark icon to add it to the watchlist. A ⋯ menu on the poster's corner offers "Not interested" (fewer like it) and "Might watch someday" (hides it, taste unchanged).
 5. **Watchlist.** Films saved for later, newest first. Say how one was once you've watched it, and it moves to My films.
 6. **Add more over time.** "My films" has two tabs, Favourites and Seen it, each with a search box to add films. Favourites are ranked: drag them into order, and promote any film you've seen to a favourite with one tap.
-7. **Install it.** The site is an installable PWA; the Account tab offers "Install Next Movie" (or iOS instructions).
+7. **Install it.** The site is an installable PWA; Account (the avatar in the header) offers "Install Next Movie" (or iOS instructions).
 
 ## How recommendations are chosen
 
@@ -44,7 +44,7 @@ Favourites count most, and their order matters: the favourite at the top of your
 - **Always explain.** Every recommendation shows why it was picked.
 - **Never repeat.** A film you've rated, liked or marked seen never shows up as a recommendation.
 - **Account first, value fast.** Signing up is one email; onboarding is one screen of taps, then recommendations.
-- **Mobile app first.** Every screen is designed as a phone app first: bottom tab bar (Watch, Watchlist, My films, Account), thumb-reach actions, installable to the home screen. Tapping beats typing, and there's one obvious next step.
+- **Mobile app first.** Every screen is designed as a phone app first: bottom tab bar (Watch, Watchlist, My films) with Account behind the avatar in the header, thumb-reach actions, installable to the home screen. Tapping beats typing, and there's one obvious next step.
 - **Cinematic and calm.** A dark interface where posters do the talking (see [DESIGN.md](DESIGN.md)).
 
 ## Scope

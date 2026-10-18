@@ -11,6 +11,21 @@ const LEAD_BILLING = 2; // cast `order` 0–1
 const SUPPORTING_BILLING = 8; // cast `order` 2–7
 const MAX_KEYWORDS = 20;
 
+// TMDB files TV movies, single episodes and specials under /movie too.
+export const TV_MOVIE_GENRE = 10770;
+// Episodes and specials run under an hour; feature films rarely do. TMDB also
+// reports 0 for films it has no runtime for, usually unreleased or obscure ones.
+export const MIN_FEATURE_RUNTIME = 60;
+
+// Whether a movie is a feature film we'd recommend: not a TV movie, episode,
+// special or short.
+export function isFeatureFilm(movie: TmdbMovieDetails): boolean {
+  return (
+    !(movie.genres ?? []).some((g) => g.id === TV_MOVIE_GENRE) &&
+    (movie.runtime ?? 0) >= MIN_FEATURE_RUNTIME
+  );
+}
+
 const person = (id: number, name: string): Feature => ({ key: `p:${id}`, label: name });
 
 export function extractFeatures(movie: TmdbMovieDetails): MovieFeatures {

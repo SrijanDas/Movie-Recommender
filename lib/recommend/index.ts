@@ -3,7 +3,7 @@ import { getMovie } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 import type { TmdbMovieDetails } from "@/lib/tmdb/types";
 import { gatherCandidates } from "./candidates";
-import { extractFeatures } from "./features";
+import { extractFeatures, isFeatureFilm } from "./features";
 import { buildProfile, weighMovies } from "./profile";
 import { scoreMovie } from "./score";
 import type { RatedMovie, Recommendation } from "./types";
@@ -54,7 +54,7 @@ export async function getRecommendations(rated: RatedMovie[]): Promise<Recommend
   const candidates = await mapLimit(candidateIds, FETCH_CONCURRENCY, safeGetMovie);
 
   return candidates
-    .filter((m): m is TmdbMovieDetails => m !== null)
+    .filter((m): m is TmdbMovieDetails => m !== null && isFeatureFilm(m))
     .map((movie) => {
       const { score, reasons } = scoreMovie(
         {

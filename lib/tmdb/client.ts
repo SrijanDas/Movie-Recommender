@@ -175,6 +175,9 @@ export async function discover(params: DiscoverParams): Promise<TmdbMovieSummary
     include_adult: "false",
     sort_by: "vote_average.desc",
     "vote_count.gte": 300,
+    // Feature films only: no TV movies (genre 10770), episodes or shorts.
+    without_genres: 10770,
+    "with_runtime.gte": 60,
   });
   return data.results;
 }

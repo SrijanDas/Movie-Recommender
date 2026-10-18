@@ -1,7 +1,7 @@
 import "server-only";
 import { discover, getRelated } from "@/lib/tmdb/client";
 import type { TmdbMovieSummary } from "@/lib/tmdb/types";
-import { featureId } from "./features";
+import { featureId, TV_MOVIE_GENRE } from "./features";
 import { topFeatures, type Profile } from "./profile";
 
 const MAX_SEEDS = 10; // liked movies whose related lists we pull
@@ -41,7 +41,8 @@ export async function gatherCandidates(
   for (const result of results) {
     if (result.status !== "fulfilled") continue;
     for (const movie of result.value) {
-      if (exclude.has(movie.id)) continue;
+      // Drop TV movies early so they don't take candidate slots.
+      if (exclude.has(movie.id) || movie.genre_ids?.includes(TV_MOVIE_GENRE)) continue;
       hits.set(movie.id, (hits.get(movie.id) ?? 0) + 1);
     }
   }

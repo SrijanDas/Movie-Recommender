@@ -67,6 +67,7 @@ The recommendation card's poster and title open `/movie/[id]` (TMDB details, cas
 
 1. Fetch details for every rated movie and build the profile: for each dimension, a map of feature → summed signal weight, plus the titles that contributed it.
 2. **Candidates:** TMDB recommendations + similar lists for the 10 strongest liked films, plus `discover` queries for the top directors, the top leads, and the top genre with the top keywords. Ids found by more sources rank first; anything the user has already rated is excluded; the list is capped at 100.
+   **Feature films only:** TMDB files TV movies, single episodes, specials and shorts under `/movie` too. TV movies (genre 10770) are dropped from the candidate lists and from `discover` (`without_genres`), and after fetching details `isFeatureFilm` (`features.ts`) also drops anything under 60 minutes (`MIN_FEATURE_RUNTIME`), which catches episodes like "Doctor Who: Last Christmas" and films with an unknown (0) runtime.
 3. **Score** each candidate: `Σ weight_dim × clamp(Σ profile weight of its features ÷ strongest weight in that dimension, −1, 1)`, plus `0.05 × vote_average/10`, discounted when there are fewer than 500 votes.
 4. **Reasons:** the two strongest positive matches ("Directed by …", "Stars …"), never the bare "Live action" format. Each reason carries the liked titles that share the feature.
 
