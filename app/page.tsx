@@ -141,7 +141,7 @@ function FeedbackVisual() {
           key={feedback}
           className={cn(
             "flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-body-sm text-ink",
-            feedback === "liked" && "border-primary-soft text-primary-soft",
+            feedback === "peak" && "border-primary-soft text-primary-soft",
           )}
         >
           <Icon className="size-4" aria-hidden />
@@ -220,7 +220,7 @@ export default function LandingPage() {
             <Step
               n={3}
               title="Say how it was, and it learns"
-              body="Mark what you’ve seen with one tap. Loved it? More like that. Left midway? Fewer. Keep the rest on your watchlist."
+              body="Mark what you’ve seen with one tap. Peak? More like that. Left midway? Fewer. Keep the rest on your watchlist."
             >
               <FeedbackVisual />
             </Step>

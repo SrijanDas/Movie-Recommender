@@ -2,12 +2,15 @@
 // safe to import from the DB schema, server code, and client components.
 
 // How a user feels about a movie. Stored in `user_movies.signal`.
-// favorite: picked on the home screen. liked: added on My films or "Loved it".
+// favorite: picked on the home screen. liked: added on My films or "Good movie"
+// (was "Loved it"). peak: "Peak".
 // up: "Kinda liked it". no_rewatch: "Would not rewatch". quit: "Left midway".
 // down: "Not interested" (on a recommendation card).
+// someday: "Might watch someday" (on a recommendation card): hidden from
+// recommendations, no effect on taste, not listed anywhere.
 // watchlist: saved to watch later; no effect on taste, never recommended.
 // Legacy, no longer written: seen (hides a film only).
-export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch", "watchlist"] as const;
+export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch", "watchlist", "someday", "peak"] as const;
 export type Signal = (typeof SIGNALS)[number];
 
 // One movie in a user's list.
@@ -21,7 +24,8 @@ export type RatedMovie = {
 
 // Picks needed before we recommend anything.
 export const MIN_FAVORITES = 3;
-export const MAX_FAVORITES = 10;
+// Onboarding caps its picks here; My films can add favourites past it.
+export const MAX_ONBOARDING_FAVORITES = 10;
 
 // The attributes a movie is compared on, most important first.
 export const DIMENSIONS = [

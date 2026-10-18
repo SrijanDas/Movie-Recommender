@@ -47,7 +47,7 @@ export function SeenItMenu({
           />
         }
       >
-        {!compact && <TriggerIcon className={cn(answered?.feedback === "liked" && "text-primary-soft")} />}
+        {!compact && <TriggerIcon className={cn(answered?.feedback === "peak" && "text-primary-soft")} />}
         {answered?.label ?? "Seen it"}
         <ChevronDownIcon className="text-mute" />
       </DropdownMenuTrigger>
@@ -59,7 +59,7 @@ export function SeenItMenu({
               key={feedback}
               className={cn(
                 "h-10 gap-2.5 px-2 text-body-sm text-ink",
-                feedback === "liked" && "text-primary-soft *:[svg]:text-primary-soft",
+                feedback === "peak" && "text-primary-soft *:[svg]:text-primary-soft",
                 feedback === current && "bg-accent",
               )}
               onClick={() => onRate(feedback)}

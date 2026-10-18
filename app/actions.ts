@@ -12,7 +12,7 @@ import {
   type UserMovie,
 } from "@/lib/movies/store";
 import { markOnboarded } from "@/lib/onboarding";
-import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
+import { MAX_ONBOARDING_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { searchMovies } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
@@ -32,9 +32,9 @@ const SIGN_IN_REQUIRED: ActionResult = { ok: false, error: "Your session ended. 
 const isTmdbId = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
 
-// A list of distinct TMDB ids, at most MAX_FAVORITES long.
+// A list of distinct TMDB ids.
 const isIdList = (ids: unknown): ids is number[] =>
-  Array.isArray(ids) && ids.length <= MAX_FAVORITES && ids.every(isTmdbId) && new Set(ids).size === ids.length;
+  Array.isArray(ids) && ids.every(isTmdbId) && new Set(ids).size === ids.length;
 
 // Postgres foreign_key_violation: the session's user isn't in auth.users.
 const isMissingUser = (error: unknown) =>
@@ -82,8 +82,8 @@ export async function searchMoviesAction(query: unknown): Promise<SearchResult[]
 export async function setFavorites(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
-  if (!isIdList(ids) || ids.length < MIN_FAVORITES) {
-    return { ok: false, error: `Pick between ${MIN_FAVORITES} and ${MAX_FAVORITES} different films.` };
+  if (!isIdList(ids) || ids.length < MIN_FAVORITES || ids.length > MAX_ONBOARDING_FAVORITES) {
+    return { ok: false, error: `Pick between ${MIN_FAVORITES} and ${MAX_ONBOARDING_FAVORITES} different films.` };
   }
 
   try {
@@ -142,9 +142,6 @@ export async function addFavoriteMovie(id: unknown): Promise<ActionResult> {
     const current = await getUserMovies(userId);
     const favorites = current.filter((m) => m.signal === "favorite");
     if (favorites.some((m) => m.tmdbId === id)) return { ok: true };
-    if (favorites.length >= MAX_FAVORITES) {
-      return { ok: false, error: `You can have ${MAX_FAVORITES} favourites. Remove one to make room.` };
-    }
     const snapshot = await getSnapshot(id);
     if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
     const rank = favorites.reduce((max, m) => Math.max(max, m.rank ?? -1), -1) + 1;
@@ -171,9 +168,10 @@ export async function addLikedMovie(id: unknown): Promise<ActionResult> {
   }
 }
 
-// Answers to "Seen it" (see components/movies/feedback.ts), plus "down" from
-// a recommendation card's "Not interested".
-const FEEDBACK = ["quit", "no_rewatch", "up", "liked", "down"] as const;
+// Answers to "Seen it" (see components/movies/feedback.ts), plus "down" and
+// "someday" from a recommendation card's menu ("Not interested", "Might watch
+// someday").
+const FEEDBACK = ["quit", "no_rewatch", "up", "liked", "peak", "down", "someday"] as const;
 type Feedback = (typeof FEEDBACK)[number];
 
 export async function rateRecommendation(id: unknown, feedback: unknown): Promise<ActionResult> {

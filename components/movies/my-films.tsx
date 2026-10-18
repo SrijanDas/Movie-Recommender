@@ -37,7 +37,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { UserMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { cn } from "@/lib/utils";
-import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
+import { MIN_FAVORITES } from "@/lib/recommend/types";
 
 type Filter = "all" | Feedback;
 type Tab = "favorites" | "seen";
@@ -173,7 +173,7 @@ function FavoritesList({ favorites }: { favorites: UserMovie[] }) {
   );
 }
 
-function SeenRow({ movie, showVerdict, favoritesFull }: { movie: UserMovie; showVerdict: boolean; favoritesFull: boolean }) {
+function SeenRow({ movie, showVerdict }: { movie: UserMovie; showVerdict: boolean }) {
   const [pending, startTransition] = useTransition();
   const verdict = showVerdict ? verdictOf(movie.signal) : undefined;
   const promote = () =>
@@ -198,7 +198,7 @@ function SeenRow({ movie, showVerdict, favoritesFull }: { movie: UserMovie; show
         size="icon"
         className="hover:text-primary-soft"
         aria-label={`Make ${movie.title} a favourite`}
-        title={favoritesFull ? `Favourites are full (${MAX_FAVORITES})` : "Make a favourite"}
+        title="Make a favourite"
         disabled={pending}
         onClick={promote}
       >
@@ -219,11 +219,11 @@ export function MyFilms({ movies }: { movies: UserMovie[] }) {
 
   const known = new Set(movies.map((m) => m.tmdbId));
   const favorites = favoritesInOrder(movies);
-  const favoritesFull = favorites.length >= MAX_FAVORITES;
   // Newest first. "Seen it" holds every film you've watched and answered for
-  // (legacy "seen" rows show only under All). "Not interested" (down) and
-  // watchlist films weren't seen and aren't listed here.
-  const seen = movies.filter((m) => m.signal !== "favorite" && m.signal !== "down" && m.signal !== "watchlist").reverse();
+  // (legacy "seen" rows show only under All). "Not interested" (down),
+  // "Might watch someday" and watchlist films weren't seen and aren't listed here.
+  const unseen = new Set(["favorite", "down", "someday", "watchlist"]);
+  const seen = movies.filter((m) => !unseen.has(m.signal)).reverse();
   const countOf = (f: Filter) => (f === "all" ? seen.length : seen.filter((m) => m.signal === f).length);
   const shown = filter === "all" ? seen : seen.filter((m) => m.signal === filter);
 
@@ -246,9 +246,9 @@ export function MyFilms({ movies }: { movies: UserMovie[] }) {
           <MovieSearch
             size="md"
             label="Add a favourite"
-            placeholder={favoritesFull ? `Favourites are full (${MAX_FAVORITES})` : "Add a favourite"}
+            placeholder="Add a favourite"
             disabledReason={(m) =>
-              favorites.some((f) => f.tmdbId === m.tmdbId) ? "A favourite" : favoritesFull ? "List full" : null
+              favorites.some((f) => f.tmdbId === m.tmdbId) ? "A favourite" : null
             }
             onPick={(movie) =>
               startTransition(async () => {
@@ -259,9 +259,8 @@ export function MyFilms({ movies }: { movies: UserMovie[] }) {
           />
           <p className="text-body-sm text-mute">
             {favorites.length < MIN_FAVORITES
-              ? `Pick at least ${MIN_FAVORITES} to unlock recommendations. `
-              : "Loved most at the top. The higher a film sits, the more it shapes your picks. "}
-            Up to {MAX_FAVORITES}.
+              ? `Pick at least ${MIN_FAVORITES} to unlock recommendations.`
+              : "Loved most at the top. The higher a film sits, the more it shapes your picks."}
           </p>
           <FavoritesList favorites={favorites} />
         </TabsContent>
@@ -307,7 +306,7 @@ export function MyFilms({ movies }: { movies: UserMovie[] }) {
           ) : (
             <ul className="divide-y divide-border border-y border-border">
               {shown.map((m) => (
-                <SeenRow key={m.tmdbId} movie={m} showVerdict={filter === "all"} favoritesFull={favoritesFull} />
+                <SeenRow key={m.tmdbId} movie={m} showVerdict={filter === "all"} />
               ))}
             </ul>
           )}

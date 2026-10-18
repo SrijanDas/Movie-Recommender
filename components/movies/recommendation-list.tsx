@@ -34,8 +34,14 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
     const result = await rateMovie({ tmdbId, title, posterPath, year, signal: rating });
     if (!result.ok) return setShown(tmdbId, true);
     const answer = ANSWERS.find((a) => a.feedback === rating);
-    toast(rating === "down" ? `Hid ${title}` : (answer?.ack ?? "Noted."), {
-      description: rating === "down" ? "You’ll see fewer films like it." : `${answer?.label}: ${title}`,
+    const [message, description] =
+      rating === "down"
+        ? [`Hid ${title}`, "You’ll see fewer films like it."]
+        : rating === "someday"
+          ? [`Hid ${title} for now`, "Your picks stay the same."]
+          : [answer?.ack ?? "Noted.", `${answer?.label}: ${title}`];
+    toast(message, {
+      description,
       action: {
         label: "Undo",
         onClick: () => void undoRating(tmdbId).then((r) => r.ok && setShown(tmdbId, true)),

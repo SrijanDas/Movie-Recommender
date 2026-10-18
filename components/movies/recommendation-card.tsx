@@ -1,12 +1,18 @@
 "use client";
 
-import { BanIcon, BookmarkPlusIcon } from "lucide-react";
+import { BanIcon, BookmarkPlusIcon, ClockIcon, EllipsisVerticalIcon } from "lucide-react";
 import Link from "next/link";
 import type { Rating } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { Recommendation } from "@/lib/recommend/types";
 
 // Saving, removing and undo live in RecommendationList; the card only says
@@ -26,7 +32,7 @@ export function RecommendationCard({
   const becauseTitles = [...new Set(because)].slice(0, 2);
 
   return (
-    <article className="group flex w-full flex-col gap-3">
+    <article className="group relative flex w-full flex-col gap-3">
       {/* Poster and title open the film's page in a new tab, so the list and its
           scroll position stay put; reasons and Seen it stay outside the link. */}
       <Link
@@ -49,6 +55,32 @@ export function RecommendationCard({
         <span className="sr-only">(opens in a new tab)</span>
       </Link>
 
+      {/* Sits over the poster's top-right corner, outside the link. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-1.5 right-1.5 size-9 rounded-full bg-canvas/70 text-ink backdrop-blur-sm hover:bg-canvas/90 hover:text-ink-strong aria-expanded:bg-canvas/90"
+              aria-label={`More options for ${movie.title}`}
+            />
+          }
+        >
+          <EllipsisVerticalIcon />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-52 p-1.5">
+          <DropdownMenuItem className="h-10 gap-2.5 px-2 text-body-sm text-ink" onClick={() => onRate("down")}>
+            <BanIcon />
+            Not interested
+          </DropdownMenuItem>
+          <DropdownMenuItem className="h-10 gap-2.5 px-2 text-body-sm text-ink" onClick={() => onRate("someday")}>
+            <ClockIcon />
+            Might watch someday
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       <div className="-mt-1 flex flex-col gap-2">
         {movie.reasons.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label="Why it was picked">
@@ -66,7 +98,7 @@ export function RecommendationCard({
         )}
       </div>
 
-      {/* One row: Seen it takes the room left by the two icon buttons. */}
+      {/* One row: Seen it takes the room left by the bookmark. */}
       <div className="mt-auto flex items-center gap-1.5">
         <SeenItMenu title={movie.title} onRate={onRate} compact className="min-w-0 flex-1" />
         <Button
@@ -78,16 +110,6 @@ export function RecommendationCard({
           onClick={onWatchlist}
         >
           <BookmarkPlusIcon />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="size-10 shrink-0 text-mute hover:text-ink"
-          aria-label={`Not interested in ${movie.title}`}
-          title="Not interested"
-          onClick={() => onRate("down")}
-        >
-          <BanIcon />
         </Button>
       </div>
     </article>

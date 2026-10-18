@@ -38,9 +38,10 @@ export async function favoriteMovie(movie: UserMovie): Promise<ActionResult> {
 }
 
 // Answers to "Seen it" on a recommendation. See components/movies/feedback.ts.
-export type Feedback = "quit" | "no_rewatch" | "up" | "liked";
-// Feedback, or the card's "Not interested", without having seen it.
-export type Rating = Feedback | "down";
+export type Feedback = "quit" | "no_rewatch" | "up" | "liked" | "peak";
+// Feedback, or the card menu's "Not interested" / "Might watch someday",
+// without having seen it.
+export type Rating = Feedback | "down" | "someday";
 
 export async function rateMovie(movie: UserMovie & { signal: Rating }): Promise<ActionResult> {
   return report(await rateRecommendation(movie.tmdbId, movie.signal));

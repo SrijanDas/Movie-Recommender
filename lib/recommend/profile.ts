@@ -42,7 +42,9 @@ export function signalWeight(signal: Signal): number {
   switch (signal) {
     case "favorite": // only when unranked; see weighMovies
       return (FAVORITE_TOP + FAVORITE_BOTTOM) / 2;
-    case "liked": // added on My films, or "Loved it"
+    case "peak": // "Peak"
+      return 1.5;
+    case "liked": // added on My films, or "Good movie"
       return 1;
     case "up": // "Kinda liked it"
       return 0.5;
@@ -53,6 +55,7 @@ export function signalWeight(signal: Signal): number {
     case "quit": // "Left midway"
       return -1.5;
     case "seen":
+    case "someday": // "Might watch someday": hidden, no taste signal
     case "watchlist": // saved for later: hidden from recommendations, no taste signal
       return 0;
   }

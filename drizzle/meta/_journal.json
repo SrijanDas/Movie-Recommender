@@ -43,6 +43,13 @@
       "when": 1792312314444,
       "tag": "0005_backfill_profiles",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792314317434,
+      "tag": "0006_someday_and_peak",
+      "breakpoints": true
     }
   ]
 }

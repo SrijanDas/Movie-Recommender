@@ -27,7 +27,7 @@ async function Results() {
   }
 
   const movies = await getUserMovies(await requireUserId());
-  const loved = movies.filter((m) => m.signal === "favorite" || m.signal === "liked" || m.signal === "up").length;
+  const loved = movies.filter((m) => m.signal === "favorite" || m.signal === "liked" || m.signal === "peak" || m.signal === "up").length;
   if (loved < MIN_FAVORITES) return <NeedMoreNotice loved={loved} min={MIN_FAVORITES} />;
 
   const recommendations = await getRecommendations(movies);

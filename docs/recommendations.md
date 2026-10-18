@@ -48,18 +48,20 @@ Weighted content-based scoring. It is deterministic and every result explains it
 
 | Signal | Weight |
 | --- | --- |
-| `favorite` | +2.5 for the favourite ranked first, falling linearly to +1.5 for the last (`FAVORITE_TOP`/`FAVORITE_BOTTOM`, `weighMovies`); the list averages +2. Order comes from `user_movies.rank` (0 = top); unranked favourites sort last by `created_at`. 3–10 required, see `MIN_FAVORITES`/`MAX_FAVORITES` |
-| `liked` | +1 (added on My films, or "Loved it" on a recommendation) |
+| `favorite` | +2.5 for the favourite ranked first, falling linearly to +1.5 for the last (`FAVORITE_TOP`/`FAVORITE_BOTTOM`, `weighMovies`); the list averages +2. Order comes from `user_movies.rank` (0 = top); unranked favourites sort last by `created_at`. At least 3 (`MIN_FAVORITES`); onboarding caps its picks at 10 (`MAX_ONBOARDING_FAVORITES`), My films has no cap |
+| `peak` | +1.5 ("Peak") |
+| `liked` | +1 (added on My films, or "Good movie"; was "Loved it") |
 | `up` | +0.5 ("Kinda liked it") |
 | `no_rewatch` | −0.5 ("Would not rewatch": watched it, mildly against) |
 | `down` | −1: "Not interested" on a recommendation card (formerly "Not for me"). Counts against that film's director, cast, themes |
 | `quit` | −1.5 ("Left midway": the strongest dislike) |
 | `seen` | 0: legacy, from before "Seen it" asked how it was. Never recommended, no effect on taste |
+| `someday` | 0: "Might watch someday" from a card's ⋯ menu. Never recommended, no effect on taste, not listed anywhere |
 | `watchlist` | 0: saved for later from a card's bookmark icon or the film page. Never recommended, no effect on taste. Answering "Seen it" overwrites it, which moves the film off the watchlist |
 
 Favourites come from the onboarding picker (saved in the order picked; `setFavorites` also marks onboarding done), from "Add a favourite" on My films, or by tapping ★ on a "Seen it" row (moves the film into favourites, at the bottom). On My films the Favourites tab is ranked: drag to reorder, saved through `reorderFavorites`. Favourites rank as seeds too, so the top ones' related lists are always pulled.
 
-The recommendation card's poster and title open `/movie/[id]` (TMDB details, cast, trailer via `getTrailerUrl`, and the same "Seen it" menu, which shows and changes your answer). The card's action row is "Seen it" followed by two icon buttons: bookmark (`addToWatchlist`, with Undo) and "Not interested" (saves `down`, with Undo). "Seen it" tapping it opens a dropdown asking how it was, worst to best: "Left midway / Would not rewatch / Kinda liked it / Loved it", and writes `quit`, `no_rewatch`, `up` or `liked` via `rateRecommendation`. The answers live in `components/movies/feedback.ts`; My films filters its "Seen it" list by the same answers.
+The recommendation card's poster and title open `/movie/[id]` (TMDB details, cast, trailer via `getTrailerUrl`, and the same "Seen it" menu, which shows and changes your answer). A ⋯ button over the poster's top-right corner opens "Not interested" (saves `down`) and "Might watch someday" (saves `someday`), both with Undo. The action row is "Seen it" followed by a bookmark icon (`addToWatchlist`, with Undo). "Seen it" opens a dropdown asking how it was, worst to best: "Left midway / Would not rewatch / Kinda liked it / Good movie / Peak", and writes `quit`, `no_rewatch`, `up`, `liked` or `peak` via `rateRecommendation`. The answers live in `components/movies/feedback.ts`; My films filters its "Seen it" list by the same answers.
 
 ### Pipeline (`index.ts`)
 

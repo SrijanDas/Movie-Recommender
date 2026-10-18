@@ -17,9 +17,9 @@ Casual to avid movie watchers who know the films they love but struggle to pick 
 ## Core flows
 
 1. **Land and sign up.** A landing page explains the app; everything else needs an account. Sign-up asks one thing per screen: name, then email, then password. Sign-in is email + password, with an email link as a fallback. There is no anonymous mode.
-2. **Pick films you love (onboarding).** The first and only onboarding step: tap favourites from a ready-made grid of well-known films, or search for any film. At least 3 (up to 10) unlock recommendations. Shown once; afterwards favourites are edited on My films.
+2. **Pick films you love (onboarding).** The first and only onboarding step: tap favourites from a ready-made grid of well-known films, or search for any film. At least 3 (up to 10) unlock recommendations; My films can add more favourites later, with no cap. Shown once; afterwards favourites are edited on My films.
 3. **Get recommendations.** See a grid of films, each with the reasons it was picked ("Directed by Denis Villeneuve", "Stars Amy Adams"), plus a search bar to open any film. Tap one for its details: overview, director, cast and trailer.
-4. **Give feedback or save for later.** Under each recommendation: "Seen it" (then say how it was: "Left midway", "Would not rewatch", "Kinda liked it" or "Loved it"), a bookmark icon to add it to the watchlist, and a "Not interested" icon (fewer like it).
+4. **Give feedback or save for later.** Under each recommendation: "Seen it" (then say how it was: "Left midway", "Would not rewatch", "Kinda liked it", "Good movie" or "Peak"), and a bookmark icon to add it to the watchlist. A ⋯ menu on the poster's corner offers "Not interested" (fewer like it) and "Might watch someday" (hides it, taste unchanged).
 5. **Watchlist.** Films saved for later, newest first. Say how one was once you've watched it, and it moves to My films.
 6. **Add more over time.** "My films" has two tabs, Favourites and Seen it, each with a search box to add films. Favourites are ranked: drag them into order, and promote any film you've seen to a favourite with one tap.
 7. **Install it.** The site is an installable PWA; the Account tab offers "Install Next Movie" (or iOS instructions).
@@ -37,7 +37,7 @@ Each film is described by six attributes, which count toward a match in this ord
 | Supporting actors | the next six billed cast |
 | Format | live action, animated, documentary, short |
 
-Favourites count most, and their order matters: the favourite at the top of your list shapes recommendations the most, the one at the bottom the least. Other liked films and "Loved it" add to your profile; "Kinda liked it" adds half as much. "Not interested" counts against that film's director, cast and themes; "Would not rewatch" counts slightly against that film's director, cast and themes, and "Left midway" counts against them strongly. Any answer, and adding it to the watchlist, hides the film from recommendations; the watchlist doesn't change your taste profile. Every change takes effect the next time you load your recommendations, so they improve as you use the app.
+Favourites count most, and their order matters: the favourite at the top of your list shapes recommendations the most, the one at the bottom the least. "Peak" adds strongly to your profile; other liked films and "Good movie" add to it; "Kinda liked it" adds half as much. "Not interested" counts against that film's director, cast and themes; "Would not rewatch" counts slightly against that film's director, cast and themes, and "Left midway" counts against them strongly. Any answer, "Might watch someday", and adding it to the watchlist hide the film from recommendations; the watchlist and "Might watch someday" don't change your taste profile. Every change takes effect the next time you load your recommendations, so they improve as you use the app.
 
 ## Principles
 
@@ -53,7 +53,7 @@ Favourites count most, and their order matters: the favourite at the top of your
 - Landing page, and email sign-in (required)
 - Onboarding favourites picker: a tappable grid of well-known films plus search, minimum 3
 - Recommendations with reasons, and search
-- "Seen it" feedback: left midway / would not rewatch / kinda liked it / loved it
+- "Seen it" feedback: left midway / would not rewatch / kinda liked it / good movie / peak
 - Watchlist
 - A "My films" page to edit the list: ranked favourites, and everything you've seen
 - Installable PWA
@@ -66,7 +66,7 @@ Favourites count most, and their order matters: the favourite at the top of your
 
 ## Success signals
 
-- Share of seen recommendations rated "Loved it" or "Kinda liked it" rather than "Would not rewatch" or "Left midway"
+- Share of seen recommendations rated "Peak", "Good movie" or "Kinda liked it" rather than "Would not rewatch" or "Left midway"
 - Share of users who come back to add movies or give feedback
 - Share of landing visitors who sign up and finish onboarding
 
