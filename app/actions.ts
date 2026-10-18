@@ -132,36 +132,43 @@ export async function reorderFavorites(ids: unknown): Promise<ActionResult> {
   }
 }
 
-// Make a film a favourite, at the bottom of the list. It may already be in
-// the list under another signal (from "Seen it") or be new.
-export async function addFavoriteMovie(id: unknown): Promise<ActionResult> {
+// Make these films favourites, appended in this order to the bottom of the
+// list. Each may already be in the list under another signal (from "Seen it")
+// or be new.
+export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
-  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  if (!isIdList(ids) || ids.length === 0) return { ok: false, error: "Unknown movie." };
   try {
-    const current = await getUserMovies(userId);
-    const favorites = current.filter((m) => m.signal === "favorite");
-    if (favorites.some((m) => m.tmdbId === id)) return { ok: true };
-    const snapshot = await getSnapshot(id);
-    if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
-    const rank = favorites.reduce((max, m) => Math.max(max, m.rank ?? -1), -1) + 1;
-    await putMovies(userId, [{ tmdbId: id, signal: "favorite", rank, ...snapshot }]);
+    const favorites = (await getUserMovies(userId)).filter((m) => m.signal === "favorite");
+    const fresh = ids.filter((id) => !favorites.some((m) => m.tmdbId === id));
+    const snapshots = await Promise.all(fresh.map(getSnapshot));
+    if (snapshots.some((s) => !s)) return { ok: false, error: "A movie couldn't be found." };
+    const next = favorites.reduce((max, m) => Math.max(max, m.rank ?? -1), -1) + 1;
+    await putMovies(
+      userId,
+      fresh.map((tmdbId, i) => ({ tmdbId, signal: "favorite", rank: next + i, ...snapshots[i]! })),
+    );
     return done();
   } catch (error) {
     return failure(error);
   }
 }
 
-export async function addLikedMovie(id: unknown): Promise<ActionResult> {
+// Mark these films as seen and liked. Favourites stay favourites.
+export async function addLikedMovies(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
-  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  if (!isIdList(ids) || ids.length === 0) return { ok: false, error: "Unknown movie." };
   try {
     const current = await getUserMovies(userId);
-    if (current.some((m) => m.tmdbId === id && m.signal === "favorite")) return { ok: true };
-    const snapshot = await getSnapshot(id);
-    if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
-    await putMovies(userId, [{ tmdbId: id, signal: "liked", ...snapshot }]);
+    const fresh = ids.filter((id) => !current.some((m) => m.tmdbId === id && m.signal === "favorite"));
+    const snapshots = await Promise.all(fresh.map(getSnapshot));
+    if (snapshots.some((s) => !s)) return { ok: false, error: "A movie couldn't be found." };
+    await putMovies(
+      userId,
+      fresh.map((tmdbId, i) => ({ tmdbId, signal: "liked", ...snapshots[i]! })),
+    );
     return done();
   } catch (error) {
     return failure(error);

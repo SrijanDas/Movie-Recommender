@@ -83,4 +83,4 @@ Change `DIMENSION_WEIGHTS` in `score.ts` or `signalWeight` in `profile.ts`. Keep
 
 The `user_movies` table: one row per user and film, with its `signal` and a title/poster/year snapshot for display. See [database.md](database.md). There is no anonymous list; every user is signed in.
 
-Mutations are Server Actions in `app/actions.ts` (`setFavorites`, `reorderFavorites`, `addFavoriteMovie`, `addLikedMovie`, `rateRecommendation`, `addToWatchlist`, `undoRating`, `removeMovie`, `searchMoviesAction`), wrapped for client components by `components/movies/movie-actions.ts`. Each validates its input and re-checks the id against TMDB before writing.
+Mutations are Server Actions in `app/actions.ts` (`setFavorites`, `reorderFavorites`, `addFavoriteMovies`, `addLikedMovies`, `rateRecommendation`, `addToWatchlist`, `undoRating`, `removeMovie`, `searchMoviesAction`), wrapped for client components by `components/movies/movie-actions.ts`. Each validates its input and re-checks the id against TMDB before writing.

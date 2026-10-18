@@ -2,8 +2,8 @@
 
 import { toast } from "sonner";
 import {
-  addFavoriteMovie,
-  addLikedMovie,
+  addFavoriteMovies,
+  addLikedMovies,
   addToWatchlist,
   rateRecommendation,
   removeMovie,
@@ -32,9 +32,9 @@ export async function reorderFavorites(ids: number[]): Promise<ActionResult> {
   return report(await reorderSavedFavorites(ids));
 }
 
-// Make a film a favourite, at the bottom of the list.
-export async function favoriteMovie(movie: UserMovie): Promise<ActionResult> {
-  return report(await addFavoriteMovie(movie.tmdbId));
+// Make films favourites, appended in this order to the bottom of the list.
+export async function favoriteMovies(ids: number[]): Promise<ActionResult> {
+  return report(await addFavoriteMovies(ids));
 }
 
 // Answers to "Seen it" on a recommendation. See components/movies/feedback.ts.
@@ -56,8 +56,9 @@ export async function undoRating(tmdbId: number): Promise<ActionResult> {
   return report(await undoSavedRating(tmdbId));
 }
 
-export async function likeMovie(movie: UserMovie): Promise<ActionResult> {
-  return report(await addLikedMovie(movie.tmdbId));
+// Mark films as seen and liked.
+export async function likeMovies(ids: number[]): Promise<ActionResult> {
+  return report(await addLikedMovies(ids));
 }
 
 export async function forgetMovie(tmdbId: number): Promise<ActionResult> {

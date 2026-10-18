@@ -71,6 +71,7 @@ export async function getRecommendations(rated: RatedMovie[]): Promise<Recommend
         posterPath: movie.poster_path,
         overview: movie.overview,
         voteAverage: movie.vote_average,
+        voteCount: movie.vote_count,
         score,
         reasons,
       };

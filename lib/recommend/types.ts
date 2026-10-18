@@ -58,6 +58,7 @@ export type Recommendation = {
   posterPath: string | null;
   overview: string;
   voteAverage: number;
+  voteCount: number;
   score: number;
   reasons: Reason[];
 };

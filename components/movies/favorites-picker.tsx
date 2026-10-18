@@ -15,11 +15,14 @@ import { cn } from "@/lib/utils";
 function Tile({
   movie,
   selected,
+  locked,
   onToggle,
   preload,
 }: {
   movie: SearchResult;
   selected: boolean;
+  // Why it can't be picked (already in the list), if it can't.
+  locked?: string | null;
   onToggle: () => void;
   preload?: boolean;
 }) {
@@ -28,8 +31,9 @@ function Tile({
       <button
         type="button"
         aria-pressed={selected}
+        disabled={!!locked}
         onClick={onToggle}
-        className="group flex w-full flex-col gap-1.5 rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        className="group flex w-full flex-col gap-1.5 rounded-xl text-left outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-default"
       >
         <span className="relative block">
           <Poster
@@ -39,9 +43,15 @@ function Tile({
             sizes="(min-width: 1024px) 16vw, (min-width: 640px) 25vw, 33vw"
             className={cn(
               "transition-[box-shadow,opacity] duration-150",
-              selected ? "border-primary ring-2 ring-primary" : "group-hover:shadow-glow",
+              locked ? "opacity-40" : selected ? "border-primary ring-2 ring-primary" : "group-hover:shadow-glow",
             )}
           />
+          {locked && (
+            <span className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 rounded-sm bg-background/90 px-1.5 py-1 text-caption-strong text-ink">
+              <CheckIcon className="size-3" aria-hidden />
+              {locked}
+            </span>
+          )}
           {selected && (
             <span className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground animate-in zoom-in-50 duration-150">
               <CheckIcon className="size-4" strokeWidth={3} aria-hidden />
@@ -57,54 +67,28 @@ function Tile({
   );
 }
 
-export function FavoritesPicker({
+// Search plus a tappable poster grid: popular films until you type, then
+// results. Shared by onboarding and My films' "Add films" sheet.
+export function FilmGrid({
   starters,
-  saved,
+  picked,
+  onToggle,
+  lockedReason,
 }: {
   starters: SearchResult[];
-  // Favourites already in the account, if any.
-  saved: SearchResult[];
+  picked: SearchResult[];
+  onToggle: (movie: SearchResult) => void;
+  lockedReason?: (movie: SearchResult) => string | null;
 }) {
-  const [picked, setPickedState] = useState<SearchResult[]>(saved);
-  const setPicked = (update: (p: SearchResult[]) => SearchResult[]) => setPickedState(update(picked));
   const { query, setQuery, trimmed, active, results, loading } = useMovieSearch();
-  const [pending, startTransition] = useTransition();
-  const router = useRouter();
-
   const pickedIds = new Set(picked.map((m) => m.tmdbId));
-  const remaining = Math.max(0, MIN_FAVORITES - picked.length);
-
-  const toggle = (movie: SearchResult) => {
-    if (pickedIds.has(movie.tmdbId)) {
-      setPicked((p) => p.filter((m) => m.tmdbId !== movie.tmdbId));
-    } else if (picked.length >= MAX_ONBOARDING_FAVORITES) {
-      toast(`That’s ${MAX_ONBOARDING_FAVORITES}. Unpick one to swap it.`);
-    } else {
-      setPicked((p) => [...p, movie]);
-    }
-  };
 
   // Keep earlier picks visible (so they can be unpicked) ahead of the starters.
   const starterIds = new Set(starters.map((m) => m.tmdbId));
   const grid = active ? results : [...picked.filter((m) => !starterIds.has(m.tmdbId)), ...starters];
 
-  const submit = () =>
-    startTransition(async () => {
-      const result = await saveFavorites(picked.map((m) => ({ ...m, signal: "favorite" })));
-      // Replace, so Back never returns to onboarding.
-      if (result.ok) router.replace("/recommendations");
-    });
-
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-display-md text-ink-strong md:text-display-lg">Pick films you love</h1>
-        <p className="text-body-md text-body">
-          Tap {MIN_FAVORITES} to {MAX_ONBOARDING_FAVORITES}, loved most first. We’ll match their directors, actors, genres
-          and themes. You can add more any time in My films.
-        </p>
-      </div>
-
+    <>
       <label className="flex h-11 items-center gap-3 rounded-lg border border-input bg-muted px-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
         <SearchIcon className="size-5 shrink-0 text-mute" aria-hidden />
         <span className="sr-only">Search for a film</span>
@@ -143,13 +127,60 @@ export function FavoritesPicker({
                 key={movie.tmdbId}
                 movie={movie}
                 selected={pickedIds.has(movie.tmdbId)}
-                onToggle={() => toggle(movie)}
+                locked={lockedReason?.(movie)}
+                onToggle={() => onToggle(movie)}
                 preload={!active && i < 6}
               />
             ))}
           </ul>
         )}
       </section>
+    </>
+  );
+}
+
+export function FavoritesPicker({
+  starters,
+  saved,
+}: {
+  starters: SearchResult[];
+  // Favourites already in the account, if any.
+  saved: SearchResult[];
+}) {
+  const [picked, setPicked] = useState<SearchResult[]>(saved);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const remaining = Math.max(0, MIN_FAVORITES - picked.length);
+
+  const toggle = (movie: SearchResult) => {
+    if (picked.some((m) => m.tmdbId === movie.tmdbId)) {
+      setPicked(picked.filter((m) => m.tmdbId !== movie.tmdbId));
+    } else if (picked.length >= MAX_ONBOARDING_FAVORITES) {
+      toast(`That’s ${MAX_ONBOARDING_FAVORITES}. Unpick one to swap it.`);
+    } else {
+      setPicked([...picked, movie]);
+    }
+  };
+
+  const submit = () =>
+    startTransition(async () => {
+      const result = await saveFavorites(picked.map((m) => ({ ...m, signal: "favorite" })));
+      // Replace, so Back never returns to onboarding.
+      if (result.ok) router.replace("/recommendations");
+    });
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-display-md text-ink-strong md:text-display-lg">Pick films you love</h1>
+        <p className="text-body-md text-body">
+          Tap {MIN_FAVORITES} to {MAX_ONBOARDING_FAVORITES}, loved most first. We’ll match their directors, actors, genres
+          and themes. You can add more any time in My films.
+        </p>
+      </div>
+
+      <FilmGrid starters={starters} picked={picked} onToggle={toggle} />
 
       {/* Sticky action bar: always in thumb reach on phones. */}
       <div className="sticky bottom-0 -mx-4 mt-2 border-t border-border bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:mx-0 sm:rounded-xl sm:border sm:px-4">

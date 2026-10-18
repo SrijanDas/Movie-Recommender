@@ -4,11 +4,27 @@ import { MyFilms } from "@/components/movies/my-films";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
+import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
+import { releaseYear } from "@/lib/tmdb/images";
 
 export const metadata: Metadata = { title: "My films" };
 
 async function Lists() {
-  return <MyFilms movies={await getUserMovies(await requireUserId())} />;
+  const [movies, starters] = await Promise.all([
+    getUserMovies(await requireUserId()),
+    isTmdbConfigured() ? getStarterMovies().catch(() => []) : [],
+  ]);
+  return (
+    <MyFilms
+      movies={movies}
+      starters={starters.map((m) => ({
+        tmdbId: m.id,
+        title: m.title,
+        year: releaseYear(m.release_date),
+        posterPath: m.poster_path,
+      }))}
+    />
+  );
 }
 
 export default function MyMoviesPage() {

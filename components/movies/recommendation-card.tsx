@@ -1,10 +1,11 @@
 "use client";
 
-import { BanIcon, BookmarkPlusIcon, ClockIcon, EllipsisVerticalIcon } from "lucide-react";
+import { BanIcon, BookmarkPlusIcon, ClockIcon, EllipsisVerticalIcon, StarIcon } from "lucide-react";
 import Link from "next/link";
 import type { Rating } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
+import { useInstallState } from "@/components/site/pwa";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,15 +31,20 @@ export function RecommendationCard({
 }) {
   const because = movie.reasons.flatMap((r) => r.because);
   const becauseTitles = [...new Set(because)].slice(0, 2);
+  // An installed PWA has no tabs: a new tab is a cold-started window with the
+  // splash screen, so there the film opens in place and Back restores the list.
+  const newTab = useInstallState() !== "installed";
+  const rated = movie.voteCount > 0;
 
   return (
     <article className="group relative flex w-full flex-col gap-3">
-      {/* Poster and title open the film's page in a new tab, so the list and its
-          scroll position stay put; reasons and Seen it stay outside the link. */}
+      {/* Poster and title open the film's page in a new tab (in the browser), so
+          the list and its scroll position stay put; reasons and Seen it stay
+          outside the link. */}
       <Link
         href={`/movie/${movie.tmdbId}`}
-        target="_blank"
-        rel="noopener"
+        target={newTab ? "_blank" : undefined}
+        rel={newTab ? "noopener" : undefined}
         className="flex flex-col gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         <Poster
@@ -48,11 +54,25 @@ export function RecommendationCard({
           sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
           className="transition-shadow duration-200 group-hover:shadow-glow"
         />
-        <h3 className="text-body-md font-semibold leading-snug text-ink">
-          {movie.title}{" "}
-          {movie.year && <span className="font-mono text-code font-normal text-mute">{movie.year}</span>}
-        </h3>
-        <span className="sr-only">(opens in a new tab)</span>
+        <div className="flex flex-col gap-1">
+          <h3 className="text-body-md font-semibold leading-snug text-ink">{movie.title}</h3>
+          {(movie.year || rated) && (
+            <p className="flex items-center gap-x-2 font-mono text-code text-mute">
+              {movie.year}
+              {rated && (
+                <>
+                  {movie.year && <span aria-hidden>·</span>}
+                  <span className="inline-flex items-center gap-1" title={`${movie.voteCount.toLocaleString("en")} votes on TMDB`}>
+                    <StarIcon className="size-3.5 text-primary-soft" aria-hidden />
+                    <span className="sr-only">TMDB rating</span>
+                    {movie.voteAverage.toFixed(1)}
+                  </span>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+        {newTab && <span className="sr-only">(opens in a new tab)</span>}
       </Link>
 
       {/* Sits over the poster's top-right corner, outside the link. */}
