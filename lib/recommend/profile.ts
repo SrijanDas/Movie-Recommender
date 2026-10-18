@@ -48,7 +48,9 @@ export function signalWeight(signal: Signal): number {
       return 1;
     case "up": // "Kinda liked it"
       return 0.5;
-    case "no_rewatch": // "Would not rewatch"
+    case "okay": // "Okay, but won’t rewatch": watched it, neither for nor against
+      return 0;
+    case "no_rewatch": // "Won’t rewatch"
       return -0.5;
     case "down": // "Not interested" on a card (formerly "Not for me")
       return -1;

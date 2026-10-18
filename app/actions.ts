@@ -192,6 +192,20 @@ export async function addFavoriteMovies(ids: unknown): Promise<ActionResult> {
   }
 }
 
+// Take one film out of the favourites (from its page). It goes back to its
+// "Seen it" answer, so it stays listed under Seen it.
+export async function removeFavorite(id: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  try {
+    await unfavoriteMovies(userId, [id]);
+    return done();
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 // Mark these films as seen and liked. Favourites stay favourites.
 export async function addLikedMovies(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
@@ -215,7 +229,7 @@ export async function addLikedMovies(ids: unknown): Promise<ActionResult> {
 // Answers to "Seen it" (see components/movies/feedback.ts), plus "down" and
 // "someday" from a recommendation card's menu ("Not interested", "Might watch
 // someday").
-const FEEDBACK = ["quit", "no_rewatch", "up", "liked", "peak", "down", "someday"] as const;
+const FEEDBACK = ["quit", "no_rewatch", "okay", "up", "liked", "peak", "down", "someday"] as const;
 type Feedback = (typeof FEEDBACK)[number];
 
 export async function rateRecommendation(id: unknown, feedback: unknown): Promise<ActionResult> {

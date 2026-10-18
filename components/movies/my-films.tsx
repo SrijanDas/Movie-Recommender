@@ -2,7 +2,7 @@
 
 import { Loader2Icon, PencilIcon, StarIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ANSWERS } from "@/components/movies/feedback";
@@ -11,7 +11,6 @@ import { AddFilmsSheet } from "@/components/movies/add-films-sheet";
 import {
   favoriteMovies,
   forgetMovie,
-  likeMovies,
   rateMovie,
   type Feedback,
 } from "@/components/movies/movie-actions";
@@ -26,14 +25,13 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { ListedMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
+import { cn } from "@/lib/utils";
 
-type Filter = "all" | Feedback;
-type Tab = "favorites" | "seen";
+type Filter = "favorite" | "all" | Feedback;
 
 // A film's "Seen it" answer. A favourite carries its own in seenSignal.
 const answerOf = (m: ListedMovie) => (m.signal === "favorite" ? m.seenSignal : m.signal);
@@ -158,70 +156,99 @@ function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: 
   );
 }
 
-const tabClass =
-  "h-11 flex-1 gap-2 rounded-none border-0 px-2 text-body-md text-mute after:bottom-0 after:h-0.5 after:bg-primary data-active:text-ink";
-
 const filmsAdded = (n: number) => (n === 1 ? "Added 1 film" : `Added ${n} films`);
+
+const FILTERS = [
+  { feedback: "favorite" as const, short: "Favourites", icon: StarIcon },
+  { feedback: "all" as const, short: "All", icon: null },
+  ...ANSWERS,
+];
 
 export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters: SearchResult[] }) {
   const router = useRouter();
-  // The tab lives in the URL (?tab=seen), so a refresh or a shared link keeps it.
-  const searchParams = useSearchParams();
-  const tab: Tab = searchParams.get("tab") === "seen" ? "seen" : "favorites";
-  const setTab = (next: Tab) => {
-    const params = new URLSearchParams(searchParams);
-    if (next === "seen") params.set("tab", next);
-    else params.delete("tab");
-    const query = params.toString();
-    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
-  };
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("favorite");
 
-  const known = new Set(movies.map((m) => m.tmdbId));
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
   const room = Math.max(0, MAX_FAVORITES - favorites.length);
-  // Newest first. "Seen it" holds every film you've watched and answered for,
+  // Newest first. The list holds every film you've watched and answered for,
   // favourites included (legacy "seen" rows show only under All). "Not
   // interested" (down), "Might watch someday" and watchlist films weren't seen
   // and aren't listed here.
   const unseen = new Set(["down", "someday", "watchlist"]);
   const seen = movies.filter((m) => !unseen.has(m.signal)).reverse();
-  const countOf = (f: Filter) => (f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length);
+  const countOf = (f: Filter) =>
+    f === "favorite" ? favorites.length : f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length;
   const shown = filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
+  const onFavorites = filter === "favorite";
 
   return (
-    <div className="flex flex-col gap-6">
-      <Tabs
-        value={tab}
-        onValueChange={(next) => setTab(next as Tab)}
-        className="gap-5"
-      >
-        <TabsList variant="line" className="w-full gap-0 border-b border-border p-0">
-          <TabsTrigger value="favorites" className={tabClass}>
-            Favourites
-            <span className="font-mono text-code text-mute">{favorites.length}</span>
-          </TabsTrigger>
-          <TabsTrigger value="seen" className={tabClass}>
-            Seen it
-            <span className="font-mono text-code text-mute">{seen.length}</span>
-          </TabsTrigger>
-        </TabsList>
+    <div className={cn("flex flex-col gap-5 md:gap-6", onFavorites && favorites.length > 0 && "pb-16")}>
+      <div className="flex flex-col gap-1.5">
+        <h1 className="text-display-md text-ink-strong md:text-display-lg">My films</h1>
+        <p className="text-body-sm text-body md:text-body-md">
+          {!onFavorites
+            ? "Everything that shapes your recommendations."
+            : favorites.length < MIN_FAVORITES
+              ? `Pick at least ${MIN_FAVORITES} favourites to unlock recommendations.`
+              : room === 0
+                ? `Loved most at the top. ${MAX_FAVORITES} is the most; remove one to add another.`
+                : "Loved most at the top."}
+        </p>
+      </div>
 
-        <TabsContent value="favorites" className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <p className="min-w-0 flex-1 text-body-sm text-mute">
-              {favorites.length < MIN_FAVORITES
-                ? `Pick at least ${MIN_FAVORITES} to unlock recommendations.`
-                : room === 0
-                  ? `Loved most at the top. ${MAX_FAVORITES} is the most; remove one to add another.`
-                  : "Loved most at the top."}
-            </p>
+      <div className="flex flex-col gap-4">
+        <ToggleGroup
+          aria-label="Show"
+          value={[filter]}
+          onValueChange={(next) => setFilter((next[0] as Filter | undefined) ?? filter)}
+          className="w-full flex-wrap gap-1.5"
+        >
+          {FILTERS.map(({ feedback, short, icon: Icon }) => (
+            <ToggleGroupItem
+              key={feedback}
+              value={feedback}
+              variant="outline"
+              className="h-9 gap-1.5 rounded-full border-border px-3 text-body-sm text-body aria-pressed:border-primary-soft aria-pressed:bg-transparent aria-pressed:text-ink"
+            >
+              {Icon && <Icon />}
+              {short}
+              <span className="font-mono text-code text-mute">{countOf(feedback)}</span>
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+
+        {onFavorites ? (
+          <>
+            {room > 0 && (
+              <div className="flex justify-end">
+                <AddFilmsSheet
+                  title="Add favourites"
+                  description="Tap the films you love. They join the bottom of your list; you can move them up next."
+                  starters={starters}
+                  lockedReason={(m) => (favoriteIds.has(m.tmdbId) ? "Favourite" : null)}
+                  max={room}
+                  add={async (picks) => {
+                    const result = await favoriteMovies(picks.map((m) => m.tmdbId));
+                    if (result.ok) {
+                      // New favourites land at the bottom; offer the shortcut to rank them.
+                      toast.success(filmsAdded(picks.length), {
+                        description: "Added at the bottom of your list.",
+                        action: { label: "Rank them", onClick: () => router.push("/my-movies/favourites") },
+                      });
+                    }
+                    return result.ok;
+                  }}
+                />
+              </div>
+            )}
+            <FavoritesList favorites={favorites} />
             {favorites.length > 0 && (
+              // Floats in thumb reach, just above the bottom tab bar on phones.
               <Button
                 variant="outline"
                 size="lg"
-                className="px-3 text-body-sm font-semibold"
+                className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 h-12 rounded-full border-border bg-background/95 px-5 text-body-sm font-semibold backdrop-blur-md sm:right-6 md:bottom-8"
                 render={<Link href="/my-movies/favourites" />}
                 nativeButton={false}
               >
@@ -229,79 +256,21 @@ export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters:
                 Edit
               </Button>
             )}
-            {room > 0 && (
-              <AddFilmsSheet
-                title="Add favourites"
-                description="Tap the films you love. They join the bottom of your list; you can move them up next."
-                starters={starters}
-                lockedReason={(m) => (favoriteIds.has(m.tmdbId) ? "Favourite" : null)}
-                max={room}
-                add={async (picks) => {
-                  const result = await favoriteMovies(picks.map((m) => m.tmdbId));
-                  if (result.ok) {
-                    // New favourites land at the bottom; offer the shortcut to rank them.
-                    toast.success(filmsAdded(picks.length), {
-                      description: "Added at the bottom of your list.",
-                      action: { label: "Rank them", onClick: () => router.push("/my-movies/favourites") },
-                    });
-                  }
-                  return result.ok;
-                }}
-              />
-            )}
-          </div>
-          <FavoritesList favorites={favorites} />
-        </TabsContent>
-
-        <TabsContent value="seen" className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <p className="min-w-0 flex-1 text-body-sm text-mute">Newest first.</p>
-            <AddFilmsSheet
-              title="Add films you’ve seen"
-              description="Tap the films you liked. Each one shapes your recommendations."
-              starters={starters}
-              lockedReason={(m) => (known.has(m.tmdbId) ? "In your list" : null)}
-              add={async (picks) => {
-                const result = await likeMovies(picks.map((m) => m.tmdbId));
-                if (result.ok) toast.success(filmsAdded(picks.length));
-                return result.ok;
-              }}
-            />
-          </div>
-          <ToggleGroup
-            aria-label="Filter by how it was"
-            value={[filter]}
-            onValueChange={(next) => setFilter((next[0] as Filter | undefined) ?? "all")}
-            className="w-full flex-wrap gap-1.5"
-          >
-            {[{ feedback: "all" as const, short: "All", icon: null }, ...ANSWERS].map(({ feedback, short, icon: Icon }) => (
-              <ToggleGroupItem
-                key={feedback}
-                value={feedback}
-                variant="outline"
-                className="h-9 gap-1.5 rounded-full border-border px-3 text-body-sm text-body aria-pressed:border-primary-soft aria-pressed:bg-transparent aria-pressed:text-ink"
-              >
-                {Icon && <Icon />}
-                {short}
-                <span className="font-mono text-code text-mute">{countOf(feedback)}</span>
-              </ToggleGroupItem>
+          </>
+        ) : shown.length === 0 ? (
+          <p className="text-body-sm text-mute">
+            {filter === "all"
+              ? "Tap “Seen it” on a recommendation or search result and say how it was."
+              : `Nothing marked “${ANSWERS.find((a) => a.feedback === filter)?.label}” yet.`}
+          </p>
+        ) : (
+          <ul className="divide-y divide-border border-y border-border">
+            {shown.map((m) => (
+              <SeenRow key={m.tmdbId} movie={m} favoritesFull={room === 0} />
             ))}
-          </ToggleGroup>
-          {shown.length === 0 ? (
-            <p className="text-body-sm text-mute">
-              {filter === "all"
-                ? "Tap “Seen it” on a recommendation and say how it was, or tap Add to pick films you’ve loved."
-                : `Nothing marked “${ANSWERS.find((a) => a.feedback === filter)?.label}” yet.`}
-            </p>
-          ) : (
-            <ul className="divide-y divide-border border-y border-border">
-              {shown.map((m) => (
-                <SeenRow key={m.tmdbId} movie={m} favoritesFull={room === 0} />
-              ))}
-            </ul>
-          )}
-        </TabsContent>
-      </Tabs>
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

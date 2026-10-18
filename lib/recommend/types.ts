@@ -4,13 +4,14 @@
 // How a user feels about a movie. Stored in `user_movies.signal`.
 // favorite: picked on the home screen. liked: added on My films or "Good movie"
 // (was "Loved it"). peak: "Peak".
-// up: "Kinda liked it". no_rewatch: "Would not rewatch". quit: "Left midway".
+// up: "Kinda liked it". okay: "Okay, but won’t rewatch".
+// no_rewatch: "Won’t rewatch". quit: "Left midway".
 // down: "Not interested" (on a recommendation card).
 // someday: "Might watch someday" (on a recommendation card): hidden from
 // recommendations, no effect on taste, not listed anywhere.
 // watchlist: saved to watch later; no effect on taste, never recommended.
 // Legacy, no longer written: seen (hides a film only).
-export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch", "watchlist", "someday", "peak"] as const;
+export const SIGNALS = ["favorite", "liked", "up", "down", "seen", "quit", "no_rewatch", "watchlist", "someday", "peak", "okay"] as const;
 export type Signal = (typeof SIGNALS)[number];
 
 // One movie in a user's list.
@@ -28,7 +29,7 @@ export type RatedMovie = {
 // The answers to "Seen it", worst to best. A favourite carries one in
 // seenSignal (DEFAULT_SEEN_ANSWER when it was never answered) and turns back
 // into it when it leaves the favourites.
-export const SEEN_ANSWERS = ["quit", "no_rewatch", "up", "liked", "peak"] as const;
+export const SEEN_ANSWERS = ["quit", "no_rewatch", "okay", "up", "liked", "peak"] as const;
 export type SeenAnswer = (typeof SEEN_ANSWERS)[number];
 export const DEFAULT_SEEN_ANSWER: SeenAnswer = "peak";
 export const isSeenAnswer = (signal: Signal | null | undefined): signal is SeenAnswer =>

@@ -8,9 +8,13 @@ export const MIN_QUERY = 2;
 
 // Debounced TMDB search. Results are stored with the query they answer, so
 // a slow response for an old query never shows up under a newer one.
-export function useMovieSearch() {
-  const [query, setQueryState] = useState("");
-  const [found, setFound] = useState<{ query: string; results: SearchResult[] }>({ query: "", results: [] });
+// `initial` seeds a search already answered on the server (/search?q=…).
+export function useMovieSearch(initial?: { query: string; results: SearchResult[] }) {
+  const [query, setQueryState] = useState(initial?.query ?? "");
+  const [found, setFound] = useState<{ query: string; results: SearchResult[] }>(() => ({
+    query: initial?.query.trim() ?? "",
+    results: initial?.results ?? [],
+  }));
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => () => clearTimeout(timer.current), []);

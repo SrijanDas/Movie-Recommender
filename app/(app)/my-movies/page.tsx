@@ -31,16 +31,17 @@ async function Lists() {
 
 export default function MyMoviesPage() {
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-5 px-4 pt-5 pb-8 sm:px-6 md:gap-6 md:py-10">
-      <div className="flex flex-col gap-1.5">
-        <h1 className="text-display-md text-ink-strong md:text-display-lg">My films</h1>
-        <p className="text-body-sm text-body md:text-body-md">Everything that shapes your recommendations.</p>
-      </div>
+    <section className="mx-auto flex w-full max-w-2xl flex-col px-4 pt-5 pb-8 sm:px-6 md:py-10">
+      {/* The header lives in MyFilms: its subtitle follows the selected filter. */}
       <Suspense
         fallback={
-          <div className="flex flex-col gap-4" aria-hidden>
-            <Skeleton className="h-11" />
-            <Skeleton className="h-64" />
+          <div className="flex flex-col gap-5 md:gap-6">
+            <div className="flex flex-col gap-1.5">
+              <h1 className="text-display-md text-ink-strong md:text-display-lg">My films</h1>
+              <Skeleton className="h-5 w-56" />
+            </div>
+            <Skeleton className="h-11" aria-hidden />
+            <Skeleton className="h-64" aria-hidden />
           </div>
         }
       >

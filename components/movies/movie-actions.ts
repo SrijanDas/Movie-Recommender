@@ -6,6 +6,7 @@ import {
   addLikedMovies,
   addToWatchlist,
   rateRecommendation,
+  removeFavorite,
   removeMovie,
   undoRating as undoSavedRating,
   saveFavoritesEdit as saveSavedFavoritesEdit,
@@ -37,8 +38,12 @@ export async function favoriteMovies(ids: number[]): Promise<ActionResult> {
   return report(await addFavoriteMovies(ids));
 }
 
+export async function unfavoriteMovie(tmdbId: number): Promise<ActionResult> {
+  return report(await removeFavorite(tmdbId));
+}
+
 // Answers to "Seen it" on a recommendation. See components/movies/feedback.ts.
-export type Feedback = "quit" | "no_rewatch" | "up" | "liked" | "peak";
+export type Feedback = "quit" | "no_rewatch" | "okay" | "up" | "liked" | "peak";
 // Feedback, or the card menu's "Not interested" / "Might watch someday",
 // without having seen it.
 export type Rating = Feedback | "down" | "someday";

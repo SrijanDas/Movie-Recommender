@@ -68,7 +68,7 @@ async function MovieDetails({ id: raw }: { id: string }) {
   if (!id || !movie) notFound();
 
   const [userId, trailer] = await Promise.all([requireUserId(), getTrailerUrl(id).catch(() => null)]);
-  const saved = (await getUserMovies(userId)).find((m) => m.tmdbId === id)?.signal ?? null;
+  const listed = (await getUserMovies(userId)).find((m) => m.tmdbId === id);
 
   const year = releaseYear(movie.release_date);
   const runtime = formatRuntime(movie.runtime);
@@ -116,7 +116,8 @@ async function MovieDetails({ id: raw }: { id: string }) {
           <MovieVerdict
             tmdbId={id}
             snapshot={{ title: movie.title, posterPath: movie.poster_path, year }}
-            saved={saved}
+            saved={listed?.signal ?? null}
+            seenAnswer={listed?.seenSignal ?? null}
           />
           {movie.tagline && <p className="text-body-lg text-pretty text-ink">{movie.tagline}</p>}
           {movie.overview && <p className="max-w-prose text-body-md text-pretty text-body">{movie.overview}</p>}

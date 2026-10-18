@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, Loader2Icon, SearchIcon, XIcon } from "lucide-react";
+import { CheckIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "@bprogress/next/app";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import type { SearchResult } from "@/app/actions";
 import { FilmRating } from "@/components/movies/film-meta";
 import { saveFavorites } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
+import { SearchField } from "@/components/movies/search-field";
 import { useMovieSearch } from "@/components/movies/use-movie-search";
 import { Button } from "@/components/ui/button";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
@@ -96,24 +97,7 @@ export function FilmGrid({
 
   return (
     <>
-      <label className="flex h-11 shrink-0 items-center gap-3 rounded-lg border border-input bg-muted px-3 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30">
-        <SearchIcon className="size-5 shrink-0 text-mute" aria-hidden />
-        <span className="sr-only">Search for a film</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for a film"
-          enterKeyHint="search"
-          className="h-full min-w-0 flex-1 bg-transparent text-body-md text-ink outline-none placeholder:text-mute [&::-webkit-search-cancel-button]:hidden"
-        />
-        {loading && <Loader2Icon className="size-4 shrink-0 animate-spin text-mute" aria-label="Searching" />}
-        {query && (
-          <Button variant="ghost" size="icon-sm" aria-label="Clear search" onClick={() => setQuery("")}>
-            <XIcon />
-          </Button>
-        )}
-      </label>
+      <SearchField value={query} onChange={setQuery} loading={loading} />
 
       <section aria-label={active ? `Results for ${trimmed}` : "Popular and acclaimed films"} className="flex flex-col gap-3">
         <h2 className="text-body-sm font-semibold text-mute">

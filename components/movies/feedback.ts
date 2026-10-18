@@ -1,4 +1,4 @@
-import { DoorOpenIcon, FlameIcon, MehIcon, SmileIcon, ThumbsUpIcon, type LucideIcon } from "lucide-react";
+import { CircleMinusIcon, DoorOpenIcon, FlameIcon, MehIcon, SmileIcon, ThumbsUpIcon, type LucideIcon } from "lucide-react";
 import type { Feedback } from "@/components/movies/movie-actions";
 import type { Signal } from "@/lib/recommend/types";
 
@@ -13,7 +13,8 @@ export const ANSWERS: {
   icon: LucideIcon;
 }[] = [
   { feedback: "quit", label: "Left midway", short: "Left midway", ack: "Noted. Steering well clear.", icon: DoorOpenIcon },
-  { feedback: "no_rewatch", label: "Would not rewatch", short: "No rewatch", ack: "Noted. Once was enough.", icon: MehIcon },
+  { feedback: "no_rewatch", label: "Won’t rewatch", short: "No rewatch", ack: "Noted. Once was enough.", icon: MehIcon },
+  { feedback: "okay", label: "Okay, but won’t rewatch", short: "Okay", ack: "Noted. Fine, once.", icon: CircleMinusIcon },
   { feedback: "up", label: "Kinda liked it", short: "Kinda liked", ack: "Noted. A bit more like this.", icon: SmileIcon },
   { feedback: "liked", label: "Good movie", short: "Good", ack: "Noted. More like this.", icon: ThumbsUpIcon },
   { feedback: "peak", label: "Peak", short: "Peak", ack: "Peak. Lots more like this.", icon: FlameIcon },
