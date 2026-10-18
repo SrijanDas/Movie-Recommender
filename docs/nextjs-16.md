@@ -30,3 +30,4 @@ Useful entry points:
 - **Uncached dynamic data must sit inside `<Suspense>`** (or a `loading.tsx`), otherwise the build errors about blocking the static shell.
 - **Typed route helpers are global.** `LayoutProps<"/">` and `PageProps<"/route">` are generated types — use them instead of hand-writing `{ children, params }` types. `params`/`searchParams` are Promises; `await` them.
 - `next-env.d.ts` is generated and gitignored; don't edit it.
+- **Pages stay mounted after you leave them.** `<Activity>` hides up to 3 visited routes instead of unmounting them, so `useState` survives Cancel, a tab tap or Back. Drafts that should be discarded on leave (like the favourites editor) reset in a `useLayoutEffect` cleanup. See `node_modules/next/dist/docs/01-app/02-guides/preserving-ui-state.md`.

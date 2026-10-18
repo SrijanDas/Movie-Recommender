@@ -118,19 +118,24 @@ export async function setFavorites(ids: unknown): Promise<ActionResult> {
   }
 }
 
-// Put the user's favourites in this order: the ids must be exactly their
-// current favourites. Position feeds the recommendation weights.
-export async function reorderFavorites(ids: unknown): Promise<ActionResult> {
+// Save an edit of the favourites list: `ids` are the favourites to keep, in
+// order (first = loved most); any favourite left out is removed.
+export async function saveFavoritesEdit(ids: unknown): Promise<ActionResult> {
   const userId = await getCurrentUserId();
   if (!userId) return SIGN_IN_REQUIRED;
   if (!isIdList(ids)) return { ok: false, error: "That order doesn't look right." };
   try {
     const current = await getUserMovies(userId);
-    const favorites = new Set(current.filter((m) => m.signal === "favorite").map((m) => m.tmdbId));
-    if (ids.length !== favorites.size || !ids.every((id) => favorites.has(id))) {
+    const favorites = current.filter((m) => m.signal === "favorite").map((m) => m.tmdbId);
+    const kept = new Set(ids);
+    if (!ids.every((id) => favorites.includes(id))) {
       return { ok: false, error: "Your favourites changed. Reload and try again." };
     }
-    await rankFavorites(userId, ids);
+    await rankFavorites(
+      userId,
+      ids,
+      favorites.filter((id) => !kept.has(id)),
+    );
     return done();
   } catch (error) {
     return failure(error);

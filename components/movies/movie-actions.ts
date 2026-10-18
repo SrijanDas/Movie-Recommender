@@ -8,7 +8,7 @@ import {
   rateRecommendation,
   removeMovie,
   undoRating as undoSavedRating,
-  reorderFavorites as reorderSavedFavorites,
+  saveFavoritesEdit as saveSavedFavoritesEdit,
   setFavorites,
   type ActionResult,
 } from "@/app/actions";
@@ -27,9 +27,9 @@ export async function saveFavorites(picks: UserMovie[]): Promise<ActionResult> {
   return report(await setFavorites(picks.map((m) => m.tmdbId)));
 }
 
-// Put the favourites in this order; ids must be all of them.
-export async function reorderFavorites(ids: number[]): Promise<ActionResult> {
-  return report(await reorderSavedFavorites(ids));
+// Keep these favourites, in this order; any left out are removed.
+export async function saveFavoritesEdit(ids: number[]): Promise<ActionResult> {
+  return report(await saveSavedFavoritesEdit(ids));
 }
 
 // Make films favourites, appended in this order to the bottom of the list.

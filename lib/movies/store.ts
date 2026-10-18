@@ -60,10 +60,14 @@ export async function putMovies(userId: string, movies: UserMovie[]) {
   }
 }
 
-// Put the user's favourites in this order. Callers must pass exactly the
-// ids that are currently favourites.
-export async function rankFavorites(userId: string, tmdbIds: number[]) {
+// Put the user's favourites in this order, deleting `removed` in the same
+// transaction so an edit saves all at once or not at all. Together the two
+// lists must be exactly the ids that are currently favourites.
+export async function rankFavorites(userId: string, tmdbIds: number[], removed: number[] = []) {
   await db.transaction(async (tx) => {
+    if (removed.length > 0) {
+      await tx.delete(userMovies).where(and(eq(userMovies.userId, userId), inArray(userMovies.tmdbId, removed)));
+    }
     for (const [rank, tmdbId] of tmdbIds.entries()) {
       await tx
         .update(userMovies)

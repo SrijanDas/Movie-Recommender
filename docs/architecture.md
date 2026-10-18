@@ -16,7 +16,7 @@ app/
   (app)/layout.tsx    # app shell: top bar, bottom tab bar (phones), onboarding gate
   (app)/recommendations/  # poster grid with reasons, feedback, film search
   (app)/watchlist/    # films saved for later
-  (app)/my-movies/    # edit the list, add liked films
+  (app)/my-movies/    # favourites + seen films, add more; favourites/ edits favourites (drag, Move menu, remove), saved on Done
   (app)/movie/[id]/   # film details + "Seen it" answer + watchlist toggle
   (app)/account/      # email, install the app, sign out, TMDB attribution
   auth/confirm/       # route handler: finishes email-link sign-in
