@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { searchMoviesAction } from "@/app/actions";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { SearchView } from "@/components/movies/search-view";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
+import { getPopularPool, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
 export const metadata: Metadata = { title: "Search" };
+
+const POPULAR_COUNT = 30;
+
+// A fresh random pick from the pool on every visit (Fisher–Yates).
+function pickRandom<T>(items: T[], count: number): T[] {
+  const copy = [...items];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy.slice(0, count);
+}
 
 async function Search({ q }: { q: string }) {
   if (!isTmdbConfigured()) {
@@ -18,7 +31,9 @@ async function Search({ q }: { q: string }) {
       />
     );
   }
-  const [starters, results] = await Promise.all([getStarterMovies().catch(() => []), searchMoviesAction(q)]);
+  await connection();
+  const [pool, results] = await Promise.all([getPopularPool().catch(() => []), searchMoviesAction(q)]);
+  const starters = pickRandom(pool, POPULAR_COUNT);
   return (
     <SearchView
       key={q}

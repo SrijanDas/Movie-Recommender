@@ -97,10 +97,20 @@ export async function searchMovies(query: string): Promise<TmdbMovieSummary[]> {
 // Films to pick favourites from: the most-voted films on TMDB, i.e. the ones
 // most people have actually seen.
 export async function getStarterMovies(): Promise<TmdbMovieSummary[]> {
+  return getMostVotedMovies(2);
+}
+
+// Search's "Popular and acclaimed" grid samples from this larger pool, so it
+// rotates between visits.
+export async function getPopularPool(): Promise<TmdbMovieSummary[]> {
+  return getMostVotedMovies(5);
+}
+
+async function getMostVotedMovies(pageCount: number): Promise<TmdbMovieSummary[]> {
   "use cache";
   cacheLife("weeks");
   const pages = await Promise.all(
-    [1, 2].map((page) =>
+    Array.from({ length: pageCount }, (_, i) => i + 1).map((page) =>
       tmdbFetch<TmdbPage<TmdbMovieSummary>>("/discover/movie", {
         sort_by: "vote_count.desc",
         include_adult: "false",
