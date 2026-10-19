@@ -11,6 +11,16 @@ export function backdropUrl(path: string | null, size: "w780" | "w1280" = "w1280
   return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 }
 
+// A film's title logo (transparent PNG or SVG). w500 covers a 2x title.
+export function titleLogoUrl(path: string) {
+  return `https://image.tmdb.org/t/p/w500${path}`;
+}
+
+// A YouTube video's thumbnail. hqdefault (480×360, letterboxed) always exists.
+export function videoThumbUrl(key: string) {
+  return `https://i.ytimg.com/vi/${key}/hqdefault.jpg`;
+}
+
 // Headshots for cast and crew. w185 stays sharp in a 48px circle on 2x screens.
 export function profileUrl(path: string | null) {
   return path ? `https://image.tmdb.org/t/p/w185${path}` : null;

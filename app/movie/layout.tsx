@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { AppHeader, AppTabBar, PlainHeader, SignedOutNav } from "@/components/site/header";
-import { JoinBar } from "@/components/site/join-bar";
 import { getCurrentUserId } from "@/lib/auth";
 import { isOnboarded } from "@/lib/onboarding";
 
 // Film pages are public (proxy.ts), so profiles can link to them. Members get
-// the app shell; visitors get the plain header and a join bar. Members who
+// the app shell; visitors get the plain header with Sign in. Members who
 // haven't onboarded are sent to /onboarding, as in the (app) layout.
 async function Header() {
   const userId = await getCurrentUserId();
@@ -15,19 +14,13 @@ async function Header() {
   return <AppHeader />;
 }
 
-// The bottom bar and the room it needs: the tab bar on phones for members,
-// the join bar on every size for visitors.
+// Members' tab bar on phones, and the room it needs. Visitors get none.
 async function Bottom() {
-  const userId = await getCurrentUserId();
-  return userId ? (
+  if (!(await getCurrentUserId())) return null;
+  return (
     <>
       <div aria-hidden className="h-[calc(4rem+env(safe-area-inset-bottom))] shrink-0 md:hidden" />
       <AppTabBar />
-    </>
-  ) : (
-    <>
-      <div aria-hidden className="h-[calc(4.5rem+env(safe-area-inset-bottom))] shrink-0" />
-      <JoinBar viewer="visitor" />
     </>
   );
 }

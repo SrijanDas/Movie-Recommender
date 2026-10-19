@@ -52,10 +52,24 @@ export type TmdbMovieDetails = {
 
 // `/movie/{id}/videos`
 export type TmdbVideo = {
+  id: string;
   key: string;
+  name: string;
   site: string; // "YouTube", "Vimeo"
-  type: string; // "Trailer", "Teaser", "Clip", …
+  type: string; // "Trailer", "Teaser", "Clip", "Featurette", "Behind the Scenes", …
   official: boolean;
+  published_at: string;
+};
+
+// `/movie/{id}/images`: one backdrop, poster or logo file.
+export type TmdbImage = {
+  file_path: string;
+  width: number;
+  height: number;
+  aspect_ratio: number;
+  iso_639_1: string | null; // null: no text in the image
+  vote_average: number;
+  vote_count: number;
 };
 
 export type TmdbProvider = {

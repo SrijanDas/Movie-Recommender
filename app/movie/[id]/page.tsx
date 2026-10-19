@@ -1,25 +1,32 @@
-import { PlayIcon } from "lucide-react";
 import { FilmRating } from "@/components/movies/film-meta";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { BannerSlideshow } from "@/components/movies/banner-slideshow";
 import { MovieVerdict } from "@/components/movies/movie-verdict";
 import { Poster } from "@/components/movies/poster";
+import { StillsGallery } from "@/components/movies/stills-gallery";
+import { VideoPlayer } from "@/components/movies/video-player";
 import { WhereToWatch } from "@/components/movies/where-to-watch";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { BackButton } from "@/components/site/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
-import { getMovie, getTrailerUrl, isTmdbConfigured } from "@/lib/tmdb/client";
-import { backdropUrl, profileUrl, releaseYear } from "@/lib/tmdb/images";
+import { getMovie, getMovieMedia, isTmdbConfigured, type MovieMedia } from "@/lib/tmdb/client";
+import { profileUrl, releaseYear, titleLogoUrl } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
 
-const CAST_SHOWN = 8;
+const CAST_SHOWN = 15;
+
+const NO_MEDIA: MovieMedia = { logo: null, stills: [], trailer: null, extras: [] };
+
+// A row that scrolls sideways, bleeding to the screen edge on phones.
+const SHELF =
+  "-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6";
 
 function parseId(raw: string) {
   const id = /^\d{1,9}$/.test(raw) ? Number(raw) : NaN;
@@ -34,22 +41,66 @@ function initials(name: string) {
 // The banner's height; the poster rises into its faded lower edge.
 const BANNER = "h-[clamp(12rem,34svh,26rem)]";
 
-// The film's widest still, full-bleed under the header, fading into the page.
-function Banner({ path }: { path: string | null }) {
-  const src = backdropUrl(path);
-  if (!src) return null;
+// The film's stills, full-bleed under the header, looping and fading into
+// the page. Starts on its main backdrop.
+function Banner({ paths }: { paths: string[] }) {
+  if (paths.length === 0) return null;
   return (
     <div className={cn("relative w-full overflow-hidden bg-canvas", BANNER)}>
+      <BannerSlideshow paths={paths} />
+    </div>
+  );
+}
+
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+  return (
+    <section aria-labelledby={id} className="flex flex-col gap-3">
+      <h2 id={id} className="text-display-sm text-ink">
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+// The film's title logo when it has one, as most posters set it; the plain
+// title otherwise. Screen readers always get the text.
+function Title({ title, logo }: { title: string; logo: MovieMedia["logo"] }) {
+  if (!logo) return <h1 className="text-display-md text-balance text-ink-strong md:text-display-lg">{title}</h1>;
+  return (
+    <h1 className="pb-1">
+      <span className="sr-only">{title}</span>
       <Image
-        src={src}
+        src={titleLogoUrl(logo.file_path)}
         alt=""
-        fill
+        aria-hidden
+        width={logo.width}
+        height={logo.height}
         preload
         unoptimized
-        sizes="100vw"
-        className="object-cover object-[50%_25%] opacity-75 [mask-image:linear-gradient(to_bottom,black_40%,transparent)]"
+        className="h-auto max-h-24 w-auto max-w-[min(100%,20rem)] object-contain object-left sm:max-h-28 sm:max-w-[min(100%,24rem)]"
       />
-    </div>
+    </h1>
+  );
+}
+
+// One cast member: a portrait headshot, or their initials when there's none.
+function CastCard({ name, character, path }: { name: string; character: string; path: string | null }) {
+  const src = profileUrl(path);
+  return (
+    <li className="w-28 shrink-0 snap-start">
+      <div className="relative flex aspect-2/3 items-center justify-center overflow-hidden rounded-xl border border-border bg-canvas-soft">
+        {src ? (
+          <Image src={src} alt="" fill unoptimized loading="lazy" sizes="112px" className="object-cover object-top" />
+        ) : (
+          <span aria-hidden className="text-display-sm text-mute">
+            {initials(name)}
+          </span>
+        )}
+      </div>
+      <p className="mt-2 line-clamp-2 text-caption font-medium text-ink">{name}</p>
+      {character && <p className="line-clamp-2 text-caption text-mute">{character}</p>}
+    </li>
   );
 }
 
@@ -94,7 +145,10 @@ async function MovieDetails({ id: raw }: { id: string }) {
   if (!id || !movie) notFound();
 
   // Signed-out visitors see the film without the actions (see layout.tsx).
-  const [userId, trailer] = await Promise.all([getCurrentUserId(), getTrailerUrl(id).catch(() => null)]);
+  const [userId, media] = await Promise.all([
+    getCurrentUserId(),
+    getMovieMedia(id).catch(() => NO_MEDIA),
+  ]);
   const listed = userId ? (await getUserMovies(userId)).find((m) => m.tmdbId === id) : undefined;
 
   const year = releaseYear(movie.release_date);
@@ -102,12 +156,16 @@ async function MovieDetails({ id: raw }: { id: string }) {
   const directors = movie.credits.crew.filter((c) => c.job === "Director");
   const cast = [...movie.credits.cast].sort((a, b) => a.order - b.order).slice(0, CAST_SHOWN);
   const rated = movie.vote_count > 0;
-  const banner = Boolean(movie.backdrop_path);
+  // The main backdrop first, then the other stills (at most 8 in the loop).
+  const bannerPaths = [
+    ...new Set([movie.backdrop_path, ...media.stills.map((s) => s.file_path)].filter((p): p is string => !!p)),
+  ].slice(0, 8);
+  const banner = bannerPaths.length > 0;
 
   return (
     <>
-      <Banner path={movie.backdrop_path} />
-      <article className={cn(PAGE, "flex flex-col gap-8 pb-8", banner ? "pt-0" : "pt-16 md:pt-20")}>
+      <Banner paths={bannerPaths} />
+      <article className={cn(PAGE, "flex flex-col gap-10 pb-10", banner ? "pt-0" : "pt-16 md:pt-20")}>
         {/* Phones: the poster rises into the banner. Wider: poster and title
             rise together, so their tops line up. */}
         <div className={cn("relative flex flex-col gap-6 sm:flex-row sm:gap-8", banner && "sm:-mt-24")}>
@@ -124,16 +182,15 @@ async function MovieDetails({ id: raw }: { id: string }) {
           />
           <div className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <h1 className="text-display-md text-balance text-ink-strong md:text-display-lg">{movie.title}</h1>
-              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-code text-mute">
-                {[year, runtime].filter(Boolean).join(" · ")}
-                {rated && (
-                  <>
-                    {(year || runtime) && <span aria-hidden>·</span>}
-                    <FilmRating average={movie.vote_average} count={movie.vote_count} />
-                  </>
-                )}
-              </p>
+              <Title title={movie.title} logo={media.logo} />
+              {(rated || year || runtime) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  {rated && <FilmRating average={movie.vote_average} count={movie.vote_count} prominent />}
+                  {(year || runtime) && (
+                    <p className="font-mono text-code text-mute">{[year, runtime].filter(Boolean).join(" · ")}</p>
+                  )}
+                </div>
+              )}
               {directors.length > 0 && (
                 <ul className="mt-1 flex flex-wrap gap-x-6 gap-y-3" aria-label="Directed by">
                   {directors.map((d) => (
@@ -169,17 +226,6 @@ async function MovieDetails({ id: raw }: { id: string }) {
                 ))}
               </ul>
             )}
-            {trailer && (
-              <Button
-                variant="ghostGreen"
-                className="-ml-2 self-start px-2"
-                render={<a href={trailer} target="_blank" rel="noreferrer" />}
-                nativeButton={false}
-              >
-                <PlayIcon />
-                Watch the trailer
-              </Button>
-            )}
           </div>
         </div>
 
@@ -187,23 +233,45 @@ async function MovieDetails({ id: raw }: { id: string }) {
           <WhereToWatch tmdbId={id} title={movie.title} />
         </Suspense>
 
+        {media.trailer && (
+          <Section id="trailer" title="Trailer">
+            <VideoPlayer
+              videoKey={media.trailer.key}
+              label={`Trailer for ${movie.title}`}
+              sizes="(min-width: 896px) 848px, 100vw"
+              large
+            />
+          </Section>
+        )}
+
+        {media.stills.length > 0 && (
+          <Section id="stills" title="Stills">
+            <StillsGallery paths={media.stills.map((s) => s.file_path)} title={movie.title} />
+          </Section>
+        )}
+
         {cast.length > 0 && (
-          <section aria-labelledby="cast" className="flex flex-col gap-3">
-            <h2 id="cast" className="text-display-sm text-ink">
-              Cast
-            </h2>
-            <ul className="grid grid-cols-1 divide-y divide-border border-y border-border sm:grid-cols-2 sm:gap-x-8 sm:divide-y-0 sm:border-b-0">
+          <Section id="cast" title="Cast">
+            <ul className={SHELF}>
               {cast.map((c) => (
-                <li key={c.id} className="flex min-w-0 items-center gap-3 py-2.5 sm:border-b sm:border-border">
-                  <PersonAvatar name={c.name} path={c.profile_path} />
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-body-md text-ink">{c.name}</span>
-                    {c.character && <span className="truncate text-body-sm text-mute">{c.character}</span>}
-                  </span>
+                <CastCard key={c.id} name={c.name} character={c.character} path={c.profile_path} />
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {media.extras.length > 0 && (
+          <Section id="extras" title="Clips and extras">
+            <ul className={SHELF}>
+              {media.extras.map((v) => (
+                <li key={v.key} className="flex w-64 shrink-0 snap-start flex-col gap-2 sm:w-72">
+                  <VideoPlayer videoKey={v.key} label={v.name} sizes="288px" />
+                  <p className="line-clamp-2 text-caption font-medium text-ink">{v.name}</p>
+                  <p className="-mt-2 text-caption text-mute">{v.type}</p>
                 </li>
               ))}
             </ul>
-          </section>
+          </Section>
         )}
       </article>
     </>

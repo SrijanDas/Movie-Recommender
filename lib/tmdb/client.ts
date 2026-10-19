@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 import type {
+  TmdbImage,
   TmdbMovieDetails,
   TmdbMovieSummary,
   TmdbPage,
@@ -124,18 +125,54 @@ export async function getMovie(id: number): Promise<TmdbMovieDetails | null> {
   }
 }
 
-// The film's YouTube trailer, official first, or null. Kept out of getMovie so
-// the recommendation engine's ~100 detail calls stay small.
-export async function getTrailerUrl(id: number): Promise<string | null> {
+// A YouTube video on the film page: the trailer or an extra.
+export type FilmVideo = { key: string; name: string; type: string };
+
+// The film page's pictures and videos: its title logo, stills, trailer, and
+// other clips. Kept out of getMovie so the recommendation engine's ~100
+// detail calls stay small.
+export type MovieMedia = {
+  logo: TmdbImage | null;
+  stills: TmdbImage[];
+  trailer: FilmVideo | null;
+  extras: FilmVideo[];
+};
+
+const STILLS_SHOWN = 12;
+const EXTRAS_SHOWN = 8;
+const EXTRA_TYPES = new Set(["Clip", "Featurette", "Behind the Scenes", "Teaser", "Bloopers"]);
+
+const byVotes = (a: TmdbImage, b: TmdbImage) => b.vote_average - a.vote_average || b.vote_count - a.vote_count;
+
+export async function getMovieMedia(id: number): Promise<MovieMedia> {
   "use cache";
   cacheLife("weeks");
-  const { results } = await tmdbFetch<{ results: TmdbVideo[] }>(`/movie/${id}/videos`);
-  const youtube = results.filter((v) => v.site === "YouTube");
+  const [images, videos] = await Promise.all([
+    // English logos, and stills with no text on them.
+    tmdbFetch<{ backdrops: TmdbImage[]; logos: TmdbImage[] }>(`/movie/${id}/images`, {
+      include_image_language: "en,null",
+    }),
+    tmdbFetch<{ results: TmdbVideo[] }>(`/movie/${id}/videos`),
+  ]);
+
+  const logo = images.logos.filter((l) => l.iso_639_1 === "en").sort(byVotes)[0] ?? null;
+  const stills = images.backdrops
+    .filter((b) => b.iso_639_1 === null)
+    .sort(byVotes)
+    .slice(0, STILLS_SHOWN);
+
+  const youtube = videos.results.filter((v) => v.site === "YouTube");
   const pick =
     youtube.find((v) => v.type === "Trailer" && v.official) ??
     youtube.find((v) => v.type === "Trailer") ??
     youtube.find((v) => v.type === "Teaser");
-  return pick ? `https://www.youtube.com/watch?v=${pick.key}` : null;
+  const extras = youtube
+    .filter((v) => v !== pick && EXTRA_TYPES.has(v.type))
+    .sort((a, b) => Number(b.official) - Number(a.official) || b.published_at.localeCompare(a.published_at))
+    .slice(0, EXTRAS_SHOWN);
+
+  const video = (v: TmdbVideo): FilmVideo => ({ key: v.key, name: v.name, type: v.type });
+  return { logo, stills, trailer: pick ? video(pick) : null, extras: extras.map(video) };
 }
 
 // Where the film streams, rents and sells, by ISO 3166-1 country code. Data

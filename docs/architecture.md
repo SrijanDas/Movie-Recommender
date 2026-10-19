@@ -20,7 +20,7 @@ app/
   (app)/my-movies/    # favourites + seen films, add more; favourites/ edits favourites (drag, Move menu, remove), saved on Done
   (app)/account/      # Profile: picture, name, @handle, share link; email, install, Credits link, sign out
   (app)/account/edit/ # edit picture (upload / poster / icon), name, username (checked free), bio
-  movie/[id]/         # film page: backdrop banner, details, "Seen it" answer + watchlist toggle; public (own layout: app shell for members, join bar for visitors)
+  movie/[id]/         # film page: backdrop banner, details, "Seen it" answer + watchlist toggle; public (own layout: app shell for members, plain header for visitors)
   u/[handle]/         # public profile, served at /@handle via a rewrite; open to signed-out visitors; share image
   profile/actions.ts  # checkHandle, suggestHandleFor, saveProfile (see docs/profiles.md)
   auth/confirm/       # route handler: finishes email-link sign-in
