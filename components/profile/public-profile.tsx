@@ -7,6 +7,7 @@ import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { OwnerSeenShelf } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
 import { ProfileFooter } from "@/components/site/footer";
+import { JoinBar } from "@/components/site/join-bar";
 import { Logo } from "@/components/site/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,6 @@ export function PublicProfile({
   const [first, ...rest] = taste.favorites;
   const owner = viewer === "owner";
   const page = variant === "page";
-  const linked = viewer !== "visitor";
   const hidden = new Set(profile.hiddenSeen);
   // The owner sees every list here, hidden ones too, to switch them back on.
   const seenFilms = owner ? taste.seenFilms : taste.seenFilms.filter((m) => !hidden.has(m.signal));
@@ -111,11 +111,11 @@ export function PublicProfile({
             </SectionHeading>
             {first ? (
               <>
-                <TopFilm movie={first} linked={linked} />
+                <TopFilm movie={first} />
                 {rest.length > 0 && (
                   <ol start={2} className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5">
                     {rest.map((m, i) => (
-                      <RankedFilm key={m.tmdbId} movie={m} rank={i + 2} linked={linked} />
+                      <RankedFilm key={m.tmdbId} movie={m} rank={i + 2} />
                     ))}
                   </ol>
                 )}
@@ -126,13 +126,18 @@ export function PublicProfile({
           </section>
         )}
 
-        {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} hidden={hidden} linked={linked} />}
+        {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} hidden={hidden} />}
 
         {children}
       </main>
 
       {page && <ProfileFooter />}
-      {page && !owner && <JoinBar viewer={viewer === "member" ? "member" : "visitor"} />}
+      {page && !owner && (
+        <JoinBar
+          viewer={viewer === "member" ? "member" : "visitor"}
+          title={viewer === "visitor" ? "Get picks like these" : undefined}
+        />
+      )}
     </div>
   );
 }
@@ -216,12 +221,10 @@ function SeenShelves({
   films,
   owner,
   hidden,
-  linked,
 }: {
   films: UserMovie[];
   owner: boolean;
   hidden: Set<string>;
-  linked: boolean;
 }) {
   const shelves = [...ANSWERS]
     .reverse()
@@ -250,7 +253,7 @@ function SeenShelves({
         const list = (
           <ul className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
             {shelf.slice(0, SHELF_MAX).map((m) => (
-              <SeenFilm key={m.tmdbId} movie={m} linked={linked} />
+              <SeenFilm key={m.tmdbId} movie={m} />
             ))}
             {more > 0 && (
               <li className="flex w-26 shrink-0 snap-start">
@@ -334,20 +337,19 @@ function TasteLine({ taste, showPeak }: { taste: Taste; showPeak: boolean }) {
   );
 }
 
-function FilmLink({ movie, linked, children, className }: { movie: UserMovie; linked: boolean; children: React.ReactNode; className?: string }) {
-  return linked ? (
+// Every film opens its page; film pages are public, like this one.
+function FilmLink({ movie, children, className }: { movie: UserMovie; children: React.ReactNode; className?: string }) {
+  return (
     <Link href={`/movie/${movie.tmdbId}`} className={cn("group/film rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className)}>
       {children}
     </Link>
-  ) : (
-    <div className={className}>{children}</div>
   );
 }
 
 // The #1 film gets the stage: a big poster and its title beside it.
-function TopFilm({ movie, linked }: { movie: UserMovie; linked: boolean }) {
+function TopFilm({ movie }: { movie: UserMovie }) {
   return (
-    <FilmLink movie={movie} linked={linked} className="flex items-end gap-4 sm:gap-6">
+    <FilmLink movie={movie} className="flex items-end gap-4 sm:gap-6">
       <Poster
         path={movie.posterPath}
         title={movie.title}
@@ -367,10 +369,10 @@ function TopFilm({ movie, linked }: { movie: UserMovie; linked: boolean }) {
   );
 }
 
-function RankedFilm({ movie, rank, linked }: { movie: UserMovie; rank: number; linked: boolean }) {
+function RankedFilm({ movie, rank }: { movie: UserMovie; rank: number }) {
   return (
     <li>
-      <FilmLink movie={movie} linked={linked} className="flex flex-col gap-2">
+      <FilmLink movie={movie} className="flex flex-col gap-2">
         <div className="relative">
           <Poster
             path={movie.posterPath}
@@ -392,10 +394,10 @@ function RankedFilm({ movie, rank, linked }: { movie: UserMovie; rank: number; l
 }
 
 // One poster on a Seen it shelf.
-function SeenFilm({ movie, linked }: { movie: UserMovie; linked: boolean }) {
+function SeenFilm({ movie }: { movie: UserMovie }) {
   return (
     <li className="w-26 shrink-0 snap-start">
-      <FilmLink movie={movie} linked={linked} className="flex flex-col gap-2">
+      <FilmLink movie={movie} className="flex flex-col gap-2">
         <Poster
           path={movie.posterPath}
           title={movie.title}
@@ -406,30 +408,5 @@ function SeenFilm({ movie, linked }: { movie: UserMovie; linked: boolean }) {
         <span className="line-clamp-2 text-caption font-medium text-body">{movie.title}</span>
       </FilmLink>
     </li>
-  );
-}
-
-// Visitors: what this is and one way in. Members: back to their picks.
-function JoinBar({ viewer }: { viewer: Exclude<Viewer, "owner"> }) {
-  return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-canvas pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-3xl items-center gap-4 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 flex-1 flex-col">
-          <p className="truncate text-body-sm font-semibold text-ink">
-            {viewer === "visitor" ? "Get picks like these" : "Find your next film"}
-          </p>
-          <p className="truncate text-caption text-mute">
-            {viewer === "visitor" ? "Tap films you love. We say why." : "Your picks are waiting."}
-          </p>
-        </div>
-        <Button
-          className="shrink-0"
-          render={<Link href={viewer === "visitor" ? "/sign-up" : "/recommendations"} />}
-          nativeButton={false}
-        >
-          {viewer === "visitor" ? "Make yours" : "Open"}
-        </Button>
-      </div>
-    </div>
   );
 }

@@ -22,7 +22,7 @@ The owner picks which Seen it lists are public from a switch on each shelf headi
 
 - **Handles are unique and lowercase** (`profiles.handle` has a unique constraint). Always `normalizeHandle()` then `handleProblem()` before querying. The client checks as you type (`useHandleCheck`), but the server re-checks on save and catches the unique violation (`isHandleConflict`) for races.
 - **Sign-up reserves the handle** by inserting the `profiles` row right after `supabase.auth.signUp`, with `onboarded_at: null` (it still has a `defaultNow()` so older inserts stay onboarded). `isOnboarded()` checks `onboarded_at`, not row existence.
-- **Routing:** `next.config.ts` rewrites `/@:handle` → `/u/:handle`. `proxy.ts` lets signed-out visitors reach `/@…` and `/u/…`. Link to profiles with `profilePath(handle)`.
+- **Routing:** `next.config.ts` rewrites `/@:handle` → `/u/:handle`. `proxy.ts` lets signed-out visitors reach `/@…`, `/u/…` and `/movie/…`, so every film on a profile links to its page for everyone. Both public pages end with `JoinBar` (`components/site/join-bar.tsx`) for anyone who isn't signed in (and, on profiles, members who aren't the owner). Link to profiles with `profilePath(handle)`.
 - **Public data only:** the public page shows `display_name`, never `user_metadata` or email. `saveProfile` also mirrors the name into `user_metadata.full_name` for the header.
 
 ## Avatars & Storage

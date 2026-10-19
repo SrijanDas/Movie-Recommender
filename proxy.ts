@@ -2,10 +2,12 @@ import type { NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 // Signed-out visitors may only see these and public profiles (/@handle,
-// served from /u/handle with its share image); everything else needs an account.
+// served from /u/handle with its share image) and film pages (/movie/id);
+// everything else needs an account.
 const PUBLIC = new Set(["/", "/sign-in", "/sign-up", "/offline", "/credits"]);
 const isPublic = (pathname: string) =>
-  PUBLIC.has(pathname) || pathname.startsWith("/auth/") || pathname.startsWith("/@") || pathname.startsWith("/u/");
+  PUBLIC.has(pathname) ||
+  ["/auth/", "/@", "/u/", "/movie/"].some((prefix) => pathname.startsWith(prefix));
 // Signed-in users skip the landing page, sign-in and sign-up.
 const SIGNED_OUT_ONLY = new Set(["/", "/sign-in", "/sign-up"]);
 
