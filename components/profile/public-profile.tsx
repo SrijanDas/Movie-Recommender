@@ -4,8 +4,9 @@ import Link from "next/link";
 import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
+import { OwnerSeenShelf } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
-import { SiteFooter } from "@/components/site/footer";
+import { ProfileFooter } from "@/components/site/footer";
 import { Logo } from "@/components/site/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ const SHELF_MAX = 20;
 // - "page": the public /@handle page, with its own top bar, a footer, and a
 //   join bar for anyone who isn't the owner.
 // - "app": the owner's Profile tab (/account): just who they are and the
-//   share/edit controls, inside the app shell; `children` (settings) follow.
+//   share/edit controls (no backdrop), inside the app shell; `children` (settings) follow.
 export function PublicProfile({
   profile,
   taste,
@@ -49,7 +50,8 @@ export function PublicProfile({
   const page = variant === "page";
   const linked = viewer !== "visitor";
   const hidden = new Set(profile.hiddenSeen);
-  const seenFilms = taste.seenFilms.filter((m) => !hidden.has(m.signal));
+  // The owner sees every list here, hidden ones too, to switch them back on.
+  const seenFilms = owner ? taste.seenFilms : taste.seenFilms.filter((m) => !hidden.has(m.signal));
 
   return (
     <div
@@ -60,34 +62,29 @@ export function PublicProfile({
       )}
     >
       {/* The #1 favourite's still, fading into the page. */}
-      <div
-        className={cn(
-          "relative w-full overflow-hidden bg-canvas",
-          page ? "h-[clamp(13rem,38svh,24rem)]" : "h-[clamp(9rem,26svh,17rem)]",
-        )}
-      >
-        {backdrop && (
-          <Image
-            src={backdrop}
-            alt=""
-            fill
-            preload
-            unoptimized
-            sizes="100vw"
-            className="object-cover object-[50%_30%] opacity-70 [mask-image:linear-gradient(to_bottom,black_35%,transparent)]"
-          />
-        )}
-        {page && (
+      {page && (
+        <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
+          {backdrop && (
+            <Image
+              src={backdrop}
+              alt=""
+              fill
+              preload
+              unoptimized
+              sizes="100vw"
+              className="object-cover object-[50%_30%] opacity-70 [mask-image:linear-gradient(to_bottom,black_35%,transparent)]"
+            />
+          )}
           <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
             <Logo href={viewer === "visitor" ? "/" : "/recommendations"} />
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <main
         className={cn(
           "relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 sm:px-6",
-          page ? "-mt-16 pb-12 sm:-mt-20" : "-mt-14 pb-4 sm:-mt-16",
+          page ? "-mt-16 pb-12 sm:-mt-20" : "pt-6 pb-4 md:pt-10",
         )}
       >
         <header className="flex flex-col gap-5">
@@ -129,12 +126,12 @@ export function PublicProfile({
           </section>
         )}
 
-        {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} linked={linked} />}
+        {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} hidden={hidden} linked={linked} />}
 
         {children}
       </main>
 
-      {page && <SiteFooter signedIn={viewer !== "visitor"} />}
+      {page && <ProfileFooter />}
       {page && !owner && <JoinBar viewer={viewer === "member" ? "member" : "visitor"} />}
     </div>
   );
@@ -205,7 +202,7 @@ function OwnerActions({ handle, name, showPublicLink }: { handle: string | null;
           render={<Link href={profilePath(handle)} />}
           nativeButton={false}
         >
-          See it as others do
+          View your public page
           <ArrowUpRightIcon />
         </Button>
       )}
@@ -214,8 +211,18 @@ function OwnerActions({ handle, name, showPublicLink }: { handle: string | null;
 }
 
 // Everything else they've seen, one shelf per answer, best first. The owner
-// edits answers from My films (Manage).
-function SeenShelves({ films, owner, linked }: { films: UserMovie[]; owner: boolean; linked: boolean }) {
+// edits answers from My films (Manage) and picks which shelves others see.
+function SeenShelves({
+  films,
+  owner,
+  hidden,
+  linked,
+}: {
+  films: UserMovie[];
+  owner: boolean;
+  hidden: Set<string>;
+  linked: boolean;
+}) {
   const shelves = [...ANSWERS]
     .reverse()
     .map((answer) => ({ answer, films: films.filter((m) => m.signal === answer.feedback) }))
@@ -229,37 +236,54 @@ function SeenShelves({ films, owner, linked }: { films: UserMovie[]; owner: bool
           </EditLink>
         )}
       </SectionHeading>
+      {owner && <p className="-mt-3 text-body-sm text-mute">Switch a list off to keep it off your profile. Only you see it here.</p>}
       {shelves.map(({ answer, films: shelf }) => {
         const Icon = answer.icon;
         const more = shelf.length - SHELF_MAX;
-        return (
+        const heading = (
+          <h3 className="flex min-w-0 items-center gap-2 text-body-md font-semibold text-ink">
+            <Icon className={cn("size-4 shrink-0", answer.feedback === "peak" ? "text-primary-soft" : "text-mute")} aria-hidden />
+            <span className="truncate">{answer.label}</span>
+            <span className="font-mono text-code font-normal text-mute tabular-nums">{shelf.length}</span>
+          </h3>
+        );
+        const list = (
+          <ul className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
+            {shelf.slice(0, SHELF_MAX).map((m) => (
+              <SeenFilm key={m.tmdbId} movie={m} linked={linked} />
+            ))}
+            {more > 0 && (
+              <li className="flex w-26 shrink-0 snap-start">
+                {owner ? (
+                  <Link
+                    href="/my-movies"
+                    className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-body outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    +{more} more
+                  </Link>
+                ) : (
+                  <span className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-mute">
+                    +{more} more
+                  </span>
+                )}
+              </li>
+            )}
+          </ul>
+        );
+        return owner ? (
+          <OwnerSeenShelf
+            key={answer.feedback}
+            answer={answer.feedback}
+            label={answer.label}
+            shown={!hidden.has(answer.feedback)}
+            heading={heading}
+          >
+            {list}
+          </OwnerSeenShelf>
+        ) : (
           <div key={answer.feedback} className="flex flex-col gap-3">
-            <h3 className="flex items-center gap-2 text-body-md font-semibold text-ink">
-              <Icon className={cn("size-4", answer.feedback === "peak" ? "text-primary-soft" : "text-mute")} aria-hidden />
-              {answer.label}
-              <span className="font-mono text-code font-normal text-mute tabular-nums">{shelf.length}</span>
-            </h3>
-            <ul className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
-              {shelf.slice(0, SHELF_MAX).map((m) => (
-                <SeenFilm key={m.tmdbId} movie={m} linked={linked} />
-              ))}
-              {more > 0 && (
-                <li className="flex w-26 shrink-0 snap-start">
-                  {owner ? (
-                    <Link
-                      href="/my-movies"
-                      className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-body outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
-                    >
-                      +{more} more
-                    </Link>
-                  ) : (
-                    <span className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-mute">
-                      +{more} more
-                    </span>
-                  )}
-                </li>
-              )}
-            </ul>
+            {heading}
+            {list}
           </div>
         );
       })}

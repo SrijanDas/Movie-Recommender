@@ -79,10 +79,15 @@ export async function createProfile(userId: string, handle: string, displayName:
 
 export async function updateProfile(
   userId: string,
-  fields: Pick<Profile, "handle" | "displayName" | "bio" | "avatar" | "hiddenSeen">,
+  fields: Pick<Profile, "handle" | "displayName" | "bio" | "avatar">,
 ) {
   await db
     .insert(profiles)
     .values({ userId, ...fields })
     .onConflictDoUpdate({ target: profiles.userId, set: fields });
+}
+
+// Which "Seen it" answers stay off the public profile.
+export async function setHiddenSeen(userId: string, hiddenSeen: string[]) {
+  await db.update(profiles).set({ hiddenSeen }).where(eq(profiles.userId, userId));
 }

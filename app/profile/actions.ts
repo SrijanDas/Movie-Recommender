@@ -12,7 +12,7 @@ import {
   serializeAvatar,
 } from "@/lib/profile/avatar";
 import { MAX_BIO, handleProblem, normalizeHandle, profilePath } from "@/lib/profile/rules";
-import { getProfile, isHandleConflict, isHandleTaken, suggestHandle, updateProfile } from "@/lib/profile/store";
+import { getProfile, isHandleConflict, isHandleTaken, setHiddenSeen, suggestHandle, updateProfile } from "@/lib/profile/store";
 import { createClient } from "@/lib/supabase/server";
 
 export type HandleCheck = { ok: true; handle: string } | { ok: false; error: string };
@@ -44,8 +44,7 @@ const fail = (error: string, field?: ProfileField): SaveProfileResult => ({ ok: 
 
 // Save the profile editor. `avatar` is the chosen avatar (see
 // lib/profile/avatar.ts), "" for initials, or "photo" with the cropped
-// image in `photo`. `hiddenSeen` (repeated) lists the Seen it answers to
-// keep off the public profile.
+// image in `photo`.
 export async function saveProfile(formData: FormData): Promise<SaveProfileResult> {
   const user = await getCurrentUser();
   if (!user) return fail("Your session ended. Sign in again.");
@@ -61,9 +60,6 @@ export async function saveProfile(formData: FormData): Promise<SaveProfileResult
 
   const bio = String(formData.get("bio") ?? "").trim().replace(/\s+/g, " ");
   if (bio.length > MAX_BIO) return fail(`Keep it to ${MAX_BIO} characters.`, "bio");
-
-  // The Seen it lists to keep off the public profile.
-  const hiddenSeen = [...new Set(formData.getAll("hiddenSeen").map(String))].filter((s) => isSeenAnswer(s as never));
 
   const current = await getProfile(user.id);
   const previous = parseAvatar(current?.avatar);
@@ -98,7 +94,7 @@ export async function saveProfile(formData: FormData): Promise<SaveProfileResult
   }
 
   try {
-    await updateProfile(user.id, { handle, displayName: name, bio: bio || null, avatar, hiddenSeen });
+    await updateProfile(user.id, { handle, displayName: name, bio: bio || null, avatar });
   } catch (error) {
     if (isHandleConflict(error)) return fail(TAKEN, "handle");
     console.error(error);
@@ -116,4 +112,21 @@ export async function saveProfile(formData: FormData): Promise<SaveProfileResult
 
   revalidatePath("/", "layout");
   return { ok: true, path: profilePath(handle) };
+}
+
+// Show or hide one "Seen it" list on the owner's public profile. Saves at
+// once, from the switch on that list's shelf.
+export async function setSeenShown(answer: unknown, shown: unknown): Promise<{ ok: boolean }> {
+  const user = await getCurrentUser();
+  if (!user || typeof answer !== "string" || !isSeenAnswer(answer as never) || typeof shown !== "boolean") {
+    return { ok: false };
+  }
+  const profile = await getProfile(user.id);
+  if (!profile?.handle) return { ok: false };
+  const hidden = new Set(profile.hiddenSeen);
+  if (shown) hidden.delete(answer);
+  else hidden.add(answer);
+  await setHiddenSeen(user.id, [...hidden]);
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

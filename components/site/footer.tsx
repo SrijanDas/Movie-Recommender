@@ -12,23 +12,34 @@ async function Year() {
 const LINK =
   "-mx-1 rounded px-1 text-body-sm text-body outline-none transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50";
 
-const VISITOR_LINKS = [
+const LINKS = [
   { href: "/#how", label: "How it works" },
   { href: "/sign-up", label: "Get started" },
   { href: "/sign-in", label: "Sign in" },
 ];
 
-const MEMBER_LINKS = [
-  { href: "/recommendations", label: "Watch" },
-  { href: "/watchlist", label: "Watchlist" },
-  { href: "/my-movies", label: "My films" },
-];
+const CREDITS =
+  "-mx-1 shrink-0 rounded px-1 outline-none transition-colors hover:text-body focus-visible:ring-3 focus-visible:ring-ring/50";
 
-// The footer for public pages (landing, /@handle): a brand line, the ways in (or
-// back into the app when signed in), and a quiet link to /credits, which is
-// where the services we build on are named.
-export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
-  const links = signedIn ? MEMBER_LINKS : VISITOR_LINKS;
+// A profile's footer: one quiet line, so the page ends on their films, not on us.
+export function ProfileFooter() {
+  return (
+    <footer className="mx-auto w-full max-w-3xl px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-6">
+      <div className="flex items-center justify-between gap-4 border-t border-border pt-5 text-caption text-mute">
+        <p>
+          © <Year /> Next Movie
+        </p>
+        <Link href="/credits" className={CREDITS}>
+          Credits
+        </Link>
+      </div>
+    </footer>
+  );
+}
+
+// The landing page's footer: a brand line, the ways in, and a quiet link to /credits, which is where the services
+// we build on are named.
+export function SiteFooter() {
   return (
     <footer className="overflow-hidden border-t border-border bg-canvas">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 pt-12 md:px-8 md:pt-16">
@@ -41,7 +52,7 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
           </div>
           <nav aria-label="Footer">
             <ul className="flex flex-wrap gap-x-6 gap-y-3 sm:flex-col sm:items-end">
-              {links.map((l) => (
+              {LINKS.map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className={LINK}>
                     {l.label}
@@ -56,7 +67,7 @@ export function SiteFooter({ signedIn = false }: { signedIn?: boolean }) {
           <p>
             © <Year /> Next Movie
           </p>
-          <Link href="/credits" className="-mx-1 shrink-0 rounded px-1 outline-none transition-colors hover:text-body focus-visible:ring-3 focus-visible:ring-ring/50">
+          <Link href="/credits" className={CREDITS}>
             Credits
           </Link>
         </div>

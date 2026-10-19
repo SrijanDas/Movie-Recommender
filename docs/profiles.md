@@ -4,7 +4,7 @@
 
 Everyone has a public profile at `/@handle`: picture, name, bio, a few lines about their taste, their ranked favourites, and everything else they've seen, shelved by answer (Peak first, Left midway last). It's the link people put in their bio. When the owner views their own page they get edit controls (Share, Edit profile, Reorder favourites, a ⋯ menu per seen film to change its answer or remove it). The Profile tab (`/account`) renders the same component with `variant="app"`: only the header (picture, name, bio, taste line, link, Share/Edit), then the account settings, with no films.
 
-The owner picks which Seen it lists are public in Edit profile ("Seen it on your profile"). Hidden answers are stored in `profiles.hidden_seen` (a text array, migration 0011) and are left out of `/@handle` for everyone; hiding Peak also drops the "called Peak" count.
+The owner picks which Seen it lists are public from a switch on each shelf heading of their own `/@handle` page (`components/profile/seen-shelf.tsx`, saved at once by `setSeenShown`); hidden shelves stay visible to the owner, dimmed. Hidden answers are stored in `profiles.hidden_seen` (a text array, migration 0011) and are left out of `/@handle` for everyone; hiding Peak also drops the "called Peak" count.
 
 ## Files
 
@@ -16,7 +16,7 @@ The owner picks which Seen it lists are public in Edit profile ("Seen it on your
 | `lib/profile/taste.ts` | `getTaste(movies)`: ranked favourites, films seen, Peak count, directors (≥2 loved films), top genres, #1's backdrop, and the other seen films (newest first). |
 | `app/profile/actions.ts` | `checkHandle` (live availability, used signed out on /sign-up), `suggestHandleFor`, `saveProfile` (editor, incl. photo upload). |
 | `app/u/[handle]/` | Public page, its not-found state, and `opengraph-image.tsx` (the link-preview card). |
-| `components/profile/` | `HandleField` + `useHandleCheck`, `ProfileAvatar`, `AvatarPicker`, `ProfileEditor`, `ShareProfileButton`/`ProfileLink`, `PublicProfile` (page + app variants). The public page ends with `SiteFooter` (`signedIn` swaps the links). |
+| `components/profile/` | `HandleField` + `useHandleCheck`, `ProfileAvatar`, `AvatarPicker`, `ProfileEditor`, `ShareProfileButton`/`ProfileLink`, `PublicProfile` (page + app variants). The public page ends with the one-line `ProfileFooter` (© + Credits); the full `SiteFooter` is the landing page's. |
 
 ## Rules
 
