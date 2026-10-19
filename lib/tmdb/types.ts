@@ -64,7 +64,8 @@ export type TmdbProvider = {
   display_priority: number; // lower shows first
 };
 
-// One country's offers. `link` is TMDB's watch page for the film there.
+// One country's offers. `link` is TMDB's watch page for the film there (unused:
+// it redirects to JustWatch; chips link to each service instead).
 export type TmdbRegionProviders = {
   link: string;
   flatrate?: TmdbProvider[]; // subscription

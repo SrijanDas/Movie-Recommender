@@ -8,7 +8,8 @@ import { buildProfile, weighMovies } from "./profile";
 import { scoreMovie } from "./score";
 import type { RatedMovie, Recommendation } from "./types";
 
-const RESULT_COUNT = 20;
+// One batch of the feed.
+export const RESULT_COUNT = 20;
 const FETCH_CONCURRENCY = 8; // the TMDB client caps in-flight requests too
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>) {
@@ -28,7 +29,13 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
 // can't break the page.
 const safeGetMovie = (id: number) => getMovie(id).catch(() => null);
 
-export async function getRecommendations(rated: RatedMovie[]): Promise<Recommendation[]> {
+// The next batch of recommendations, best first. `skip` holds films the feed
+// has already shown, so scrolling continues down the ranking instead of
+// repeating it.
+export async function getRecommendations(
+  rated: RatedMovie[],
+  skip: Iterable<number> = [],
+): Promise<Recommendation[]> {
   const weighted = weighMovies(rated).filter((m) => m.weight !== 0);
   if (!weighted.some((m) => m.weight > 0)) return [];
 
@@ -48,7 +55,7 @@ export async function getRecommendations(rated: RatedMovie[]): Promise<Recommend
     .sort((a, b) => b.weight - a.weight)
     .map((m) => m.tmdbId);
   // Everything the user has touched — including "seen" — is never recommended.
-  const exclude = new Set(rated.map((m) => m.tmdbId));
+  const exclude = new Set([...rated.map((m) => m.tmdbId), ...skip]);
 
   const candidateIds = await gatherCandidates(profile, seeds, exclude);
   const candidates = await mapLimit(candidateIds, FETCH_CONCURRENCY, safeGetMovie);

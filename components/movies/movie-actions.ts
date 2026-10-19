@@ -5,6 +5,7 @@ import {
   addFavoriteMovies,
   addLikedMovies,
   addToWatchlist,
+  moreRecommendations,
   rateRecommendation,
   removeFavorite,
   removeMovie,
@@ -14,6 +15,7 @@ import {
   type ActionResult,
 } from "@/app/actions";
 import type { UserMovie } from "@/lib/movies/types";
+import type { Recommendation } from "@/lib/recommend/types";
 
 // Client wrappers around the Server Actions: each shows the error as a toast
 // so callers only need to check `ok`.
@@ -54,6 +56,14 @@ export async function rateMovie(movie: UserMovie & { signal: Rating }): Promise<
 
 export async function watchLater(tmdbId: number): Promise<ActionResult> {
   return report(await addToWatchlist(tmdbId));
+}
+
+// The feed's next batch, skipping the films already shown; null on failure.
+// No toast: the feed shows its own retry, and it loads as you scroll, so a
+// toast could repeat. An empty list means the feed has run out.
+export async function loadMoreRecommendations(shown: number[]): Promise<Recommendation[] | null> {
+  const result = await moreRecommendations(shown).catch(() => null);
+  return result?.ok ? result.recommendations : null;
 }
 
 // Take back a rating or watchlist add made from a card, without refreshing.

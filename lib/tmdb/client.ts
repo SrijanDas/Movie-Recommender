@@ -149,13 +149,14 @@ export async function getWatchProviders(id: number): Promise<Record<string, Tmdb
   return results;
 }
 
-// TMDB's own "recommendations" plus "similar" lists for a movie.
-export async function getRelated(id: number): Promise<TmdbMovieSummary[]> {
+// TMDB's own "recommendations" plus "similar" lists for a movie, one page of
+// each. A page past the end comes back empty.
+export async function getRelated(id: number, page = 1): Promise<TmdbMovieSummary[]> {
   "use cache";
   cacheLife("weeks");
   const [recommended, similar] = await Promise.all([
-    tmdbFetch<TmdbPage<TmdbMovieSummary>>(`/movie/${id}/recommendations`),
-    tmdbFetch<TmdbPage<TmdbMovieSummary>>(`/movie/${id}/similar`),
+    tmdbFetch<TmdbPage<TmdbMovieSummary>>(`/movie/${id}/recommendations`, { page }),
+    tmdbFetch<TmdbPage<TmdbMovieSummary>>(`/movie/${id}/similar`, { page }),
   ]);
   return [...recommended.results, ...similar.results];
 }
@@ -167,11 +168,12 @@ export type DiscoverParams = {
   with_keywords?: string;
 };
 
-export async function discover(params: DiscoverParams): Promise<TmdbMovieSummary[]> {
+export async function discover(params: DiscoverParams, page = 1): Promise<TmdbMovieSummary[]> {
   "use cache";
   cacheLife("days");
   const data = await tmdbFetch<TmdbPage<TmdbMovieSummary>>("/discover/movie", {
     ...params,
+    page,
     include_adult: "false",
     sort_by: "vote_average.desc",
     "vote_count.gte": 300,

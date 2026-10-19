@@ -42,7 +42,7 @@ export function NeedMoreNotice({ loved, min }: { loved: number; min: number }) {
       title={loved === 0 ? "Start with films you love" : `Add ${min - loved} more`}
       body={`Recommendations come from the films you love. Add at least ${min} favourites and we’ll take it from there.`}
       action={
-        <Button render={<Link href="/my-movies" />} nativeButton={false}>
+        <Button render={<Link href="/my-movies?show=favourites" />} nativeButton={false}>
           Add favourites
         </Button>
       }

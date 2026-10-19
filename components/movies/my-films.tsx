@@ -158,15 +158,26 @@ function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: 
 
 const filmsAdded = (n: number) => (n === 1 ? "Added 1 film" : `Added ${n} films`);
 
+// All first (the default), then each answer worst to best, then Favourites
+// after Peak.
 const FILTERS = [
-  { feedback: "favorite" as const, short: "Favourites", icon: StarIcon },
   { feedback: "all" as const, short: "All", icon: null },
   ...ANSWERS,
+  { feedback: "favorite" as const, short: "Favourites", icon: StarIcon },
 ];
 
-export function MyFilms({ movies, starters }: { movies: ListedMovie[]; starters: SearchResult[] }) {
+export function MyFilms({
+  movies,
+  starters,
+  initialFilter = "all",
+}: {
+  movies: ListedMovie[];
+  starters: SearchResult[];
+  // "favorite" when linked from favourites (?show=favourites); All otherwise.
+  initialFilter?: "all" | "favorite";
+}) {
   const router = useRouter();
-  const [filter, setFilter] = useState<Filter>("favorite");
+  const [filter, setFilter] = useState<Filter>(initialFilter);
 
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));

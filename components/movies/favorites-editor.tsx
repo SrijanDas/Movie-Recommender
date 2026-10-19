@@ -202,7 +202,7 @@ export function FavoritesEditor({ favorites }: { favorites: ListedMovie[] }) {
         const result = await saveFavoritesEdit(order.map((m) => m.tmdbId));
         if (!result.ok) return;
       }
-      router.push("/my-movies");
+      router.push("/my-movies?show=favourites");
     });
 
   return (
@@ -250,7 +250,7 @@ export function FavoritesEditor({ favorites }: { favorites: ListedMovie[] }) {
             variant="ghost"
             size="lg"
             className="px-3 text-body-sm text-body"
-            render={<Link href="/my-movies" />}
+            render={<Link href="/my-movies?show=favourites" />}
             nativeButton={false}
           >
             Cancel

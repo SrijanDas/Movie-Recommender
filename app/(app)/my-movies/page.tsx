@@ -9,7 +9,8 @@ import { releaseYear } from "@/lib/tmdb/images";
 
 export const metadata: Metadata = { title: "My films" };
 
-async function Lists() {
+async function Lists({ searchParams }: { searchParams: Promise<{ show?: string | string[] }> }) {
+  const { show } = await searchParams;
   const [movies, starters] = await Promise.all([
     getUserMovies(await requireUserId()).then(withScores),
     isTmdbConfigured() ? getStarterMovies().catch(() => []) : [],
@@ -17,6 +18,7 @@ async function Lists() {
   return (
     <MyFilms
       movies={movies}
+      initialFilter={show === "favourites" ? "favorite" : "all"}
       starters={starters.map((m) => ({
         tmdbId: m.id,
         title: m.title,
@@ -29,7 +31,7 @@ async function Lists() {
   );
 }
 
-export default function MyMoviesPage() {
+export default function MyMoviesPage({ searchParams }: PageProps<"/my-movies">) {
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col px-4 pt-5 pb-8 sm:px-6 md:py-10">
       {/* The header lives in MyFilms: its subtitle follows the selected filter. */}
@@ -45,7 +47,7 @@ export default function MyMoviesPage() {
           </div>
         }
       >
-        <Lists />
+        <Lists searchParams={searchParams} />
       </Suspense>
     </section>
   );

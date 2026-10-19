@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
-import { PlainHeader, TmdbAttribution } from "@/components/site/header";
+import { PlainHeader } from "@/components/site/header";
 import { LogoMark } from "@/components/site/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -228,7 +228,7 @@ export default function LandingPage() {
         </section>
 
         <section className="border-t border-dashed border-[rgba(79,93,117,0.4)]">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 py-14 md:flex-row md:items-center md:justify-between md:px-8 md:py-20">
+          <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 pt-14 pb-[max(3.5rem,env(safe-area-inset-bottom))] md:flex-row md:items-center md:justify-between md:px-8 md:py-20">
             <div className="flex items-start gap-4">
               <LogoMark className="size-12 rounded-xl" />
               <div className="flex flex-col gap-1.5">
@@ -242,12 +242,6 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
-
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-6xl px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:px-8">
-          <TmdbAttribution className="text-body-sm text-mute" />
-        </div>
-      </footer>
     </>
   );
 }

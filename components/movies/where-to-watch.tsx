@@ -3,10 +3,8 @@ import { Button } from "@/components/ui/button";
 import { getViewerRegion, regionName } from "@/lib/region";
 import { getWatchProviders } from "@/lib/tmdb/client";
 import { logoUrl } from "@/lib/tmdb/images";
+import { providerLink } from "@/lib/tmdb/provider-links";
 import type { TmdbProvider, TmdbRegionProviders } from "@/lib/tmdb/types";
-
-// Per row; the rest sit behind a "+N more" chip to TMDB's full list.
-const SHOWN = 6;
 
 // Most services sell and rent the same film, so those merge into one row.
 const ROWS: { label: string; kinds: (keyof Omit<TmdbRegionProviders, "link">)[] }[] = [
@@ -21,9 +19,9 @@ function providersFor(offers: TmdbRegionProviders, kinds: (typeof ROWS)[number][
   return [...byId.values()].sort((a, b) => a.display_priority - b.display_priority);
 }
 
-// The film's services in the viewer's country. TMDB gives one watch page per
-// country (not per service), so every chip opens it. Renders nothing when
-// TMDB is unreachable: the rest of the page still works.
+// The film's services in the viewer's country. Each chip opens that service's
+// search for the film (see providerLink). Renders nothing when TMDB is
+// unreachable: the rest of the page still works.
 export async function WhereToWatch({ tmdbId, title }: { tmdbId: number; title: string }) {
   const [region, all] = await Promise.all([getViewerRegion(), getWatchProviders(tmdbId).catch(() => null)]);
   if (!all) return null;
@@ -47,14 +45,14 @@ export async function WhereToWatch({ tmdbId, title }: { tmdbId: number; title: s
               <dt className="text-caption text-mute">{label}</dt>
               <dd>
                 <ul className="flex flex-wrap gap-2">
-                  {providers.slice(0, SHOWN).map((p) => {
+                  {providers.map((p) => {
                     const logo = logoUrl(p.logo_path);
                     return (
                       <li key={p.provider_id}>
                         <Button
                           variant="outline"
                           className="h-11 gap-2.5 rounded-lg pr-3.5 pl-1.5 text-body-sm font-normal text-ink"
-                          render={<a href={offers!.link} target="_blank" rel="noreferrer" />}
+                          render={<a href={providerLink(p.provider_name, title)} target="_blank" rel="noreferrer" />}
                           nativeButton={false}
                           aria-label={`${title} on ${p.provider_name} (opens in a new tab)`}
                         >
@@ -68,37 +66,13 @@ export async function WhereToWatch({ tmdbId, title }: { tmdbId: number; title: s
                       </li>
                     );
                   })}
-                  {providers.length > SHOWN && (
-                    <li>
-                      <Button
-                        variant="outline"
-                        className="h-11 rounded-lg px-3.5 text-body-sm font-normal text-body"
-                        render={<a href={offers!.link} target="_blank" rel="noreferrer" />}
-                        nativeButton={false}
-                        aria-label={`${providers.length - SHOWN} more services (opens in a new tab)`}
-                      >
-                        +{providers.length - SHOWN} more
-                      </Button>
-                    </li>
-                  )}
                 </ul>
               </dd>
             </div>
           ))}
         </dl>
       )}
-      <p className="text-caption text-mute">
-        In {country}. Data from{" "}
-        <a
-          href="https://www.justwatch.com"
-          target="_blank"
-          rel="noreferrer"
-          className="underline underline-offset-2 hover:text-ink"
-        >
-          JustWatch
-        </a>
-        .
-      </p>
+      {rows.length > 0 && <p className="text-caption text-mute">In {country}.</p>}
     </section>
   );
 }

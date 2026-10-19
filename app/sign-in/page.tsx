@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PlainHeader, TmdbAttribution } from "@/components/site/header";
+import { PlainHeader } from "@/components/site/header";
 import { SignInForm } from "@/components/site/sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -19,7 +19,6 @@ export default function SignInPage() {
             <SignInForm />
           </Suspense>
         </div>
-        <TmdbAttribution className="mt-auto text-caption text-mute" />
       </main>
     </>
   );

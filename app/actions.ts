@@ -13,11 +13,13 @@ import {
   type UserMovie,
 } from "@/lib/movies/store";
 import { markOnboarded } from "@/lib/onboarding";
+import { getRecommendations } from "@/lib/recommend";
 import {
   DEFAULT_SEEN_ANSWER,
   isSeenAnswer,
   MAX_FAVORITES,
   MIN_FAVORITES,
+  type Recommendation,
   type SeenAnswer,
 } from "@/lib/recommend/types";
 import { searchMovies } from "@/lib/tmdb/client";
@@ -25,7 +27,8 @@ import { releaseYear } from "@/lib/tmdb/images";
 
 // Every mutation is for the signed-in user and writes to Postgres.
 
-export type ActionResult = { ok: true } | { ok: false; error: string };
+type Failure = { ok: false; error: string };
+export type ActionResult = { ok: true } | Failure;
 
 export type SearchResult = {
   tmdbId: number;
@@ -37,7 +40,7 @@ export type SearchResult = {
   voteCount?: number;
 };
 
-const SIGN_IN_REQUIRED: ActionResult = { ok: false, error: "Your session ended. Sign in again." };
+const SIGN_IN_REQUIRED: Failure = { ok: false, error: "Your session ended. Sign in again." };
 
 const isTmdbId = (value: unknown): value is number =>
   typeof value === "number" && Number.isInteger(value) && value > 0;
@@ -50,7 +53,7 @@ const isIdList = (ids: unknown): ids is number[] =>
 const isMissingUser = (error: unknown) =>
   error instanceof Error && (error.cause as { code?: string } | undefined)?.code === "23503";
 
-async function failure(error: unknown): Promise<ActionResult> {
+async function failure(error: unknown): Promise<Failure> {
   console.error(error);
   // getClaims() checks the JWT locally, so a deleted account keeps a valid-
   // looking session until it expires. Drop it so the user can sign in again.
@@ -271,6 +274,25 @@ export async function addToWatchlist(id: unknown): Promise<ActionResult> {
     if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
     await putMovies(userId, [{ tmdbId: id, signal: "watchlist", ...snapshot }]);
     return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// Most films one feed can skip: a long scroll, well past where the lists run out.
+const MAX_SKIP = 2000;
+
+// The next batch of the recommendations feed, skipping films already shown.
+// Reads the user's list fresh, so answers given while scrolling shape it.
+// An empty list means the feed has run out.
+export async function moreRecommendations(
+  shown: unknown,
+): Promise<{ ok: true; recommendations: Recommendation[] } | Failure> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isIdList(shown) || shown.length > MAX_SKIP) return { ok: false, error: "Invalid request." };
+  try {
+    return { ok: true, recommendations: await getRecommendations(await getUserMovies(userId), shown) };
   } catch (error) {
     return failure(error);
   }
