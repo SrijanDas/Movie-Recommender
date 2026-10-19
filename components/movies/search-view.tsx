@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
 import type { SearchResult } from "@/app/actions";
 import { FilmRating } from "@/components/movies/film-meta";
 import { Poster } from "@/components/movies/poster";
@@ -44,33 +42,15 @@ function Tile({ movie, preload }: { movie: SearchResult; preload?: boolean }) {
 
 // Search any film and open its page. Popular films fill the grid until you
 // type. The query lives in the URL (?q=), so Back from a film lands on the
-// same results. Films already on My films (`hide`) never show.
+// same results.
 export function SearchView({
   starters,
   initial,
-  hide,
 }: {
   starters: SearchResult[];
   initial: { query: string; results: SearchResult[] };
-  hide: number[];
 }) {
-  // Next keeps this page mounted (hidden) while a film's page is open, and
-  // answering there doesn't revalidate. Refetch `hide` each time the page
-  // shows again, so Back never lists a film just added to My films.
-  const router = useRouter();
-  const wasShown = useRef(false);
-  useEffect(() => {
-    if (wasShown.current) router.refresh();
-    return () => {
-      wasShown.current = true;
-    };
-  }, [router]);
-
-  const search_ = useMovieSearch(initial);
-  const { query, setQuery, trimmed, active, loading } = search_;
-  const hidden = new Set(hide);
-  const results = search_.results.filter((m) => !hidden.has(m.tmdbId));
-  const popular = starters.filter((m) => !hidden.has(m.tmdbId));
+  const { query, setQuery, trimmed, active, loading, results } = useMovieSearch(initial);
 
   const search = (value: string) => {
     setQuery(value);
@@ -101,11 +81,11 @@ export function SearchView({
           <p className="py-8 text-center text-body-sm text-mute">
             No films match “{trimmed}”. Try the original title or fewer words.
           </p>
-        ) : !active && popular.length === 0 ? (
+        ) : !active && starters.length === 0 ? (
           <p className="py-8 text-center text-body-sm text-mute">Type a title to find any film.</p>
         ) : (
           <ul className={GRID}>
-            {(active ? results : popular).map((movie, i) => (
+            {(active ? results : starters).map((movie, i) => (
               <Tile key={movie.tmdbId} movie={movie} preload={i < 6} />
             ))}
           </ul>
