@@ -7,6 +7,7 @@ import { InstallApp } from "@/components/site/install-app";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser, requireUserId } from "@/lib/auth";
+import { getListCards } from "@/lib/lists/public";
 import { getUserMovies } from "@/lib/movies/store";
 import { getProfile } from "@/lib/profile/store";
 import { getTaste } from "@/lib/profile/taste";
@@ -18,11 +19,15 @@ export const metadata: Metadata = { title: "Profile" };
 async function OwnProfile() {
   const userId = await requireUserId();
   const [user, profile, movies] = await Promise.all([getCurrentUser(), getProfile(userId), getUserMovies(userId)]);
-  const taste = await getTaste(movies);
+  const [taste, lists] = await Promise.all([
+    getTaste(movies),
+    profile?.handle ? getListCards(userId, profile.handle) : [],
+  ]);
   return (
     <PublicProfile
       variant="app"
       viewer="owner"
+      lists={lists}
       profile={{
         userId,
         handle: profile?.handle ?? null,

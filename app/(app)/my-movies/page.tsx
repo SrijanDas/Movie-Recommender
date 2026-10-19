@@ -4,8 +4,7 @@ import { MyFilms } from "@/components/movies/my-films";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
 import { getUserMovies, withScores } from "@/lib/movies/store";
-import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
-import { releaseYear } from "@/lib/tmdb/images";
+import { getStarterResults } from "@/lib/movies/starters";
 
 export const metadata: Metadata = { title: "My films" };
 
@@ -13,20 +12,13 @@ async function Lists({ searchParams }: { searchParams: Promise<{ show?: string |
   const { show } = await searchParams;
   const [movies, starters] = await Promise.all([
     getUserMovies(await requireUserId()).then(withScores),
-    isTmdbConfigured() ? getStarterMovies().catch(() => []) : [],
+    getStarterResults(),
   ]);
   return (
     <MyFilms
       movies={movies}
       initialFilter={show === "favourites" ? "favorite" : "all"}
-      starters={starters.map((m) => ({
-        tmdbId: m.id,
-        title: m.title,
-        year: releaseYear(m.release_date),
-        posterPath: m.poster_path,
-        voteAverage: m.vote_average,
-        voteCount: m.vote_count,
-      }))}
+      starters={starters}
     />
   );
 }

@@ -13,7 +13,7 @@ const HANDLE = /^[a-z0-9_](?:[a-z0-9_]|\.(?!\.))*[a-z0-9_]$/;
 const RESERVED = new Set([
   "account", "admin", "api", "app", "auth", "help", "home", "login", "logout", "me", "movie", "movies",
   "my-movies", "nextmovie", "next_movie", "offline", "onboarding", "profile", "recommendations", "root",
-  "search", "settings", "signin", "signup", "support", "system", "u", "user", "watchlist",
+  "lists", "search", "settings", "signin", "signup", "support", "system", "u", "user", "watchlist",
 ]);
 
 // What the user typed, as it will be stored: no "@", no spaces, lowercase.

@@ -7,6 +7,7 @@
 //   Data API; Drizzle connects as `postgres` and is unaffected.
 
 import {
+  boolean,
   integer,
   pgEnum,
   pgTable,
@@ -14,12 +15,15 @@ import {
   smallint,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { authUsers } from "drizzle-orm/supabase";
 import { SIGNALS } from "../recommend/types"; // relative: drizzle-kit does not resolve "@/"
+import { LIST_SOURCES } from "../lists/rules";
 
 export const movieSignal = pgEnum("movie_signal", SIGNALS);
+export const listSource = pgEnum("list_source", LIST_SOURCES);
 
 // Every movie a user has an opinion on: their favourites, other likes, and
 // feedback on recommendations. One row per (user, movie).
@@ -75,3 +79,54 @@ export const profiles = pgTable("profiles", {
   // public profile.
   hiddenSeen: text("hidden_seen").array().notNull().default([]),
 }).enableRLS();
+
+// Named lists a user shares at /@handle/lists/<slug>, started from their
+// watchlist or My films. See docs/lists.md.
+export const lists = pgTable(
+  "lists",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    // Set when the list is made and never changed, so renaming a list keeps
+    // its shared link working. Unique per user.
+    slug: text("slug").notNull(),
+    // Where the list started. Null for a list made from scratch.
+    source: listSource("source"),
+    // My films only: the filter it started from ("all", "favorite" or a
+    // "Seen it" answer).
+    sourceFilter: text("source_filter"),
+    // Keep in sync with the source: films that join it join the end of the
+    // list, films that leave it leave the list. Otherwise the list is a copy.
+    synced: boolean("synced").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [uniqueIndex("lists_user_slug").on(t.userId, t.slug)],
+).enableRLS();
+
+// The films in a list, in order. In a synced list a row also records the
+// owner's edits: `hidden` for a source film they took out, `added` for a film
+// they put in that isn't in the source (it stays when the source changes).
+export const listItems = pgTable(
+  "list_items",
+  {
+    listId: uuid("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    tmdbId: integer("tmdb_id").notNull(),
+    position: smallint("position").notNull(),
+    hidden: boolean("hidden").notNull().default(false),
+    added: boolean("added").notNull().default(false),
+    // Display snapshot so lists render without a TMDB round-trip.
+    title: text("title").notNull(),
+    posterPath: text("poster_path"),
+    year: smallint("year"),
+  },
+  (t) => [primaryKey({ columns: [t.listId, t.tmdbId] })],
+).enableRLS();

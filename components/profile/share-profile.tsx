@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button";
 import { profilePath } from "@/lib/profile/rules";
 import { cn } from "@/lib/utils";
 
-function profileUrl(handle: string) {
-  return `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}${profilePath(handle)}`;
+// A site path as a full link (browser only).
+export function absoluteUrl(path: string) {
+  return `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}${path}`;
 }
 
 async function copy(url: string) {
@@ -25,24 +26,26 @@ async function copy(url: string) {
 
 // The phone's share sheet (Instagram, WhatsApp, Messages…) where there is
 // one; otherwise copy the link.
-export function ShareProfileButton({
-  handle,
-  name,
+export function ShareButton({
+  path,
+  title,
+  text,
   className,
   variant = "default",
-  label = "Share profile",
+  label = "Share",
 }: {
-  handle: string;
-  name: string;
+  path: string;
+  title: string;
+  text: string;
   className?: string;
   variant?: "default" | "outline";
   label?: string;
 }) {
   const share = async () => {
-    const url = profileUrl(handle);
+    const url = absoluteUrl(path);
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${name} on Next Movie`, text: `My favourite films, ranked.`, url });
+        await navigator.share({ title, text, url });
         return;
       } catch (error) {
         // Dismissing the sheet isn't a failure.
@@ -59,15 +62,38 @@ export function ShareProfileButton({
   );
 }
 
-// The profile link as text: tap it to copy.
-export function ProfileLink({ handle, className }: { handle: string; className?: string }) {
+export function ShareProfileButton({
+  handle,
+  name,
+  label = "Share profile",
+  ...props
+}: {
+  handle: string;
+  name: string;
+  className?: string;
+  variant?: "default" | "outline";
+  label?: string;
+}) {
+  return (
+    <ShareButton
+      path={profilePath(handle)}
+      title={`${name} on Next Movie`}
+      text="My favourite films, ranked."
+      label={label}
+      {...props}
+    />
+  );
+}
+
+// A link as text: tap it to copy.
+export function CopyLink({ path, className }: { path: string; className?: string }) {
   const host = useSiteHost();
   const [copied, setCopied] = useState(false);
   return (
     <button
       type="button"
       onClick={async () => {
-        if (await copy(profileUrl(handle))) {
+        if (await copy(absoluteUrl(path))) {
           setCopied(true);
           setTimeout(() => setCopied(false), 1800);
         }
@@ -77,10 +103,10 @@ export function ProfileLink({ handle, className }: { handle: string; className?:
         className,
       )}
     >
-      {/* On narrow screens the host gives way; the handle always shows. */}
+      {/* On narrow screens the host gives way; the path always shows. */}
       <span className="flex min-w-0 flex-1 font-mono text-code">
-        <span className="truncate text-mute">{host}</span>
-        <span className="shrink-0 text-ink">{profilePath(handle)}</span>
+        <span className="min-w-0 shrink-[100] truncate text-mute">{host}</span>
+        <span className="min-w-0 truncate text-ink">{path}</span>
       </span>
       <span className="flex shrink-0 items-center gap-1.5 text-caption font-medium text-mute group-hover/link:text-ink">
         {copied ? <CheckIcon className="size-4 text-primary" aria-hidden /> : <CopyIcon className="size-4" aria-hidden />}
@@ -88,4 +114,8 @@ export function ProfileLink({ handle, className }: { handle: string; className?:
       </span>
     </button>
   );
+}
+
+export function ProfileLink({ handle, className }: { handle: string; className?: string }) {
+  return <CopyLink path={profilePath(handle)} className={className} />;
 }

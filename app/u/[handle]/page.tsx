@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { PublicProfile } from "@/components/profile/public-profile";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
+import { getListCards } from "@/lib/lists/public";
 import { getUserMovies } from "@/lib/movies/store";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { normalizeHandle, profilePath } from "@/lib/profile/rules";
@@ -40,12 +41,17 @@ export async function generateMetadata({ params }: PageProps<"/u/[handle]">): Pr
 async function Profile({ params }: { params: PageProps<"/u/[handle]">["params"] }) {
   const profile = await load((await params).handle);
   if (!profile) notFound();
-  const [viewer, movies] = await Promise.all([getCurrentUser(), getUserMovies(profile.userId)]);
+  const [viewer, movies, lists] = await Promise.all([
+    getCurrentUser(),
+    getUserMovies(profile.userId),
+    getListCards(profile.userId, profile.handle),
+  ]);
   const taste = await getTaste(movies);
   return (
     <PublicProfile
       profile={profile}
       taste={taste}
+      lists={lists}
       viewer={!viewer ? "visitor" : viewer.id === profile.userId ? "owner" : "member"}
     />
   );

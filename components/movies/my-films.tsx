@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDownIcon, ListIcon, Loader2Icon, PencilIcon, StarIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, ListIcon, Loader2Icon, PencilIcon, Share2Icon, StarIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
@@ -33,15 +33,12 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { isInMyFilms, type ListedMovie } from "@/lib/movies/types";
+import { answerOf, filterMyFilms, type ListedMovie, type MyFilmsFilter } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
 
-type Filter = "favorite" | "all" | Feedback;
-
-// A film's "Seen it" answer. A favourite carries its own in seenSignal.
-const answerOf = (m: ListedMovie) => (m.signal === "favorite" ? m.seenSignal : m.signal);
+type Filter = MyFilmsFilter;
 
 // Removing a seen film undoes its answer, so ask first.
 function ConfirmRemoveButton({ movie }: { movie: ListedMovie }) {
@@ -204,10 +201,10 @@ export function MyFilms({
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
   const room = Math.max(0, MAX_FAVORITES - favorites.length);
   // Newest first (legacy "seen" rows show only under All).
-  const seen = movies.filter(isInMyFilms).reverse();
+  const seen = filterMyFilms(movies, "all");
   const countOf = (f: Filter) =>
     f === "favorite" ? favorites.length : f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length;
-  const inFilter = filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
+  const inFilter = filter === "favorite" ? [] : filterMyFilms(movies, filter);
   const shown = inFilter.filter(matches);
   const onFavorites = filter === "favorite";
   const current = FILTERS.find((f) => f.feedback === filter) ?? FILTERS[0];
@@ -265,6 +262,18 @@ export function MyFilms({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+          {/* Share what's showing: the films under this filter, as a named list. */}
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11 shrink-0 rounded-lg border-input bg-muted text-ink"
+            render={<Link href={`/lists/new?from=my-films&filter=${filter}`} />}
+            nativeButton={false}
+            aria-label={`Share ${current.short === "All" ? "my films" : current.short} as a list`}
+            title="Share as a list"
+          >
+            <Share2Icon />
+          </Button>
         </div>
 
         {onFavorites ? (

@@ -14,8 +14,12 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    // Public profiles are shared as /@handle; the route lives at /u/[handle].
-    return [{ source: "/@:handle", destination: "/u/:handle" }];
+    // Public profiles are shared as /@handle and their lists as
+    // /@handle/lists/slug; the routes live under /u/[handle].
+    return [
+      { source: "/@:handle", destination: "/u/:handle" },
+      { source: "/@:handle/lists/:slug", destination: "/u/:handle/lists/:slug" },
+    ];
   },
   async headers() {
     return [

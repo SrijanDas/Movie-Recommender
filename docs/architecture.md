@@ -21,14 +21,18 @@ app/
   (app)/account/      # Profile: picture, name, @handle, share link; email, install, Credits link, sign out
   (app)/account/edit/ # edit picture (upload / poster / icon), name, username (checked free), bio
   movie/[id]/         # film page: backdrop banner, details, "Seen it" answer + watchlist toggle; public (own layout: app shell for members, plain header for visitors)
+  (app)/lists/        # list editor: new/ (from the watchlist, a My films filter, or empty) and [id]/edit/ (see docs/lists.md)
   u/[handle]/         # public profile, served at /@handle via a rewrite; open to signed-out visitors; share image
+  u/[handle]/lists/[slug]/  # a shared list, served at /@handle/lists/slug; public; share image
+  lists/actions.ts    # saveListAction, deleteListAction
   profile/actions.ts  # checkHandle, suggestHandleFor, saveProfile (see docs/profiles.md)
   auth/confirm/       # route handler: finishes email-link sign-in
   auth/actions.ts     # signInWithEmail, signInWithPassword, signOut
   actions.ts          # movie Server Actions (search, favourites, like, feedback, watchlist, remove)
 components/
   ui/                 # shadcn components (restyled to DESIGN.md)
-  movies/             # poster, search, favourites picker, recommendation card, watchlist grid, list controls
+  movies/             # poster, search, favourites picker, recommendation card, watchlist grid, list controls, sortable film list
+  lists/              # shared lists: editor, public page, profile shelf
   site/               # logo, headers, tab bar, sign-in form, PWA (service worker + install prompt)
 public/sw.js          # service worker: network-only, /offline fallback for navigations
 lib/
@@ -39,6 +43,7 @@ lib/
   tmdb/               # TMDB client, types, image helpers
   recommend/          # recommendation engine (pure functions + candidate gathering)
   movies/store.ts     # the user's movie list in Postgres
+  lists/              # shared lists: rules, resolution (sync vs copy), store
 drizzle/              # generated SQL migrations
 proxy.ts              # Next 16 proxy — refreshes the session; signed-out users only reach /, /sign-in, /sign-up, /offline, /auth/*
 next.config.ts        # framework config — see nextjs-16.md

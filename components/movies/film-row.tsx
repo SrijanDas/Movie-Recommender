@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { FilmRating } from "@/components/movies/film-meta";
 import { Poster } from "@/components/movies/poster";
-import type { ListedMovie } from "@/lib/movies/types";
+import type { MovieSnapshot, TmdbScore } from "@/lib/movies/types";
 import { cn } from "@/lib/utils";
+
+// What a row shows: a film from any list, with its score when known.
+export type RowFilm = MovieSnapshot & { tmdbId: number } & Partial<TmdbScore>;
 
 export const rankClass = "w-4 shrink-0 text-center font-mono text-code text-mute tabular-nums";
 
@@ -18,7 +21,7 @@ export function FilmRow({
   style,
   className,
 }: {
-  movie: ListedMovie;
+  movie: RowFilm;
   // Off while editing, so a stray tap mid-drag never navigates away.
   linked?: boolean;
   lead?: React.ReactNode;

@@ -1,16 +1,18 @@
 import { ArrowUpDownIcon, ArrowUpRightIcon, PencilIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { ListsShelf } from "@/components/lists/lists-shelf";
 import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { OwnerSeenShelf } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
 import { ProfileFooter } from "@/components/site/footer";
-import { JoinBar } from "@/components/site/join-bar";
 import { Logo } from "@/components/site/logo";
+import { ScrollHeader } from "@/components/site/scroll-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import type { ListCard } from "@/lib/lists/public";
 import type { UserMovie } from "@/lib/movies/types";
 import { profilePath } from "@/lib/profile/rules";
 import type { Profile } from "@/lib/profile/store";
@@ -24,23 +26,27 @@ type Viewer = "owner" | "member" | "visitor";
 const SHELF_MAX = 20;
 
 // Someone's profile: who they are, their taste in a few lines, their
-// favourites ranked and everything else they've seen, by answer (minus the
-// answers they chose to hide).
-// - "page": the public /@handle page, with its own top bar, a footer, and a
-//   join bar for anyone who isn't the owner.
+// favourites ranked, their shared lists, and everything else they've seen, by
+// answer (minus the answers they chose to hide).
+// - "page": the public /@handle page, with its own top bar, a footer, and, for
+//   anyone who isn't the owner, a header with one action once they scroll.
 // - "app": the owner's Profile tab (/account): just who they are and the
-//   share/edit controls (no backdrop), inside the app shell; `children` (settings) follow.
+//   share/edit controls (no backdrop) and their lists, inside the app shell;
+//   `children` (settings) follow.
 export function PublicProfile({
   profile,
   taste,
   viewer,
   variant = "page",
+  lists = [],
   children,
 }: {
   profile: Profile;
   taste: Taste;
   viewer: Viewer;
   variant?: "page" | "app";
+  // Their shared lists, newest first.
+  lists?: ListCard[];
   children?: React.ReactNode;
 }) {
   const handle = profile.handle;
@@ -54,32 +60,10 @@ export function PublicProfile({
   const seenFilms = owner ? taste.seenFilms : taste.seenFilms.filter((m) => !hidden.has(m.signal));
 
   return (
-    <div
-      className={cn(
-        "flex flex-col",
-        page && "min-h-svh",
-        page && !owner && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
-      )}
-    >
+    <div className={cn("flex flex-col", page && "min-h-svh")}>
+      {page && !owner && <ScrollHeader viewer={viewer === "member" ? "member" : "visitor"} watchId="profile-name" />}
       {/* The #1 favourite's still, fading into the page. */}
-      {page && (
-        <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
-          {backdrop && (
-            <Image
-              src={backdrop}
-              alt=""
-              fill
-              preload
-              unoptimized
-              sizes="100vw"
-              className="object-cover object-[50%_30%] opacity-70 [mask-image:linear-gradient(to_bottom,black_35%,transparent)]"
-            />
-          )}
-          <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
-            <Logo href={viewer === "visitor" ? "/" : "/recommendations"} />
-          </div>
-        </div>
-      )}
+      {page && <PageBackdrop backdrop={backdrop} visitor={viewer === "visitor"} />}
 
       <main
         className={cn(
@@ -90,7 +74,7 @@ export function PublicProfile({
         <header className="flex flex-col gap-5">
           <ProfileAvatar avatar={profile.avatar} name={name} preload className="size-24 ring-4 ring-canvas sm:size-28" />
           <div className="flex flex-col gap-1">
-            <h1 className="text-[2rem] leading-[1.1] font-normal tracking-[-0.02em] text-balance text-ink-strong sm:text-display-lg">
+            <h1 id="profile-name" className="text-[2rem] leading-[1.1] font-normal tracking-[-0.02em] text-balance text-ink-strong sm:text-display-lg">
               {name}
             </h1>
             {handle && <p className="text-body-md text-mute">@{handle}</p>}
@@ -126,23 +110,51 @@ export function PublicProfile({
           </section>
         )}
 
+        {handle && (owner || lists.length > 0) && (
+          <section aria-labelledby="lists" className="flex flex-col gap-4">
+            <SectionHeading id="lists" title="Lists" />
+            {owner && lists.length === 0 && (
+              <p className="-mt-2 text-body-sm text-mute">
+                Share your watchlist, a slice of My films, or any films in your own order.
+              </p>
+            )}
+            <ListsShelf lists={lists} owner={owner} />
+          </section>
+        )}
+
         {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} hidden={hidden} />}
 
         {children}
       </main>
 
       {page && <ProfileFooter />}
-      {page && !owner && (
-        <JoinBar
-          viewer={viewer === "member" ? "member" : "visitor"}
-          title={viewer === "visitor" ? "Get picks like these" : undefined}
-        />
-      )}
     </div>
   );
 }
 
-function SectionHeading({ id, title, children }: { id: string; title: string; children?: React.ReactNode }) {
+// A public page's top: a film still fading into the page, under the logo.
+export function PageBackdrop({ backdrop, visitor }: { backdrop: string | null; visitor: boolean }) {
+  return (
+    <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
+      {backdrop && (
+        <Image
+          src={backdrop}
+          alt=""
+          fill
+          preload
+          unoptimized
+          sizes="100vw"
+          className="object-cover object-[50%_30%] opacity-70 [mask-image:linear-gradient(to_bottom,black_35%,transparent)]"
+        />
+      )}
+      <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
+        <Logo href={visitor ? "/" : "/recommendations"} />
+      </div>
+    </div>
+  );
+}
+
+export function SectionHeading({ id, title, children }: { id: string; title: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
       <h2 id={id} className="text-display-sm text-ink-strong">
@@ -153,7 +165,7 @@ function SectionHeading({ id, title, children }: { id: string; title: string; ch
   );
 }
 
-function EditLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
+export function EditLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <Button
       variant="ghost"
@@ -338,7 +350,9 @@ function TasteLine({ taste, showPeak }: { taste: Taste; showPeak: boolean }) {
 }
 
 // Every film opens its page; film pages are public, like this one.
-function FilmLink({ movie, children, className }: { movie: UserMovie; children: React.ReactNode; className?: string }) {
+type ShownFilm = Pick<UserMovie, "tmdbId" | "title" | "posterPath">;
+
+function FilmLink({ movie, children, className }: { movie: ShownFilm; children: React.ReactNode; className?: string }) {
   return (
     <Link href={`/movie/${movie.tmdbId}`} className={cn("group/film rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50", className)}>
       {children}
@@ -369,7 +383,7 @@ function TopFilm({ movie }: { movie: UserMovie }) {
   );
 }
 
-function RankedFilm({ movie, rank }: { movie: UserMovie; rank: number }) {
+export function RankedFilm({ movie, rank }: { movie: ShownFilm; rank: number }) {
   return (
     <li>
       <FilmLink movie={movie} className="flex flex-col gap-2">
