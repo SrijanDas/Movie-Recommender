@@ -38,6 +38,7 @@ export type TmdbMovieDetails = {
   title: string;
   release_date: string;
   poster_path: string | null;
+  backdrop_path: string | null;
   overview: string;
   tagline: string;
   vote_average: number;

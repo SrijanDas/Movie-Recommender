@@ -5,25 +5,36 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, useState } from "react";
 import { signUp, type SignUpState } from "@/app/auth/actions";
+import { suggestHandleFor } from "@/app/profile/actions";
+import { HandleField, handleReady, useHandleCheck } from "@/components/profile/handle-field";
 import { Sent } from "@/components/site/sign-in-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { EMAIL, MAX_NAME, MIN_PASSWORD } from "@/lib/account-rules";
+import { handleProblem, normalizeHandle } from "@/lib/profile/rules";
 import { cn } from "@/lib/utils";
 
-// Create an account one field at a time (name → email → password), so each
-// screen has one question, one keyboard and one button on a phone. Every
-// value is kept as the user moves back and forth; only the last step submits.
+// Create an account one field at a time (name → username → email →
+// password), so each screen has one question, one keyboard and one button on
+// a phone. The username comes prefilled with a free one made from the name.
+// Every value is kept as the user moves back and forth; only the last step
+// submits.
 
-type Field = "name" | "email" | "password";
-const STEPS: Field[] = ["name", "email", "password"];
+type Field = "name" | "handle" | "email" | "password";
+const STEPS: Field[] = ["name", "handle", "email", "password"];
 
 function check(field: Field, value: string): string | null {
   if (field === "name") {
     const name = value.trim();
     if (!name) return "Enter your name.";
     if (name.length > MAX_NAME) return `Keep it under ${MAX_NAME} characters.`;
+  }
+  if (field === "handle") {
+    const handle = normalizeHandle(value);
+    if (!handle) return "Pick a username.";
+    const problem = handleProblem(handle);
+    if (problem) return problem;
   }
   if (field === "email" && !EMAIL.test(value.trim())) return "Enter a valid email address.";
   if (field === "password" && value.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters.`;
@@ -33,7 +44,11 @@ function check(field: Field, value: string): string | null {
 export function SignUpForm() {
   const [state, action, pending] = useActionState<SignUpState, FormData>(signUp, { status: "idle" });
   const next = useSearchParams().get("next");
-  const [values, setValues] = useState<Record<Field, string>>({ name: "", email: "", password: "" });
+  const [values, setValues] = useState<Record<Field, string>>({ name: "", handle: "", email: "", password: "" });
+  // Once the user types a username, stop replacing it with suggestions.
+  const [handleTouched, setHandleTouched] = useState(false);
+  const [suggesting, setSuggesting] = useState(false);
+  const handleStatus = useHandleCheck(values.handle);
   const [step, setStep] = useState(0);
   // Which way the last move went, for the slide direction.
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -75,9 +90,19 @@ export function SignUpForm() {
     setDirection(to > step ? 1 : -1);
     setClientError(null);
     setStep(to);
+    if (STEPS[to] === "handle" && !handleTouched) {
+      setSuggesting(true);
+      suggestHandleFor(values.name)
+        .then((handle) => {
+          if (handle) setValues((v) => ({ ...v, handle }));
+        })
+        .catch(() => null)
+        .finally(() => setSuggesting(false));
+    }
   };
 
   const update = (value: string) => {
+    if (field === "handle") setHandleTouched(true);
     setValues((v) => ({ ...v, [field]: value }));
     setClientError(null);
     setEditedSinceSubmit(true);
@@ -88,6 +113,9 @@ export function SignUpForm() {
     if (problem) {
       e.preventDefault();
       setClientError(problem);
+    } else if (field === "handle" && !handleReady(handleStatus)) {
+      // Still checking, or taken: the field already says which.
+      e.preventDefault();
     } else if (!last) {
       e.preventDefault();
       go(step + 1);
@@ -97,8 +125,12 @@ export function SignUpForm() {
 
   const copy: Record<Field, { title: string; hint: string }> = {
     name: { title: "What’s your name?", hint: "So we know what to call you." },
+    handle: {
+      title: firstName ? `Nice to meet you, ${firstName}. Pick a username` : "Pick a username",
+      hint: "It’s your profile link, the one you share. You can change it later.",
+    },
     email: {
-      title: firstName ? `Nice to meet you, ${firstName}. What’s your email?` : "What’s your email?",
+      title: "What’s your email?",
       hint: "You’ll use it to sign in.",
     },
     password: { title: "Last step: pick a password", hint: `At least ${MIN_PASSWORD} characters.` },
@@ -122,6 +154,7 @@ export function SignUpForm() {
           real (visually hidden) field so password managers pair it with the
           new password. */}
       {field !== "name" && <input type="hidden" name="name" value={values.name} />}
+      {field !== "handle" && <input type="hidden" name="handle" value={values.handle} />}
       {field === "password" && (
         <input
           type="email"
@@ -167,7 +200,7 @@ export function SignUpForm() {
         )}
       >
         <div className="flex flex-col gap-2">
-          <label htmlFor={field} className="text-display-md text-balance text-ink-strong">
+          <label id={`${field}-label`} htmlFor={field} className="text-display-md text-balance text-ink-strong">
             {copy[field].title}
           </label>
           <p id={`${field}-hint`} className="text-body-md text-body">
@@ -185,6 +218,21 @@ export function SignUpForm() {
             maxLength={MAX_NAME + 20}
             placeholder="Your name"
             className="h-14 bg-muted px-4 text-body-lg md:text-body-lg"
+          />
+        )}
+        {field === "handle" && (
+          <HandleField
+            id="handle"
+            name="handle"
+            value={values.handle}
+            onChange={update}
+            status={suggesting && !values.handle ? { state: "checking" } : handleStatus}
+            serverError={error}
+            autoFocus
+            enterKeyHint="next"
+            aria-labelledby="handle-label"
+            className="h-14"
+            inputClassName="h-full text-body-lg md:text-body-lg"
           />
         )}
         {field === "email" && (
@@ -223,13 +271,17 @@ export function SignUpForm() {
           </InputGroup>
         )}
 
-        {error && (
+        {error && field !== "handle" && (
           <p id={`${field}-error`} role="alert" className="-mt-2 text-body-sm text-destructive">
             {error}
           </p>
         )}
 
-        <Button type="submit" disabled={pending} className="h-12 text-body-md">
+        <Button
+          type="submit"
+          disabled={pending || (field === "handle" && handleStatus.state === "checking")}
+          className="h-12 text-body-md"
+        >
           {pending && <Loader2Icon className="animate-spin" />}
           {last ? "Create account" : "Continue"}
         </Button>

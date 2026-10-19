@@ -3,6 +3,7 @@ import { AccountButton, AccountButtonFallback } from "@/components/site/account-
 import { Logo } from "@/components/site/logo";
 import { TabBar, TabBarFallback, TopNav, TopNavFallback } from "@/components/site/tab-bar";
 import { getCurrentUser } from "@/lib/auth";
+import { getProfile } from "@/lib/profile/store";
 
 // Sticky top bar. In the installed iOS app it runs under the status bar, so
 // it pads by the safe area.
@@ -19,7 +20,10 @@ function Bar({ logoHref, children }: { logoHref: string; children?: React.ReactN
 
 async function Account() {
   const user = await getCurrentUser();
-  return <AccountButton name={user?.name ?? null} email={user?.email ?? null} />;
+  const profile = user ? await getProfile(user.id) : null;
+  return (
+    <AccountButton name={profile?.displayName ?? user?.name ?? user?.email ?? null} avatar={profile?.avatar ?? null} />
+  );
 }
 
 // Inside the app: logo, the nav on tablet and up (phones get <AppTabBar>),
@@ -50,22 +54,4 @@ export function AppTabBar() {
 // Outside the app (landing, sign-in, onboarding): logo and one action.
 export function PlainHeader({ logoHref = "/", children }: { logoHref?: string; children?: React.ReactNode }) {
   return <Bar logoHref={logoHref}>{children}</Bar>;
-}
-
-// TMDB's terms require this attribution (and JustWatch's, for where-to-watch
-// data) somewhere in the app; it lives on the Account page's About section.
-export function TmdbAttribution({ className }: { className?: string }) {
-  return (
-    <p className={className ?? "text-caption text-mute"}>
-      Film data and posters from{" "}
-      <a href="https://www.themoviedb.org/" className="text-primary-deep underline" target="_blank" rel="noreferrer">
-        TMDB
-      </a>
-      ; streaming availability from{" "}
-      <a href="https://www.justwatch.com/" className="text-primary-deep underline" target="_blank" rel="noreferrer">
-        JustWatch
-      </a>
-      . This product uses the TMDB API but is not endorsed or certified by TMDB.
-    </p>
-  );
 }

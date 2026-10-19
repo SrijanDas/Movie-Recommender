@@ -16,14 +16,15 @@ Casual to avid movie watchers who know the films they love but struggle to pick 
 
 ## Core flows
 
-1. **Land and sign up.** A landing page explains the app; everything else needs an account. Sign-up asks one thing per screen: name, then email, then password. Sign-in is email + password, with an email link as a fallback. There is no anonymous mode.
+1. **Land and sign up.** A landing page explains the app; everything else needs an account. Sign-up asks one thing per screen: name, then a username (prefilled with a free one made from the name, checked as you type), then email, then password. Sign-in is email + password, with an email link as a fallback. There is no anonymous mode.
 2. **Pick films you love (onboarding).** The first and only onboarding step: tap favourites from a ready-made grid of well-known films, or search for any film. At least 3 (up to 10) unlock recommendations; My films can add more favourites later, up to 10 in all. Shown once; afterwards favourites are edited on My films.
 3. **Get recommendations.** See a grid of films, each with the reasons it was picked ("Directed by Denis Villeneuve", "Stars Amy Adams"). Tap one for its details: overview, director, cast, trailer, and where to watch it in your country (stream, free, rent or buy). A star on the film page makes it a favourite (or takes it out of them).
 4. **Search.** The Search tab opens its own page: popular films until you type, then results as a poster grid. Tap one to open its page.
 5. **Give feedback or save for later.** Under each recommendation: "Seen it" (then say how it was: "Left midway", "Won’t rewatch", "Okay, but won’t rewatch", "Kinda liked it", "Good movie" or "Peak"), and a bookmark icon to add it to the watchlist. A ⋯ menu on the poster's corner offers "Not interested" (fewer like it) and "Might watch someday" (hides it, taste unchanged).
 6. **Watchlist.** Films saved for later, newest first. Say how one was once you've watched it, and it moves to My films.
 7. **Add more over time.** "My films" is one list of every film you've seen. A search bar at the top finds films in your own list only, and a filter menu beside it in the same row narrows the list to All (the default), one "Seen it" answer (worst to best), or Favourites (after Peak); search works within the chosen filter. Under Favourites, an Add button opens the onboarding picker (popular films plus search), where you tap any number of films and add them all at once; a floating Edit button opens the ranking page. Tap a film to open its page. Favourites are ranked: Edit opens its own page where you drag them into order, move one to any position from its Move menu, or remove it, with a sticky Done button that saves the edit (nothing saves before it; Cancel discards). New favourites join the bottom, so the "added" toast offers "Rank them". Promote any film you've seen to a favourite with one tap; removing a seen film asks first.
-8. **Install it.** The site is an installable PWA; Account (the avatar in the header) offers "Install Next Movie" (or iOS instructions).
+8. **Install it.** The site is an installable PWA; the Profile page (the avatar in the header) offers "Install Next Movie" (or iOS instructions).
+9. **Show off your taste.** Everyone gets a public profile at `/@username`, made to share like a playlist link in a bio: their picture, name, a one-line bio, a few lines about their taste (films seen, how many they called Peak, directors they keep coming back to, top genres) and their favourites ranked, #1 on the stage. Anyone can open it without an account; visitors get one button to make their own. The link previews as a card with the top three posters. The Profile page shows the link with Share (the phone's share sheet, else copy) and Edit: change the picture (upload a photo, wear a favourite's poster, or pick a cinema icon), name, username (saved only once it's checked free) and bio. Older accounts without a username are asked to pick one.
 
 ## How recommendations are chosen
 
@@ -58,10 +59,10 @@ Favourites count most, and their order matters: the favourite at the top of your
 - Watchlist
 - A "My films" page to edit the list: ranked favourites, and everything you've seen
 - Installable PWA
+- Public profile at /@username with picture, bio, taste and ranked favourites, and a share button
 
 **Later**
 - Per-user attribute weights (for example, learning that one user follows directors more than actors)
-- Sharing your favourites
 - AI-written "why you'll like it" blurbs
 
 ## Success signals

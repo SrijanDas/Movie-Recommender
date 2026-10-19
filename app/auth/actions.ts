@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import { EMAIL, MAX_NAME, MIN_PASSWORD } from "@/lib/account-rules";
 import { safeNext } from "@/lib/auth";
 import { homeFor } from "@/lib/onboarding";
+import { handleProblem, normalizeHandle } from "@/lib/profile/rules";
+import { createProfile, isHandleConflict, isHandleTaken, suggestHandle } from "@/lib/profile/store";
 import { createClient } from "@/lib/supabase/server";
 
 export type SignInState = {
@@ -94,7 +96,7 @@ export type SignUpState = {
   // "confirm": account created, confirmation emailed.
   status: "idle" | "confirm" | "error";
   message?: string;
-  field?: "name" | "email" | "password";
+  field?: "name" | "handle" | "email" | "password";
 };
 
 const ACCOUNT_EXISTS: SignUpState = {
@@ -103,13 +105,35 @@ const ACCOUNT_EXISTS: SignUpState = {
   message: "That email already has an account. Sign in instead.",
 };
 
+const HANDLE_TAKEN: SignUpState = {
+  status: "error",
+  field: "handle",
+  message: "That username’s taken. Try another.",
+};
+
+// The handle was free a moment ago; if someone took it since, the account
+// already exists, so fall back to a free one (editable on the profile).
+async function reserveHandle(userId: string, handle: string, name: string) {
+  try {
+    await createProfile(userId, handle, name);
+  } catch (error) {
+    if (!isHandleConflict(error)) throw error;
+    await createProfile(userId, await suggestHandle(name), name);
+  }
+}
+
 // Create an account (the /sign-up steps). The name is display-only and lives
-// in Supabase user_metadata, never used for authorization. New accounts go
+// in Supabase user_metadata, never used for authorization. The handle is
+// reserved in a profiles row as soon as the account exists. New accounts go
 // to onboarding.
 export async function signUp(_prev: SignUpState, formData: FormData): Promise<SignUpState> {
   const name = String(formData.get("name") ?? "").trim().replace(/\s+/g, " ");
   if (!name) return { status: "error", field: "name", message: "Enter your name." };
   if (name.length > MAX_NAME) return { status: "error", field: "name", message: `Keep it under ${MAX_NAME} characters.` };
+  const handle = normalizeHandle(String(formData.get("handle") ?? ""));
+  const handleError = handleProblem(handle);
+  if (handleError) return { status: "error", field: "handle", message: handleError };
+  if (await isHandleTaken(handle)) return HANDLE_TAKEN;
   const email = readEmail(formData);
   if (!email) return { ...INVALID_EMAIL, status: "error" };
   const password = String(formData.get("password") ?? "");
@@ -134,6 +158,7 @@ export async function signUp(_prev: SignUpState, formData: FormData): Promise<Si
   // With email confirmation on, Supabase answers an existing email with a
   // fake user that has no identities instead of an error. Nothing is created.
   if (data.user?.identities?.length === 0) return ACCOUNT_EXISTS;
+  if (data.user) await reserveHandle(data.user.id, handle, name);
   // Otherwise no session means the confirmation email went out.
   if (!data.session) return { status: "confirm", message: email };
 

@@ -64,6 +64,20 @@
       "when": 1792330888783,
       "tag": "0008_friendly_shinko_yamashiro",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792441113790,
+      "tag": "0009_profile_handles",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792441114209,
+      "tag": "0010_avatar_storage_policies",
+      "breakpoints": true
     }
   ]
 }

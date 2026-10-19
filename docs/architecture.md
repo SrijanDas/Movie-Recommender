@@ -12,13 +12,16 @@ app/
   sign-in/            # "/sign-in" — email + password, or an email link (public)
   sign-up/            # "/sign-up" — name → email → password, one field per screen (public)
   offline/            # "/offline" — served by public/sw.js when the network is down (public)
-  onboarding/         # "/onboarding" — favourites picker; shown once, until profiles row exists
+  onboarding/         # "/onboarding" — favourites picker; shown once, until profiles.onboarded_at is set
   (app)/layout.tsx    # app shell: top bar, bottom tab bar (phones), onboarding gate
   (app)/recommendations/  # poster grid with reasons, feedback, film search
   (app)/watchlist/    # films saved for later
   (app)/my-movies/    # favourites + seen films, add more; favourites/ edits favourites (drag, Move menu, remove), saved on Done
   (app)/movie/[id]/   # film details + "Seen it" answer + watchlist toggle
-  (app)/account/      # email, install the app, sign out, TMDB attribution
+  (app)/account/      # Profile: picture, name, @handle, share link; email, install, sign out, TMDB attribution
+  (app)/account/edit/ # edit picture (upload / poster / icon), name, username (checked free), bio
+  u/[handle]/         # public profile, served at /@handle via a rewrite; open to signed-out visitors; share image
+  profile/actions.ts  # checkHandle, suggestHandleFor, saveProfile (see docs/profiles.md)
   auth/confirm/       # route handler: finishes email-link sign-in
   auth/actions.ts     # signInWithEmail, signInWithPassword, signOut
   actions.ts          # movie Server Actions (search, favourites, like, feedback, watchlist, remove)

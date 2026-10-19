@@ -51,11 +51,24 @@ export const userMovies = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.tmdbId] })],
 ).enableRLS();
 
-// One row per user who has finished onboarding (picked their first
-// favourites). The picker is shown until this exists, and never again after.
+// One row per user, created at sign-up (which reserves the handle) or, for
+// older accounts, at onboarding. The public profile lives at /@handle.
 export const profiles = pgTable("profiles", {
   userId: uuid("user_id")
     .primaryKey()
     .references(() => authUsers.id, { onDelete: "cascade" }),
-  onboardedAt: timestamp("onboarded_at", { withTimezone: true }).notNull().defaultNow(),
+  // When the user finished onboarding (picked their first favourites). The
+  // picker is shown while this is null, and never again after. Sign-up
+  // inserts null explicitly; the default keeps older inserts onboarded.
+  onboardedAt: timestamp("onboarded_at", { withTimezone: true }).defaultNow(),
+  // Lowercase, unique; see lib/profile/rules.ts. Null for accounts made
+  // before handles existed, until they claim one.
+  handle: text("handle").unique(),
+  // Public display name. Mirrors user_metadata.full_name, which only the
+  // signed-in user can read.
+  displayName: text("display_name"),
+  bio: text("bio"),
+  // "upload:<storage path>", "poster:<TMDB poster path>" or "icon:<preset>";
+  // null shows initials. See lib/profile/avatar.ts.
+  avatar: text("avatar"),
 }).enableRLS();

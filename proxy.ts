@@ -1,8 +1,11 @@
 import type { NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
-// Signed-out visitors may only see these; everything else needs an account.
+// Signed-out visitors may only see these and public profiles (/@handle,
+// served from /u/handle with its share image); everything else needs an account.
 const PUBLIC = new Set(["/", "/sign-in", "/sign-up", "/offline"]);
+const isPublic = (pathname: string) =>
+  PUBLIC.has(pathname) || pathname.startsWith("/auth/") || pathname.startsWith("/@") || pathname.startsWith("/u/");
 // Signed-in users skip the landing page, sign-in and sign-up.
 const SIGNED_OUT_ONLY = new Set(["/", "/sign-in", "/sign-up"]);
 
@@ -10,7 +13,7 @@ export async function proxy(request: NextRequest) {
   const { response, userId } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 
-  if (!userId && !PUBLIC.has(pathname) && !pathname.startsWith("/auth/")) {
+  if (!userId && !isPublic(pathname)) {
     const url = new URL("/sign-in", request.url);
     url.searchParams.set("next", pathname + search);
     return redirectWithSession(response, url);

@@ -16,6 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Absolute URLs for share images and canonical links (e.g. /@handle).
+  metadataBase: process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL) : undefined,
   title: { default: "Next Movie", template: "%s · Next Movie" },
   description: "Tap a few films you love and we’ll tell you what to watch next, and why.",
   applicationName: "Next Movie",

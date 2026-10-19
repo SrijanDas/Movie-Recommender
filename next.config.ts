@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "image.tmdb.org", port: "", pathname: "/t/p/**", search: "" },
     ],
   },
+  async rewrites() {
+    // Public profiles are shared as /@handle; the route lives at /u/[handle].
+    return [{ source: "/@:handle", destination: "/u/:handle" }];
+  },
   async headers() {
     return [
       {

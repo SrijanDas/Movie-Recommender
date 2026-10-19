@@ -11,7 +11,7 @@ This file is the **hub**: it holds the rules that apply to every task and links 
 - Next.js **16.4.2** (App Router, Turbopack) · React **19.3** · TypeScript 5 (strict)
 - Tailwind CSS **v4**, loaded through `@tailwindcss/turbopack` (no PostCSS config)
 - **UI:** shadcn/ui (`base-nova`, Base UI primitives) themed from [DESIGN.md](DESIGN.md) — dark only
-- **Auth:** Supabase (`@supabase/ssr`) — auth only
+- **Auth:** Supabase (`@supabase/ssr`) — auth, plus Storage for profile pictures
 - **Database:** Supabase Postgres via **Drizzle ORM** — never `supabase.from()`
 - Package manager: **bun** 1.3.2
 - ESLint 9 flat config with `eslint-config-next`
@@ -23,7 +23,7 @@ This file is the **hub**: it holds the rules that apply to every task and links 
 3. **Use bun**, not npm/yarn/pnpm, for installs and scripts.
 4. **Server Components by default.** Add `"use client"` only for interactivity or browser APIs.
 5. **Import via the `@/` alias** (maps to the repo root).
-6. **Supabase is for auth only; all data access goes through Drizzle.** See [docs/auth.md](docs/auth.md) and [docs/database.md](docs/database.md).
+6. **Supabase is for auth (and profile-picture Storage) only; all data access goes through Drizzle.** See [docs/auth.md](docs/auth.md), [docs/database.md](docs/database.md) and [docs/profiles.md](docs/profiles.md).
 7. **Mobile-first, always.** Design every screen for a ~390px phone first, then scale up. Keep flows simple: tap over type, one obvious next step.
 8. **[DESIGN.md](DESIGN.md) is the design system.** All UI follows its tokens and component specs; it wins over existing code.
 9. **Use shadcn/ui components; don't build components from scratch.** Install with `bunx --bun shadcn@latest add <name>` and compose/restyle them. See [docs/styling.md](docs/styling.md).
@@ -51,6 +51,7 @@ bun run db:migrate   # apply migrations
 | [docs/styling.md](docs/styling.md) | writing any UI: DESIGN.md → token mapping, adding shadcn components, type scale, radius |
 | [docs/auth.md](docs/auth.md) | touching sign-in/out, sessions, `proxy.ts`, or checking who the user is |
 | [docs/recommendations.md](docs/recommendations.md) | touching TMDB calls, the recommendation engine, its weights, or the user's movie list |
+| [docs/profiles.md](docs/profiles.md) | touching usernames, public profiles (`/@handle`), avatars and Storage, or sharing |
 | [docs/database.md](docs/database.md) | adding tables, writing queries, or running migrations |
 | [docs/development.md](docs/development.md) | setting up, running, linting, building, or managing dependencies |
 

@@ -6,6 +6,11 @@ export function posterUrl(path: string | null, size: PosterSize = "w342") {
   return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 }
 
+// Wide film stills. w1280 covers a full-width phone or laptop header.
+export function backdropUrl(path: string | null, size: "w780" | "w1280" = "w1280") {
+  return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
+}
+
 // Headshots for cast and crew. w185 stays sharp in a 48px circle on 2x screens.
 export function profileUrl(path: string | null) {
   return path ? `https://image.tmdb.org/t/p/w185${path}` : null;
