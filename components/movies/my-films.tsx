@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { ListedMovie } from "@/lib/movies/types";
+import { isInMyFilms, type ListedMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
@@ -182,12 +182,8 @@ export function MyFilms({
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
   const room = Math.max(0, MAX_FAVORITES - favorites.length);
-  // Newest first. The list holds every film you've watched and answered for,
-  // favourites included (legacy "seen" rows show only under All). "Not
-  // interested" (down), "Might watch someday" and watchlist films weren't seen
-  // and aren't listed here.
-  const unseen = new Set(["down", "someday", "watchlist"]);
-  const seen = movies.filter((m) => !unseen.has(m.signal)).reverse();
+  // Newest first (legacy "seen" rows show only under All).
+  const seen = movies.filter(isInMyFilms).reverse();
   const countOf = (f: Filter) =>
     f === "favorite" ? favorites.length : f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length;
   const shown = filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);

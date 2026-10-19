@@ -4,6 +4,9 @@ import { searchMoviesAction } from "@/app/actions";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { SearchView } from "@/components/movies/search-view";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireUserId } from "@/lib/auth";
+import { getUserMovies } from "@/lib/movies/store";
+import { isInMyFilms } from "@/lib/movies/types";
 import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 
@@ -18,10 +21,15 @@ async function Search({ q }: { q: string }) {
       />
     );
   }
-  const [starters, results] = await Promise.all([getStarterMovies().catch(() => []), searchMoviesAction(q)]);
+  const [starters, results, movies] = await Promise.all([
+    getStarterMovies().catch(() => []),
+    searchMoviesAction(q),
+    requireUserId().then(getUserMovies),
+  ]);
   return (
     <SearchView
       key={q}
+      hide={movies.filter(isInMyFilms).map((m) => m.tmdbId)}
       starters={starters.map((m) => ({
         tmdbId: m.id,
         title: m.title,
