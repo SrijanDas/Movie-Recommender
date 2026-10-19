@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { PlainHeader } from "@/components/site/header";
+import { PlainHeader, SignedOutNav } from "@/components/site/header";
 import { SignInForm } from "@/components/site/sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -8,7 +8,9 @@ export const metadata: Metadata = { title: "Sign in" };
 export default function SignInPage() {
   return (
     <>
-      <PlainHeader />
+      <PlainHeader>
+        <SignedOutNav signIn={false} />
+      </PlainHeader>
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-6 px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] md:pt-16">
         <div className="flex flex-col gap-2">
           <h1 className="text-display-md text-ink-strong md:text-display-lg">Welcome back</h1>

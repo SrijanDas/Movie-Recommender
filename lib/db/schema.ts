@@ -71,4 +71,7 @@ export const profiles = pgTable("profiles", {
   // "upload:<storage path>", "poster:<TMDB poster path>" or "icon:<preset>";
   // null shows initials. See lib/profile/avatar.ts.
   avatar: text("avatar"),
+  // "Seen it" answers (e.g. "quit") whose lists the user keeps off their
+  // public profile.
+  hiddenSeen: text("hidden_seen").array().notNull().default([]),
 }).enableRLS();

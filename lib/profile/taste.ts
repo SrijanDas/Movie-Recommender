@@ -17,6 +17,9 @@ export type Taste = {
   genres: string[];
   // The #1 favourite's wide still, for the profile's backdrop.
   backdropPath: string | null;
+  // Every other film they've seen and answered for, newest first. Grouped
+  // by answer on the profile.
+  seenFilms: UserMovie[];
 };
 
 // Films that say the most about taste: favourites, then Peak, then Good movie.
@@ -59,5 +62,6 @@ export async function getTaste(movies: UserMovie[]): Promise<Taste> {
     directors: top(directors, 2, 2),
     genres: top(genres, 3),
     backdropPath: details[0]?.backdrop_path ?? null,
+    seenFilms: movies.filter((m) => isInMyFilms(m) && m.signal !== "favorite").reverse(),
   };
 }

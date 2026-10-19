@@ -3,6 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { MAX_NAME } from "@/lib/account-rules";
+import { isSeenAnswer } from "@/lib/recommend/types";
 import { getCurrentUser } from "@/lib/auth";
 import {
   AVATAR_BUCKET,
@@ -43,7 +44,8 @@ const fail = (error: string, field?: ProfileField): SaveProfileResult => ({ ok: 
 
 // Save the profile editor. `avatar` is the chosen avatar (see
 // lib/profile/avatar.ts), "" for initials, or "photo" with the cropped
-// image in `photo`.
+// image in `photo`. `hiddenSeen` (repeated) lists the Seen it answers to
+// keep off the public profile.
 export async function saveProfile(formData: FormData): Promise<SaveProfileResult> {
   const user = await getCurrentUser();
   if (!user) return fail("Your session ended. Sign in again.");
@@ -59,6 +61,9 @@ export async function saveProfile(formData: FormData): Promise<SaveProfileResult
 
   const bio = String(formData.get("bio") ?? "").trim().replace(/\s+/g, " ");
   if (bio.length > MAX_BIO) return fail(`Keep it to ${MAX_BIO} characters.`, "bio");
+
+  // The Seen it lists to keep off the public profile.
+  const hiddenSeen = [...new Set(formData.getAll("hiddenSeen").map(String))].filter((s) => isSeenAnswer(s as never));
 
   const current = await getProfile(user.id);
   const previous = parseAvatar(current?.avatar);
@@ -93,7 +98,7 @@ export async function saveProfile(formData: FormData): Promise<SaveProfileResult
   }
 
   try {
-    await updateProfile(user.id, { handle, displayName: name, bio: bio || null, avatar });
+    await updateProfile(user.id, { handle, displayName: name, bio: bio || null, avatar, hiddenSeen });
   } catch (error) {
     if (isHandleConflict(error)) return fail(TAKEN, "handle");
     console.error(error);

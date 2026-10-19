@@ -1,21 +1,6 @@
 import { ImageResponse } from "next/og";
-import {
-  Armchair,
-  Camera,
-  Clapperboard,
-  Drama,
-  Film,
-  Glasses,
-  Popcorn,
-  Projector,
-  Sparkles,
-  Star,
-  Ticket,
-  Video,
-  type IconNode,
-} from "lucide";
 import { getUserMovies } from "@/lib/movies/store";
-import { avatarImageUrl, initialsOf, parseAvatar, type AvatarIcon } from "@/lib/profile/avatar";
+import { avatarImageUrl, initialsOf, parseAvatar } from "@/lib/profile/avatar";
 import { normalizeHandle } from "@/lib/profile/rules";
 import { getProfileByHandle } from "@/lib/profile/store";
 import { favoritesInOrder } from "@/lib/recommend/profile";
@@ -35,42 +20,6 @@ const MUTE = "#8b949e";
 const HAIRLINE = "#3d3a39";
 const PRIMARY = "#00d992";
 
-// The same drawings as components/profile/avatar-icons.ts, as plain SVG
-// nodes: lucide-react's components use React context, which satori can't run.
-const ICON_NODES: Record<AvatarIcon, IconNode> = {
-  popcorn: Popcorn,
-  clapperboard: Clapperboard,
-  film: Film,
-  ticket: Ticket,
-  projector: Projector,
-  video: Video,
-  drama: Drama,
-  armchair: Armchair,
-  glasses: Glasses,
-  camera: Camera,
-  star: Star,
-  sparkles: Sparkles,
-};
-
-function IconSvg({ node, size, color }: { node: IconNode; size: number; color: string }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke={color}
-      strokeWidth={1.5}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {node.map(([Tag, attrs], i) => (
-        <Tag key={i} {...attrs} />
-      ))}
-    </svg>
-  );
-}
-
 export default async function Image({ params }: { params: Promise<{ handle: string }> }) {
   const handle = normalizeHandle(decodeURIComponent((await params).handle));
   const profile = await getProfileByHandle(handle);
@@ -83,8 +32,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
     .map((m) => posterUrl(m.posterPath, "w342"))
     .filter((src): src is string => Boolean(src));
   const avatar = parseAvatar(profile?.avatar);
-  const avatarSrc = avatarImageUrl(avatar);
-  const iconNode = avatar?.kind === "icon" ? ICON_NODES[avatar.icon] : null;
+  const avatarSrc = avatarImageUrl(avatar, "png");
 
   // Back to front: #3 left, #2 right, #1 centre and on top.
   const fan = [
@@ -114,9 +62,7 @@ export default async function Image({ params }: { params: Promise<{ handle: stri
               }}
             >
               {avatarSrc ? (
-                <img src={avatarSrc} width={132} height={132} style={{ objectFit: "cover", objectPosition: "50% 18%" }} alt="" />
-              ) : iconNode ? (
-                <IconSvg node={iconNode} size={64} color={INK} />
+                <img src={avatarSrc} width={132} height={132} style={{ objectFit: "cover" }} alt="" />
               ) : (
                 (initialsOf(name) ?? "")
               )}

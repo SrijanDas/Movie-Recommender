@@ -1,13 +1,16 @@
-import { PencilIcon } from "lucide-react";
+import { ArrowUpDownIcon, ArrowUpRightIcon, PencilIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
-import { ShareProfileButton } from "@/components/profile/share-profile";
+import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
+import { SiteFooter } from "@/components/site/footer";
 import { Logo } from "@/components/site/logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { UserMovie } from "@/lib/movies/types";
+import { profilePath } from "@/lib/profile/rules";
 import type { Profile } from "@/lib/profile/store";
 import type { Taste } from "@/lib/profile/taste";
 import { backdropUrl } from "@/lib/tmdb/images";
@@ -15,25 +18,54 @@ import { cn } from "@/lib/utils";
 
 type Viewer = "owner" | "member" | "visitor";
 
-// Someone's public page at /@handle: who they are, their taste in a few
-// lines, and their favourites ranked. Visitors get one way in at the bottom.
+// The most posters a Seen it shelf shows before "+N more".
+const SHELF_MAX = 20;
+
+// Someone's profile: who they are, their taste in a few lines, their
+// favourites ranked and everything else they've seen, by answer (minus the
+// answers they chose to hide).
+// - "page": the public /@handle page, with its own top bar, a footer, and a
+//   join bar for anyone who isn't the owner.
+// - "app": the owner's Profile tab (/account): just who they are and the
+//   share/edit controls, inside the app shell; `children` (settings) follow.
 export function PublicProfile({
   profile,
   taste,
   viewer,
+  variant = "page",
+  children,
 }: {
-  profile: Profile & { handle: string };
+  profile: Profile;
   taste: Taste;
   viewer: Viewer;
+  variant?: "page" | "app";
+  children?: React.ReactNode;
 }) {
-  const name = profile.displayName ?? profile.handle;
+  const handle = profile.handle;
+  const name = profile.displayName ?? handle ?? "You";
   const backdrop = backdropUrl(taste.backdropPath);
   const [first, ...rest] = taste.favorites;
+  const owner = viewer === "owner";
+  const page = variant === "page";
+  const linked = viewer !== "visitor";
+  const hidden = new Set(profile.hiddenSeen);
+  const seenFilms = taste.seenFilms.filter((m) => !hidden.has(m.signal));
 
   return (
-    <div className={cn("flex min-h-svh flex-col", viewer !== "owner" && "pb-[calc(5.5rem+env(safe-area-inset-bottom))]")}>
+    <div
+      className={cn(
+        "flex flex-col",
+        page && "min-h-svh",
+        page && !owner && "pb-[calc(4.5rem+env(safe-area-inset-bottom))]",
+      )}
+    >
       {/* The #1 favourite's still, fading into the page. */}
-      <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
+      <div
+        className={cn(
+          "relative w-full overflow-hidden bg-canvas",
+          page ? "h-[clamp(13rem,38svh,24rem)]" : "h-[clamp(9rem,26svh,17rem)]",
+        )}
+      >
         {backdrop && (
           <Image
             src={backdrop}
@@ -45,76 +77,202 @@ export function PublicProfile({
             className="object-cover object-[50%_30%] opacity-70 [mask-image:linear-gradient(to_bottom,black_35%,transparent)]"
           />
         )}
-        <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
-          <Logo href={viewer === "visitor" ? "/" : "/recommendations"} />
-        </div>
+        {page && (
+          <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
+            <Logo href={viewer === "visitor" ? "/" : "/recommendations"} />
+          </div>
+        )}
       </div>
 
-      <main className="relative mx-auto -mt-16 flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 sm:-mt-20 sm:px-6">
+      <main
+        className={cn(
+          "relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 sm:px-6",
+          page ? "-mt-16 pb-12 sm:-mt-20" : "-mt-14 pb-4 sm:-mt-16",
+        )}
+      >
         <header className="flex flex-col gap-5">
-          <ProfileAvatar
-            avatar={profile.avatar}
-            name={name}
-            preload
-            className="size-24 ring-4 ring-canvas sm:size-28"
-          />
+          <ProfileAvatar avatar={profile.avatar} name={name} preload className="size-24 ring-4 ring-canvas sm:size-28" />
           <div className="flex flex-col gap-1">
             <h1 className="text-[2rem] leading-[1.1] font-normal tracking-[-0.02em] text-balance text-ink-strong sm:text-display-lg">
               {name}
             </h1>
-            <p className="text-body-md text-mute">@{profile.handle}</p>
+            {handle && <p className="text-body-md text-mute">@{handle}</p>}
           </div>
           {profile.bio && <p className="max-w-[60ch] text-body-lg text-pretty text-ink">{profile.bio}</p>}
-          <TasteLine taste={taste} />
-          {viewer === "owner" && (
-            <div className="flex gap-2">
-              <ShareProfileButton handle={profile.handle} name={name} className="flex-1 sm:flex-none" />
-              <Button
-                variant="outline"
-                className="sm:px-4"
-                render={<Link href="/account/edit" />}
-                nativeButton={false}
-                aria-label="Edit profile"
-              >
-                <PencilIcon />
-                <span className="max-sm:sr-only">Edit profile</span>
-              </Button>
-            </div>
-          )}
+          <TasteLine taste={taste} showPeak={!hidden.has("peak")} />
+          {owner && <OwnerActions handle={handle} name={name} showPublicLink={!page} />}
         </header>
 
-        <section aria-labelledby="favourites" className="flex flex-col gap-5">
-          <h2 id="favourites" className="text-display-sm text-ink-strong">
-            Favourite films, ranked
-          </h2>
-          {first ? (
-            <>
-              <TopFilm movie={first} linked={viewer !== "visitor"} />
-              {rest.length > 0 && (
-                <ol start={2} className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5">
-                  {rest.map((m, i) => (
-                    <RankedFilm key={m.tmdbId} movie={m} rank={i + 2} linked={viewer !== "visitor"} />
-                  ))}
-                </ol>
+        {page && (
+          <section aria-labelledby="favourites" className="flex flex-col gap-5">
+            <SectionHeading id="favourites" title="Favourite films, ranked">
+              {owner && taste.favorites.length > 1 && (
+                <EditLink href="/my-movies/favourites" icon={<ArrowUpDownIcon />}>
+                  Reorder
+                </EditLink>
               )}
-            </>
-          ) : (
-            <p className="text-body-md text-body">No favourites picked yet.</p>
-          )}
-        </section>
+            </SectionHeading>
+            {first ? (
+              <>
+                <TopFilm movie={first} linked={linked} />
+                {rest.length > 0 && (
+                  <ol start={2} className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5">
+                    {rest.map((m, i) => (
+                      <RankedFilm key={m.tmdbId} movie={m} rank={i + 2} linked={linked} />
+                    ))}
+                  </ol>
+                )}
+              </>
+            ) : (
+              <p className="text-body-md text-body">No favourites picked yet.</p>
+            )}
+          </section>
+        )}
+
+        {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} linked={linked} />}
+
+        {children}
       </main>
 
-      {viewer !== "owner" && <JoinBar viewer={viewer} />}
+      {page && <SiteFooter signedIn={viewer !== "visitor"} />}
+      {page && !owner && <JoinBar viewer={viewer === "member" ? "member" : "visitor"} />}
     </div>
+  );
+}
+
+function SectionHeading({ id, title, children }: { id: string; title: string; children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <h2 id={id} className="text-display-sm text-ink-strong">
+        {title}
+      </h2>
+      {children}
+    </div>
+  );
+}
+
+function EditLink({ href, icon, children }: { href: string; icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Button
+      variant="ghost"
+      size="lg"
+      className="-mr-2 shrink-0 px-2 text-body-sm text-body hover:text-ink"
+      render={<Link href={href} />}
+      nativeButton={false}
+    >
+      {icon}
+      {children}
+    </Button>
+  );
+}
+
+// Share and Edit for the owner; in the app, also a way to see the public page.
+// Accounts without a username are asked to pick one first.
+function OwnerActions({ handle, name, showPublicLink }: { handle: string | null; name: string; showPublicLink: boolean }) {
+  if (!handle) {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-canvas-soft p-5">
+        <p className="text-display-sm text-ink-strong">Get your profile link</p>
+        <p className="text-body-sm text-body">
+          Pick a username and this page becomes yours to share. Put it in your bio, send it to friends.
+        </p>
+        <Button className="self-start" render={<Link href="/account/edit" />} nativeButton={false}>
+          Pick a username
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-2">
+      {showPublicLink && <ProfileLink handle={handle} className="sm:max-w-md" />}
+      <div className="flex gap-2">
+        <ShareProfileButton handle={handle} name={name} className="flex-1 sm:flex-none" />
+        <Button
+          variant="outline"
+          className="sm:px-4"
+          render={<Link href="/account/edit" />}
+          nativeButton={false}
+          aria-label="Edit profile"
+        >
+          <PencilIcon />
+          <span className="max-sm:sr-only">Edit profile</span>
+        </Button>
+      </div>
+      {showPublicLink && (
+        <Button
+          variant="ghostGreen"
+          className="-ml-2 self-start px-2 text-body-sm"
+          render={<Link href={profilePath(handle)} />}
+          nativeButton={false}
+        >
+          See it as others do
+          <ArrowUpRightIcon />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// Everything else they've seen, one shelf per answer, best first. The owner
+// edits answers from My films (Manage).
+function SeenShelves({ films, owner, linked }: { films: UserMovie[]; owner: boolean; linked: boolean }) {
+  const shelves = [...ANSWERS]
+    .reverse()
+    .map((answer) => ({ answer, films: films.filter((m) => m.signal === answer.feedback) }))
+    .filter((s) => s.films.length > 0);
+  return (
+    <section aria-labelledby="seen" className="flex flex-col gap-6">
+      <SectionHeading id="seen" title="Seen it">
+        {owner && (
+          <EditLink href="/my-movies" icon={<PencilIcon />}>
+            Manage
+          </EditLink>
+        )}
+      </SectionHeading>
+      {shelves.map(({ answer, films: shelf }) => {
+        const Icon = answer.icon;
+        const more = shelf.length - SHELF_MAX;
+        return (
+          <div key={answer.feedback} className="flex flex-col gap-3">
+            <h3 className="flex items-center gap-2 text-body-md font-semibold text-ink">
+              <Icon className={cn("size-4", answer.feedback === "peak" ? "text-primary-soft" : "text-mute")} aria-hidden />
+              {answer.label}
+              <span className="font-mono text-code font-normal text-mute tabular-nums">{shelf.length}</span>
+            </h3>
+            <ul className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
+              {shelf.slice(0, SHELF_MAX).map((m) => (
+                <SeenFilm key={m.tmdbId} movie={m} linked={linked} />
+              ))}
+              {more > 0 && (
+                <li className="flex w-26 shrink-0 snap-start">
+                  {owner ? (
+                    <Link
+                      href="/my-movies"
+                      className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-body outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+                    >
+                      +{more} more
+                    </Link>
+                  ) : (
+                    <span className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-mute">
+                      +{more} more
+                    </span>
+                  )}
+                </li>
+              )}
+            </ul>
+          </div>
+        );
+      })}
+    </section>
   );
 }
 
 // "142 films seen · 23 called Peak", then who and what they keep coming
 // back to. Only says what the list supports.
-function TasteLine({ taste }: { taste: Taste }) {
+function TasteLine({ taste, showPeak }: { taste: Taste; showPeak: boolean }) {
   const facts = [
     taste.seen > 0 && { n: taste.seen, label: taste.seen === 1 ? "film seen" : "films seen" },
-    taste.peak > 0 && { n: taste.peak, label: "called Peak" },
+    showPeak && taste.peak > 0 && { n: taste.peak, label: "called Peak" },
   ].filter(Boolean) as { n: number; label: string }[];
   const directors = taste.directors.join(" and ");
   if (facts.length === 0 && !directors && taste.genres.length === 0) return null;
@@ -204,6 +362,24 @@ function RankedFilm({ movie, rank, linked }: { movie: UserMovie; rank: number; l
           </span>
         </div>
         <p className="line-clamp-2 text-caption font-medium text-body">{movie.title}</p>
+      </FilmLink>
+    </li>
+  );
+}
+
+// One poster on a Seen it shelf.
+function SeenFilm({ movie, linked }: { movie: UserMovie; linked: boolean }) {
+  return (
+    <li className="w-26 shrink-0 snap-start">
+      <FilmLink movie={movie} linked={linked} className="flex flex-col gap-2">
+        <Poster
+          path={movie.posterPath}
+          title={movie.title}
+          size="w185"
+          sizes="104px"
+          className="transition-[border-color] duration-200 group-hover/film:border-hairline-soft/50"
+        />
+        <span className="line-clamp-2 text-caption font-medium text-body">{movie.title}</span>
       </FilmLink>
     </li>
   );

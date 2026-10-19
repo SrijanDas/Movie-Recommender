@@ -6,25 +6,25 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser, requireUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
 import { getProfile, suggestHandle } from "@/lib/profile/store";
-import { favoritesInOrder } from "@/lib/recommend/profile";
+import { isSeenAnswer } from "@/lib/recommend/types";
 
 export const metadata: Metadata = { title: "Edit profile" };
 
 async function Editor() {
   const userId = await requireUserId();
   const [user, profile, movies] = await Promise.all([getCurrentUser(), getProfile(userId), getUserMovies(userId)]);
+  // Films per "Seen it" list (favourites have their own section).
+  const seenCounts: Record<string, number> = {};
+  for (const m of movies) if (isSeenAnswer(m.signal)) seenCounts[m.signal] = (seenCounts[m.signal] ?? 0) + 1;
   const name = profile?.displayName ?? user?.name ?? "";
-  const posters = favoritesInOrder(movies.filter((m) => m.signal === "favorite"))
-    .filter((m): m is typeof m & { posterPath: string } => Boolean(m.posterPath))
-    .map(({ tmdbId, title, posterPath }) => ({ tmdbId, title, posterPath }));
   // Accounts from before usernames get one suggested from their name.
   const suggested = profile?.handle ? null : await suggestHandle(name || (user?.email?.split("@")[0] ?? ""), userId);
 
   return (
     <ProfileEditor
-      saved={{ name, handle: profile?.handle ?? null, bio: profile?.bio ?? "", avatar: profile?.avatar ?? "" }}
+      saved={{ name, handle: profile?.handle ?? null, bio: profile?.bio ?? "", avatar: profile?.avatar ?? "", hiddenSeen: profile?.hiddenSeen ?? [] }}
       suggestedHandle={suggested}
-      posters={posters}
+      seenCounts={seenCounts}
     />
   );
 }

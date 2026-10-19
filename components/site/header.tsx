@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { AccountButton, AccountButtonFallback } from "@/components/site/account-button";
 import { Logo } from "@/components/site/logo";
 import { TabBar, TabBarFallback, TopNav, TopNavFallback } from "@/components/site/tab-bar";
+import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfile } from "@/lib/profile/store";
 
@@ -54,4 +56,19 @@ export function AppTabBar() {
 // Outside the app (landing, sign-in, onboarding): logo and one action.
 export function PlainHeader({ logoHref = "/", children }: { logoHref?: string; children?: React.ReactNode }) {
   return <Bar logoHref={logoHref}>{children}</Bar>;
+}
+
+const NAV = "h-9 text-body-sm text-body";
+
+// PlainHeader's link on signed-out pages: Sign in, where the page isn't it.
+// Credits lives in the footer.
+export function SignedOutNav({ signIn = true }: { signIn?: boolean }) {
+  if (!signIn) return null;
+  return (
+    <nav aria-label="Main" className="flex items-center gap-1">
+      <Button variant="ghost" size="sm" className={NAV} render={<Link href="/sign-in" />} nativeButton={false}>
+        Sign in
+      </Button>
+    </nav>
+  );
 }

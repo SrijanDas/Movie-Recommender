@@ -6,34 +6,37 @@ import { useRouter } from "@bprogress/next/app";
 import { useEffect, useLayoutEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { saveProfile, type ProfileField } from "@/app/profile/actions";
-import { AvatarPicker, type AvatarChoice, type PosterOption } from "@/components/profile/avatar-picker";
+import { ANSWERS } from "@/components/movies/feedback";
+import { AvatarPicker, type AvatarChoice } from "@/components/profile/avatar-picker";
 import { HandleField, handleReady, useHandleCheck } from "@/components/profile/handle-field";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { MAX_NAME } from "@/lib/account-rules";
 import { MAX_BIO, normalizeHandle } from "@/lib/profile/rules";
 import { cn } from "@/lib/utils";
 
-type Saved = { name: string; handle: string | null; bio: string; avatar: string };
-type Draft = { name: string; handle: string; bio: string; avatar: AvatarChoice | null };
+type Saved = { name: string; handle: string | null; bio: string; avatar: string; hiddenSeen: string[] };
+type Draft = { name: string; handle: string; bio: string; avatar: AvatarChoice | null; hiddenSeen: string[] };
 
 // Edit name, username, bio and picture. Nothing saves until Save, and the
 // username must be checked free first.
 export function ProfileEditor({
   saved,
   suggestedHandle,
-  posters,
+  seenCounts,
 }: {
   saved: Saved;
   // Prefills the username for accounts that don't have one yet.
   suggestedHandle: string | null;
-  posters: PosterOption[];
+  // How many films each "Seen it" list holds, by answer.
+  seenCounts: Record<string, number>;
 }) {
   const router = useRouter();
-  const initial: Draft = { name: saved.name, handle: saved.handle ?? suggestedHandle ?? "", bio: saved.bio, avatar: null };
+  const initial: Draft = { name: saved.name, handle: saved.handle ?? suggestedHandle ?? "", bio: saved.bio, avatar: null, hiddenSeen: saved.hiddenSeen };
   const [draft, setDraft] = useState<Draft | null>(null);
   const d = draft ?? initial;
   const set = (patch: Partial<Draft>) => setDraft({ ...d, ...patch });
@@ -55,6 +58,7 @@ export function ProfileEditor({
     d.name.trim() !== saved.name ||
     normalizeHandle(d.handle) !== (saved.handle ?? "") ||
     d.bio.trim() !== saved.bio ||
+    [...d.hiddenSeen].sort().join() !== [...saved.hiddenSeen].sort().join() ||
     (d.avatar !== null && (d.avatar.kind === "photo" || d.avatar.value !== saved.avatar));
   const canSave = dirty && d.name.trim() !== "" && handleReady(handleStatus) && !saving;
 
@@ -65,6 +69,7 @@ export function ProfileEditor({
     form.set("name", d.name);
     form.set("handle", d.handle);
     form.set("bio", d.bio);
+    for (const answer of d.hiddenSeen) form.append("hiddenSeen", answer);
     if (d.avatar?.kind === "photo") {
       form.set("avatar", "photo");
       form.set("photo", new File([d.avatar.blob], "avatar.jpg", { type: "image/jpeg" }));
@@ -178,6 +183,12 @@ export function ProfileEditor({
         </Field>
       </div>
 
+      <SeenLists
+        hidden={d.hiddenSeen}
+        counts={seenCounts}
+        onChange={(hiddenSeen) => set({ hiddenSeen })}
+      />
+
       {serverError && !serverError.field && (
         <p role="alert" className="text-body-sm text-destructive">
           {serverError.message}
@@ -210,7 +221,6 @@ export function ProfileEditor({
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         current={d.avatar?.kind === "photo" ? "photo" : avatarValue}
-        posters={posters}
         onChoose={(avatar) => set({ avatar })}
       />
     </form>
@@ -245,5 +255,50 @@ function Field({
         </p>
       )}
     </div>
+  );
+}
+
+// Which "Seen it" lists show on the public profile, best answer first. All
+// show by default; a list switched off stays visible only on My films.
+function SeenLists({
+  hidden,
+  counts,
+  onChange,
+}: {
+  hidden: string[];
+  counts: Record<string, number>;
+  onChange: (hidden: string[]) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <legend className="text-body-sm font-semibold text-ink">Seen it on your profile</legend>
+        <p className="text-body-sm text-mute">Choose which lists people see on your page.</p>
+      </div>
+      <ul className="divide-y divide-border rounded-xl border border-border">
+        {[...ANSWERS].reverse().map(({ feedback, label, icon: Icon }) => {
+          const shown = !hidden.includes(feedback);
+          const count = counts[feedback] ?? 0;
+          const id = `seen-${feedback}`;
+          return (
+            <li key={feedback}>
+              <label htmlFor={id} className="flex min-h-13 cursor-pointer items-center gap-3 px-4 py-2">
+                <Icon className={cn("size-4 shrink-0", feedback === "peak" ? "text-primary-soft" : "text-mute")} aria-hidden />
+                <span className={cn("min-w-0 flex-1 text-body-md", shown ? "text-ink" : "text-mute")}>{label}</span>
+                <span className="font-mono text-code text-mute tabular-nums">{count}</span>
+                <Switch
+                  id={id}
+                  checked={shown}
+                  onCheckedChange={(on) =>
+                    onChange(on ? hidden.filter((h) => h !== feedback) : [...hidden, feedback])
+                  }
+                  aria-label={`Show ${label} on your profile`}
+                />
+              </label>
+            </li>
+          );
+        })}
+      </ul>
+    </fieldset>
   );
 }

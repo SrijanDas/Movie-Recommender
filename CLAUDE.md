@@ -28,7 +28,8 @@ This file is the **hub**: it holds the rules that apply to every task and links 
 8. **[DESIGN.md](DESIGN.md) is the design system.** All UI follows its tokens and component specs; it wins over existing code.
 9. **Use shadcn/ui components; don't build components from scratch.** Install with `bunx --bun shadcn@latest add <name>` and compose/restyle them. See [docs/styling.md](docs/styling.md).
 10. **Always use the `/impeccable` skill for UI generation** — new screens, components, and visual changes.
-11. Run `bun run lint` and `bun run build` before declaring work done — there is no test suite yet.
+11. **Never name third-party services in the app UI** (TMDB, JustWatch, Supabase, etc.): no "data from…", "powered by…" or credit lines on any screen. Attribution that a service's terms require goes on the [/credits](app/credits/page.tsx) page only, linked from Account and the public footer. Add new services there, nowhere else.
+12. Run `bun run lint` and `bun run build` before declaring work done — there is no test suite yet.
 
 ## Commands
 

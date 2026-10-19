@@ -18,7 +18,7 @@ How a user's films become recommendations. The product rules behind this are in 
 - **Caching:** `getMovie`/`getRelated`/`getStarterMovies` use `cacheLife("weeks")`; `searchMovies`/`discover` use `cacheLife("days")`. `getMovie` returns `null` for unknown ids.
 - **Starter grid:** `getStarterMovies()` returns TMDB's 40 most-voted films (`discover`, `sort_by=vote_count.desc`), i.e. the films most people have seen. Onboarding and the landing page's poster wall use it, both at request time (after cookies / `connection()`), so the build never calls TMDB.
 - **Images:** posters load straight from TMDB's CDN with `unoptimized` (they're pre-sized), falling back to the title if an image fails.
-- **Terms:** the free API is non-commercial and requires visible attribution. By product decision the app shows no TMDB or JustWatch credit anywhere; revisit this before any public or commercial launch.
+- **Terms:** the free API is non-commercial and requires visible attribution. It lives on `/credits` (`app/credits/page.tsx`, public, linked from Account and the footer on public pages) together with the JustWatch credit, and nowhere else (CLAUDE.md rule 11).
 
 ## Engine: `lib/recommend/`
 

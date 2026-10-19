@@ -14,6 +14,8 @@ export type Profile = {
   displayName: string | null;
   bio: string | null;
   avatar: string | null;
+  // "Seen it" answers whose lists stay off the public profile.
+  hiddenSeen: string[];
 };
 
 const columns = {
@@ -22,6 +24,7 @@ const columns = {
   displayName: profiles.displayName,
   bio: profiles.bio,
   avatar: profiles.avatar,
+  hiddenSeen: profiles.hiddenSeen,
 };
 
 // Cached per request, so the header and the page can both ask.
@@ -76,7 +79,7 @@ export async function createProfile(userId: string, handle: string, displayName:
 
 export async function updateProfile(
   userId: string,
-  fields: Pick<Profile, "handle" | "displayName" | "bio" | "avatar">,
+  fields: Pick<Profile, "handle" | "displayName" | "bio" | "avatar" | "hiddenSeen">,
 ) {
   await db
     .insert(profiles)

@@ -1,21 +1,27 @@
 "use client";
 
-import { CheckIcon, ImageUpIcon, Loader2Icon } from "lucide-react";
-import Image from "next/image";
+import { CheckIcon, DicesIcon, ImageUpIcon, Loader2Icon, PlusIcon } from "lucide-react";
 import { useRef, useState } from "react";
-import { AVATAR_ICON_COMPONENTS } from "@/components/profile/avatar-icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AVATAR_ICONS, AVATAR_PX, MAX_AVATAR_BYTES, serializeAvatar } from "@/lib/profile/avatar";
-import { posterUrl } from "@/lib/tmdb/images";
+import {
+  AVATAR_PX,
+  MAX_AVATAR_BYTES,
+  generatedAvatarUrl,
+  randomSeed,
+  serializeAvatar,
+} from "@/lib/profile/avatar";
 import { cn } from "@/lib/utils";
-
-export type PosterOption = { tmdbId: number; title: string; posterPath: string };
 
 export type AvatarChoice =
   | { kind: "photo"; blob: Blob; previewUrl: string }
-  // A stored avatar string (poster or icon), or "" for initials.
+  // A stored avatar string (a generated one), or "" for initials.
   | { kind: "value"; value: string };
+
+// Three rows to start; "More avatars" adds two rows at a time.
+const SUGGESTIONS = 15;
+const MORE = 10;
+const MAX_SUGGESTIONS = 60;
 
 // Center-crop to a square and re-encode as JPEG, so uploads are small and
 // every photo renders the same everywhere (including the share image).
@@ -43,26 +49,25 @@ async function squarePhoto(file: File): Promise<Blob> {
   return blob;
 }
 
-// Choose a picture: upload a photo, wear a favourite's poster, or pick a
-// cinema icon. Choosing closes the sheet; nothing saves until Save.
+// Choose a picture: upload a photo, take one of the generated avatars (more on
+// request), or roll a random one. Choosing closes the sheet; nothing saves
+// until Save.
 export function AvatarPicker({
   open,
   onOpenChange,
   current,
-  posters,
   onChoose,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   // The stored avatar string currently shown, to mark it selected.
   current: string;
-  posters: PosterOption[];
   onChoose: (choice: AvatarChoice) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+  const [seeds, setSeeds] = useState(() => Array.from({ length: SUGGESTIONS }, randomSeed));
   const choose = (choice: AvatarChoice) => {
     setError(null);
     onChoose(choice);
@@ -86,10 +91,10 @@ export function AvatarPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85svh] flex-col gap-6 overflow-x-hidden overflow-y-auto p-5 sm:max-w-md">
+      <DialogContent className="flex flex-col gap-6 p-5 sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-display-sm">Choose your picture</DialogTitle>
-          <DialogDescription>A photo, a poster you love, or an icon.</DialogDescription>
+          <DialogDescription>Upload a photo, or pick an avatar.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-2">
@@ -113,41 +118,54 @@ export function AvatarPicker({
           )}
         </div>
 
-        {posters.length > 0 && (
-          <fieldset className="flex flex-col gap-3">
-            <legend className="mb-3 text-body-sm font-semibold text-ink">From your favourites</legend>
-            <div className="-mx-5 flex snap-x scroll-px-5 gap-3 overflow-x-auto px-5 py-1 [scrollbar-width:none]">
-              {posters.map((p) => {
-                const value = serializeAvatar({ kind: "poster", path: p.posterPath })!;
-                return (
-                  <Option key={p.tmdbId} label={p.title} selected={current === value} onClick={() => choose({ kind: "value", value })}>
-                    <Image
-                      src={posterUrl(p.posterPath, "w185")!}
-                      alt=""
-                      fill
-                      unoptimized
-                      sizes="64px"
-                      className="object-cover object-[50%_18%]"
-                    />
-                  </Option>
-                );
-              })}
-            </div>
-          </fieldset>
-        )}
-
-        <fieldset className="flex flex-col gap-3">
-          <legend className="mb-3 text-body-sm font-semibold text-ink">Icons</legend>
-          <div className="grid grid-cols-4 justify-items-center gap-3 py-1 sm:grid-cols-6">
-            {AVATAR_ICONS.map((icon) => {
-              const Icon = AVATAR_ICON_COMPONENTS[icon];
-              const value = serializeAvatar({ kind: "icon", icon })!;
+        <fieldset className="flex flex-col">
+          <legend className="mb-3 text-body-sm font-semibold text-ink">Or pick an avatar</legend>
+          <div className="-m-1 grid max-h-[min(42svh,22rem)] grid-cols-5 gap-2 overflow-y-auto overscroll-contain p-1">
+            {seeds.map((seed, i) => {
+              const value = serializeAvatar({ kind: "gen", seed })!;
+              const selected = current === value;
               return (
-                <Option key={icon} label={icon} selected={current === value} onClick={() => choose({ kind: "value", value })}>
-                  <Icon className="size-7 text-ink" strokeWidth={1.5} aria-hidden />
-                </Option>
+                <button
+                  key={seed}
+                  type="button"
+                  aria-label={`Avatar ${i + 1}`}
+                  aria-pressed={selected}
+                  onClick={() => choose({ kind: "value", value })}
+                  className={cn(
+                    "relative aspect-square w-full overflow-hidden rounded-full border border-border bg-canvas-soft outline-none transition-[box-shadow,transform] duration-150 ease-out hover:scale-[1.04] focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95",
+                    selected && "ring-2 ring-primary ring-offset-2 ring-offset-popover",
+                  )}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- remote SVG, already sized */}
+                  <img src={generatedAvatarUrl(seed)} alt="" className="size-full" />
+                  {selected && (
+                    <span className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      <CheckIcon className="size-3" strokeWidth={3} aria-hidden />
+                    </span>
+                  )}
+                </button>
               );
             })}
+          </div>
+          <div className="mt-3 flex gap-2">
+            {seeds.length < MAX_SUGGESTIONS && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setSeeds((s) => [...s, ...Array.from({ length: MORE }, randomSeed)])}
+              >
+                <PlusIcon />
+                More avatars
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => choose({ kind: "value", value: serializeAvatar({ kind: "gen", seed: randomSeed() })! })}
+            >
+              <DicesIcon />
+              Random
+            </Button>
           </div>
         </fieldset>
 
@@ -158,37 +176,5 @@ export function AvatarPicker({
         )}
       </DialogContent>
     </Dialog>
-  );
-}
-
-function Option({
-  label,
-  selected,
-  onClick,
-  children,
-}: {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={selected}
-      onClick={onClick}
-      className={cn(
-        "relative flex size-16 shrink-0 snap-start items-center justify-center overflow-hidden rounded-full border border-border bg-canvas-soft outline-none transition-[box-shadow,border-color] duration-150 hover:border-hairline-soft/50 focus-visible:ring-3 focus-visible:ring-ring/50",
-        selected && "border-primary ring-2 ring-primary ring-offset-2 ring-offset-popover",
-      )}
-    >
-      {children}
-      {selected && (
-        <span className="absolute right-0.5 bottom-0.5 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-          <CheckIcon className="size-3" strokeWidth={3} aria-hidden />
-        </span>
-      )}
-    </button>
   );
 }

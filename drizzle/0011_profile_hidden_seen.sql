@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" ADD COLUMN "hidden_seen" text[] DEFAULT '{}' NOT NULL;

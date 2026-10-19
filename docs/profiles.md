@@ -2,19 +2,21 @@
 
 ← Back to [CLAUDE.md](../CLAUDE.md)
 
-Everyone has a public profile at `/@handle`: picture, name, bio, a few lines about their taste, and their ranked favourites. It's the link people put in their bio.
+Everyone has a public profile at `/@handle`: picture, name, bio, a few lines about their taste, their ranked favourites, and everything else they've seen, shelved by answer (Peak first, Left midway last). It's the link people put in their bio. When the owner views their own page they get edit controls (Share, Edit profile, Reorder favourites, a ⋯ menu per seen film to change its answer or remove it). The Profile tab (`/account`) renders the same component with `variant="app"`: only the header (picture, name, bio, taste line, link, Share/Edit), then the account settings, with no films.
+
+The owner picks which Seen it lists are public in Edit profile ("Seen it on your profile"). Hidden answers are stored in `profiles.hidden_seen` (a text array, migration 0011) and are left out of `/@handle` for everyone; hiding Peak also drops the "called Peak" count.
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
 | `lib/profile/rules.ts` | Handle rules (3–20 chars, `a-z 0-9 _ .`, no leading/trailing/double dots, reserved words), `handleCandidates(name)`, `MAX_BIO`, `profilePath()`. Pure. |
-| `lib/profile/avatar.ts` | The `profiles.avatar` string format (`upload:` / `poster:` / `icon:` / null), `avatarImageUrl()`, the icon list. Pure. |
+| `lib/profile/avatar.ts` | The `profiles.avatar` string format (`upload:` / `gen:` / null), `avatarImageUrl()`, `generatedAvatarUrl()`, `randomSeed()`. Pure. |
 | `lib/profile/store.ts` | Drizzle queries: `getProfile`, `getProfileByHandle` (public), `isHandleTaken`, `suggestHandle`, `createProfile` (sign-up), `updateProfile`. |
-| `lib/profile/taste.ts` | `getTaste(movies)`: ranked favourites, films seen, Peak count, directors (≥2 loved films) and top genres, #1's backdrop. |
+| `lib/profile/taste.ts` | `getTaste(movies)`: ranked favourites, films seen, Peak count, directors (≥2 loved films), top genres, #1's backdrop, and the other seen films (newest first). |
 | `app/profile/actions.ts` | `checkHandle` (live availability, used signed out on /sign-up), `suggestHandleFor`, `saveProfile` (editor, incl. photo upload). |
 | `app/u/[handle]/` | Public page, its not-found state, and `opengraph-image.tsx` (the link-preview card). |
-| `components/profile/` | `HandleField` + `useHandleCheck`, `ProfileAvatar`, `AvatarPicker`, `ProfileEditor`, `ShareProfileButton`/`ProfileLink`, `PublicProfile`. |
+| `components/profile/` | `HandleField` + `useHandleCheck`, `ProfileAvatar`, `AvatarPicker`, `ProfileEditor`, `ShareProfileButton`/`ProfileLink`, `PublicProfile` (page + app variants). The public page ends with `SiteFooter` (`signedIn` swaps the links). |
 
 ## Rules
 
@@ -30,7 +32,7 @@ This is the one place Supabase is used beyond auth. Photos go to the public **`f
 - The browser center-crops to 512px and re-encodes as JPEG (`AvatarPicker`), so uploads are small and render in the share image (satori can't read WebP reliably).
 - `saveProfile` uploads with the **user's own session** (`createClient()` from `lib/supabase/server.ts`). Policies in `drizzle/0010_avatar_storage_policies.sql` let `authenticated` users read/insert/delete only inside their own `avatars/<uid>/` folder; reads of the public URL need no policy.
 - Every upload gets a new file name (no cache busting needed); the previous upload is removed after the profile saves.
-- Preset alternatives need no upload: `poster:` uses a favourite's TMDB poster, `icon:` one of `AVATAR_ICONS` (drawn by `components/profile/avatar-icons.ts`; the share image uses the vanilla `lucide` package's icon nodes because lucide-react components can't render in satori).
+- The alternative needs no upload: `gen:<seed>` is a generated avatar from [DiceBear](https://www.dicebear.com/)'s **Lorelei** style (CC0, so no attribution needed), served from `api.dicebear.com` as SVG in the app and PNG in the share image. The picker shows 15 random seeds ("More avatars" adds 10 at a time, up to 60, in a scrolling grid) and a Random button that sets a fresh one straight away.
 
 ## Share image
 
