@@ -21,13 +21,14 @@ export function PublicList({
   profile,
   list,
   films,
-  backdrop,
+  backdrops,
   viewer,
 }: {
   profile: Profile & { handle: string };
   list: SharedList;
   films: ListFilm[];
-  backdrop: string | null;
+  // Each film's still (TMDB backdrop path), in list order.
+  backdrops: string[];
   viewer: Viewer;
 }) {
   const owner = viewer === "owner";
@@ -36,7 +37,7 @@ export function PublicList({
   return (
     <div className="flex min-h-svh flex-col">
       {!owner && <ScrollHeader viewer={viewer === "member" ? "member" : "visitor"} watchId="list-title" />}
-      <PageBackdrop backdrop={backdrop} visitor={viewer === "visitor"} />
+      <PageBackdrop paths={backdrops} visitor={viewer === "visitor"} />
 
       <main className="relative mx-auto -mt-16 flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 pb-12 sm:-mt-20 sm:px-6">
         <header className="flex flex-col gap-5">

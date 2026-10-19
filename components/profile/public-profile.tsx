@@ -1,7 +1,7 @@
 import { ArrowUpDownIcon, ArrowUpRightIcon, PencilIcon } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { ListsShelf } from "@/components/lists/lists-shelf";
+import { BannerSlideshow } from "@/components/movies/banner-slideshow";
 import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
@@ -17,7 +17,6 @@ import type { UserMovie } from "@/lib/movies/types";
 import { profilePath } from "@/lib/profile/rules";
 import type { Profile } from "@/lib/profile/store";
 import type { Taste } from "@/lib/profile/taste";
-import { backdropUrl } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
 
 type Viewer = "owner" | "member" | "visitor";
@@ -51,7 +50,6 @@ export function PublicProfile({
 }) {
   const handle = profile.handle;
   const name = profile.displayName ?? handle ?? "You";
-  const backdrop = backdropUrl(taste.backdropPath);
   const [first, ...rest] = taste.favorites;
   const owner = viewer === "owner";
   const page = variant === "page";
@@ -63,7 +61,7 @@ export function PublicProfile({
     <div className={cn("flex flex-col", page && "min-h-svh")}>
       {page && !owner && <ScrollHeader viewer={viewer === "member" ? "member" : "visitor"} watchId="profile-name" />}
       {/* The #1 favourite's still, fading into the page. */}
-      {page && <PageBackdrop backdrop={backdrop} visitor={viewer === "visitor"} />}
+      {page && <PageBackdrop paths={taste.backdropPath ? [taste.backdropPath] : []} visitor={viewer === "visitor"} />}
 
       <main
         className={cn(
@@ -132,21 +130,12 @@ export function PublicProfile({
   );
 }
 
-// A public page's top: a film still fading into the page, under the logo.
-export function PageBackdrop({ backdrop, visitor }: { backdrop: string | null; visitor: boolean }) {
+// A public page's top: film stills (TMDB backdrop paths) fading into the
+// page, under the logo. More than one crossfades in turn.
+export function PageBackdrop({ paths, visitor }: { paths: string[]; visitor: boolean }) {
   return (
     <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
-      {backdrop && (
-        <Image
-          src={backdrop}
-          alt=""
-          fill
-          preload
-          unoptimized
-          sizes="100vw"
-          className="object-cover object-[50%_30%] opacity-70 [mask-image:linear-gradient(to_bottom,black_35%,transparent)]"
-        />
-      )}
+      {paths.length > 0 && <BannerSlideshow paths={paths} className="[mask-image:linear-gradient(to_bottom,black_35%,transparent)]" />}
       <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
         <Logo href={visitor ? "/" : "/recommendations"} />
       </div>

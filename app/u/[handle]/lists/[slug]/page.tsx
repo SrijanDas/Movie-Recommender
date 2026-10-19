@@ -7,7 +7,6 @@ import { getCurrentUser } from "@/lib/auth";
 import { loadSharedList } from "@/lib/lists/public";
 import { listPath } from "@/lib/lists/rules";
 import { getMovie } from "@/lib/tmdb/client";
-import { backdropUrl } from "@/lib/tmdb/images";
 
 // A shared list. Served at /@handle/lists/slug (next.config.ts rewrites it
 // here) and open to signed-out visitors (proxy.ts), like the profile.
@@ -41,16 +40,19 @@ async function List({ params }: { params: Params }) {
   const shared = await loadSharedList(handle, slug);
   if (!shared) notFound();
   const { profile, list, films } = shared;
-  const [viewer, first] = await Promise.all([
+  // Every film's still, in list order, for the backdrop slideshow. Details
+  // are cached for weeks and most were fetched when the film was saved.
+  const [viewer, details] = await Promise.all([
     getCurrentUser(),
-    films[0] ? getMovie(films[0].tmdbId).catch(() => null) : null,
+    Promise.all(films.map((f) => getMovie(f.tmdbId).catch(() => null))),
   ]);
+  const backdrops = details.map((d) => d?.backdrop_path).filter((p): p is string => Boolean(p));
   return (
     <PublicList
       profile={profile}
       list={list}
       films={films}
-      backdrop={backdropUrl(first?.backdrop_path ?? null)}
+      backdrops={backdrops}
       viewer={!viewer ? "visitor" : viewer.id === profile.userId ? "owner" : "member"}
     />
   );
