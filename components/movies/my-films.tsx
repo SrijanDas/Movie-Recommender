@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2Icon, PencilIcon, StarIcon, Trash2Icon } from "lucide-react";
+import { ChevronDownIcon, ListIcon, Loader2Icon, PencilIcon, StarIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
@@ -15,6 +15,7 @@ import {
   type Feedback,
 } from "@/components/movies/movie-actions";
 import { FilmRow, rankClass } from "@/components/movies/film-row";
+import { SearchField } from "@/components/movies/search-field";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,7 +26,13 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { isInMyFilms, type ListedMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
@@ -82,19 +89,22 @@ function ConfirmRemoveButton({ movie }: { movie: ListedMovie }) {
 
 // Favourites, loved most first. Tap a row to open the film; ranking happens
 // on its own page (/my-movies/favourites).
-function FavoritesList({ favorites }: { favorites: ListedMovie[] }) {
+// While searching, `matches` narrows the list; each film keeps its real rank.
+function FavoritesList({ favorites, matches }: { favorites: ListedMovie[]; matches: (m: ListedMovie) => boolean }) {
   if (favorites.length === 0) {
     return <p className="text-body-sm text-mute">Nothing yet. Tap Add to pick the films you love most.</p>;
   }
+  const ranked = favorites.map((m, i) => ({ movie: m, rank: i + 1 })).filter(({ movie }) => matches(movie));
+  if (ranked.length === 0) return null;
   return (
     <ol aria-label="Favourites, loved most first" className="divide-y divide-border border-y border-border">
-      {favorites.map((m, i) => (
+      {ranked.map(({ movie, rank }) => (
         <FilmRow
-          key={m.tmdbId}
-          movie={m}
+          key={movie.tmdbId}
+          movie={movie}
           lead={
             <span className={rankClass} aria-hidden>
-              {i + 1}
+              {rank}
             </span>
           }
         />
@@ -161,10 +171,17 @@ const filmsAdded = (n: number) => (n === 1 ? "Added 1 film" : `Added ${n} films`
 // All first (the default), then each answer worst to best, then Favourites
 // after Peak.
 const FILTERS = [
-  { feedback: "all" as const, short: "All", icon: null },
+  { feedback: "all" as const, short: "All", icon: ListIcon },
   ...ANSWERS,
   { feedback: "favorite" as const, short: "Favourites", icon: StarIcon },
 ];
+
+// Case- and accent-insensitive, so "amelie" finds "Amélie".
+const fold = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase();
 
 export function MyFilms({
   movies,
@@ -178,6 +195,10 @@ export function MyFilms({
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>(initialFilter);
+  // Searches only this list, within the current filter.
+  const [query, setQuery] = useState("");
+  const needle = fold(query.trim());
+  const matches = (m: ListedMovie) => !needle || fold(m.title).includes(needle);
 
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
@@ -186,8 +207,12 @@ export function MyFilms({
   const seen = movies.filter(isInMyFilms).reverse();
   const countOf = (f: Filter) =>
     f === "favorite" ? favorites.length : f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length;
-  const shown = filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
+  const inFilter = filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
+  const shown = inFilter.filter(matches);
   const onFavorites = filter === "favorite";
+  const current = FILTERS.find((f) => f.feedback === filter) ?? FILTERS[0];
+  const CurrentIcon = current.icon;
+  const noMatch = <p className="text-body-sm text-mute">No films here match “{query.trim()}”.</p>;
 
   return (
     <div className={cn("flex flex-col gap-5 md:gap-6", onFavorites && favorites.length > 0 && "pb-16")}>
@@ -205,25 +230,42 @@ export function MyFilms({
       </div>
 
       <div className="flex flex-col gap-4">
-        <ToggleGroup
-          aria-label="Show"
-          value={[filter]}
-          onValueChange={(next) => setFilter((next[0] as Filter | undefined) ?? filter)}
-          className="w-full flex-wrap gap-1.5"
-        >
-          {FILTERS.map(({ feedback, short, icon: Icon }) => (
-            <ToggleGroupItem
-              key={feedback}
-              value={feedback}
-              variant="outline"
-              className="h-9 gap-1.5 rounded-full border-border px-3 text-body-sm text-body aria-pressed:border-primary-soft aria-pressed:bg-transparent aria-pressed:text-ink"
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <SearchField value={query} onChange={setQuery} placeholder="Search my films" />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className="h-11 max-w-[45%] shrink-0 gap-1.5 rounded-lg border-input bg-muted px-3 text-body-sm text-ink"
+                  aria-label={`Show: ${current.short}`}
+                />
+              }
             >
-              {Icon && <Icon />}
-              {short}
-              <span className="font-mono text-code text-mute">{countOf(feedback)}</span>
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
+              <CurrentIcon className={cn(filter === "favorite" && "text-primary-soft")} />
+              <span className="truncate">{current.short}</span>
+              <ChevronDownIcon className="text-mute" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-auto min-w-56 p-1.5">
+              <DropdownMenuRadioGroup value={filter} onValueChange={(next: Filter) => setFilter(next)}>
+                {FILTERS.map(({ feedback, short, icon: Icon }) => (
+                  <DropdownMenuRadioItem
+                    key={feedback}
+                    value={feedback}
+                    closeOnClick
+                    className="h-10 gap-2.5 pr-9 pl-2 text-body-sm text-ink"
+                  >
+                    <Icon className={cn(feedback === "favorite" && "text-primary-soft")} />
+                    <span className="flex-1">{short}</span>
+                    <span className="font-mono text-code text-mute">{countOf(feedback)}</span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
         {onFavorites ? (
           <>
@@ -249,7 +291,8 @@ export function MyFilms({
                 />
               </div>
             )}
-            <FavoritesList favorites={favorites} />
+            <FavoritesList favorites={favorites} matches={matches} />
+            {needle && favorites.length > 0 && !favorites.some(matches) && noMatch}
             {favorites.length > 0 && (
               // Floats in thumb reach, just above the bottom tab bar on phones.
               <Button
@@ -264,6 +307,8 @@ export function MyFilms({
               </Button>
             )}
           </>
+        ) : shown.length === 0 && inFilter.length > 0 ? (
+          noMatch
         ) : shown.length === 0 ? (
           <p className="text-body-sm text-mute">
             {filter === "all"

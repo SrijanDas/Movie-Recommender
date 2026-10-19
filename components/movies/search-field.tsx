@@ -5,34 +5,37 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 // The film search input: icon, field, spinner while searching, and a clear
-// button once there's text. Shared by /search and the favourites picker.
+// button once there's text. Shared by /search, the favourites picker, and
+// My films (which searches only your own list, hence `placeholder`).
 export function SearchField({
   value,
   onChange,
-  loading,
+  loading = false,
   autoFocus,
   size = "md",
+  placeholder = "Search for a film",
 }: {
   value: string;
   onChange: (value: string) => void;
-  loading: boolean;
+  loading?: boolean;
   autoFocus?: boolean;
   size?: "md" | "lg";
+  placeholder?: string;
 }) {
   return (
     <label
       className={cn(
-        "flex shrink-0 items-center gap-3 rounded-lg border border-input bg-muted px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30",
+        "flex min-w-0 shrink-0 items-center gap-3 rounded-lg border border-input bg-muted px-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/30",
         size === "lg" ? "h-12" : "h-11",
       )}
     >
       <SearchIcon className="size-5 shrink-0 text-mute" aria-hidden />
-      <span className="sr-only">Search for a film</span>
+      <span className="sr-only">{placeholder}</span>
       <input
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Search for a film"
+        placeholder={placeholder}
         enterKeyHint="search"
         autoFocus={autoFocus}
         autoComplete="off"
