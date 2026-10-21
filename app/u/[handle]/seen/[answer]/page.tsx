@@ -54,7 +54,6 @@ async function Seen({ params }: { params: Params }) {
     <PublicSeen
       profile={seen.profile}
       answer={seen.answer}
-      hidden={seen.hidden}
       films={seen.films}
       backdrops={backdrops}
       viewer={!viewer ? "visitor" : owner ? "owner" : "member"}

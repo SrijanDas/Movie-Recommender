@@ -1,12 +1,12 @@
 "use client";
 
 import { MotionConfig, type Transition } from "framer-motion";
+import { EASE_OUT } from "@/components/site/motion-variants";
 
 // The app's motion vocabulary. Routine changes are quick and decelerate into
 // place; exits are faster than entrances. framer-motion skips transform and
 // layout animation when the visitor asks for reduced motion, keeping fades.
-
-export const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+// Presets server components can use live in motion-variants.ts.
 
 // A card leaving a grid (rated, saved, removed) and arriving (new batch, Undo).
 // Siblings slide into the gap with `layout="position"` under `popLayout`.

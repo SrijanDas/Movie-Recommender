@@ -114,19 +114,16 @@ export async function saveProfile(formData: FormData): Promise<SaveProfileResult
   return { ok: true, path: profilePath(handle) };
 }
 
-// Show or hide one "Seen it" list on the owner's public profile. Saves at
-// once, from the switch on that list's shelf.
-export async function setSeenShown(answer: unknown, shown: unknown): Promise<{ ok: boolean }> {
+// Save which "Seen it" lists the owner keeps off their public profile, from
+// the Save bar under the switches (SeenVisibility).
+export async function saveHiddenSeen(hidden: unknown): Promise<{ ok: boolean }> {
   const user = await getCurrentUser();
-  if (!user || typeof answer !== "string" || !isSeenAnswer(answer as never) || typeof shown !== "boolean") {
+  if (!user || !Array.isArray(hidden) || !hidden.every((a) => typeof a === "string" && isSeenAnswer(a as never))) {
     return { ok: false };
   }
   const profile = await getProfile(user.id);
   if (!profile?.handle) return { ok: false };
-  const hidden = new Set(profile.hiddenSeen);
-  if (shown) hidden.delete(answer);
-  else hidden.add(answer);
-  await setHiddenSeen(user.id, [...hidden]);
+  await setHiddenSeen(user.id, [...new Set(hidden as string[])]);
   revalidatePath("/", "layout");
   return { ok: true };
 }

@@ -1,7 +1,7 @@
 import { PencilIcon } from "lucide-react";
 import { Byline } from "@/components/lists/public-list";
 import { ANSWERS } from "@/components/movies/feedback";
-import { EditLink, PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
+import { EditLink, OwnerEdits, PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
 import { SeenToggle } from "@/components/profile/seen-shelf";
 import { ShareButton } from "@/components/profile/share-profile";
 import { ProfileFooter } from "@/components/site/footer";
@@ -19,15 +19,12 @@ type Viewer = "owner" | "member" | "visitor";
 export function PublicSeen({
   profile,
   answer,
-  hidden,
   films,
   backdrops,
   viewer,
 }: {
   profile: Profile & { handle: string };
   answer: SeenSlugAnswer;
-  // Whether the owner keeps this answer off their profile (only they get here then).
-  hidden: boolean;
   films: UserMovie[];
   // Stills (TMDB backdrop paths) of the first films.
   backdrops: string[];
@@ -43,6 +40,7 @@ export function PublicSeen({
       <ScrollHeader viewer={viewer === "visitor" ? "visitor" : "member"} watchId="seen-title" back={profilePath(profile.handle)} />
       <PageBackdrop paths={backdrops} visitor={viewer === "visitor"} back={profilePath(profile.handle)} />
 
+      <OwnerEdits owner={owner} hidden={profile.hiddenSeen}>
       <main className="relative mx-auto -mt-16 flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 pb-12 sm:-mt-20 sm:px-6">
         <header className="flex flex-col gap-5">
           <Byline profile={profile} />
@@ -77,7 +75,7 @@ export function PublicSeen({
                   Manage
                 </EditLink>
               </div>
-              <SeenToggle answer={answer} label={label} shown={!hidden} className="sm:min-w-44" />
+              <SeenToggle answer={answer} label={label} className="sm:min-w-44" />
             </div>
           )}
         </header>
@@ -94,6 +92,7 @@ export function PublicSeen({
           </p>
         )}
       </main>
+      </OwnerEdits>
 
       <ProfileFooter />
     </div>

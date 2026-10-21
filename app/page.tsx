@@ -53,9 +53,9 @@ const TICK = {
   hidden: { opacity: 0, scale: 0.4 },
   show: { opacity: 1, scale: 1, transition: { type: "spring", bounce: 0.35, duration: 0.35 } },
 } as const;
-const RING = {
-  hidden: { boxShadow: "0 0 0 0px var(--primary)" },
-  show: { boxShadow: "0 0 0 2px var(--primary)", transition: { duration: 0.2 } },
+const FRAME = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { duration: 0.2 } },
 };
 
 const COLUMNS = 8;
@@ -127,9 +127,8 @@ async function PickVisual() {
     <motion.ul {...IN_VIEW} variants={SEQUENCE(0.35, 0.15)} className="grid w-full max-w-sm grid-cols-3 gap-2.5">
       {films.map((m) => (
         <motion.li key={m.id} variants={SEQUENCE(0)} className="relative">
-          <motion.div variants={RING} className="rounded-xl">
-            <Poster path={m.poster_path} title={m.title} sizes="120px" />
-          </motion.div>
+          <Poster path={m.poster_path} title={m.title} sizes="120px" />
+          <motion.span variants={FRAME} aria-hidden className="absolute inset-0 rounded-xl ring-2 ring-primary ring-inset" />
           <motion.span
             variants={TICK}
             className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground"

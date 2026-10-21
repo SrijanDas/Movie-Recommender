@@ -13,7 +13,7 @@
 - Config: [components.json](../components.json) — style `base-nova`, built on **Base UI** (`@base-ui/react`, not Radix), icons from `lucide-react`, CSS variables on.
 - Components land in `components/ui/`. They are owned source — edit them to match DESIGN.md rather than overriding with wrapper components.
 - `cn()` comes from the `cn` package, re-exported by `lib/utils.ts`.
-- Animations: `tw-animate-css`. Base shadcn styles: `shadcn/tailwind.css`.
+- Animations: `tw-animate-css` for shadcn's built-in enter/exit classes; **framer-motion** for everything authored. Shared easing and card presets live in [components/site/motion.tsx](../components/site/motion.tsx), and `MotionProvider` (root layout) sets `reducedMotion="user"`. Server components import `* as motion from "framer-motion/client"`. Motion explains a change (cards leaving a grid, the tab indicator sliding, a pick being ticked); don't add entrance animations to static sections. Base shadcn styles: `shadcn/tailwind.css`.
 
 ## How DESIGN.md maps to code
 

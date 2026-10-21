@@ -1,3 +1,4 @@
+import * as motion from "framer-motion/client";
 import { ArrowUpDownIcon, ArrowUpRightIcon, PencilIcon } from "lucide-react";
 import Link from "next/link";
 import { CardShelf, FanCard, FilmCount, ListsShelf } from "@/components/lists/lists-shelf";
@@ -6,9 +7,10 @@ import { BannerSlideshow } from "@/components/movies/banner-slideshow";
 import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
-import { SeenToggle } from "@/components/profile/seen-shelf";
+import { SeenToggle, SeenVisibility } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
 import { BackButton } from "@/components/site/back-button";
+import { FOCUS_IN, IN_VIEW, POP, RISE, stagger } from "@/components/site/motion-variants";
 import { ProfileFooter } from "@/components/site/footer";
 import { Logo } from "@/components/site/logo";
 import { ScrollHeader } from "@/components/site/scroll-header";
@@ -62,24 +64,42 @@ export function PublicProfile({
       {/* The #1 favourite's still, fading into the page. */}
       {page && <PageBackdrop paths={taste.backdropPath ? [taste.backdropPath] : []} visitor={viewer === "visitor"} />}
 
+      <OwnerEdits owner={owner && page} hidden={profile.hiddenSeen}>
       <main
         className={cn(
           "relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-4 sm:px-6",
           page ? "-mt-16 pb-12 sm:-mt-20" : "pt-6 pb-4 md:pt-10",
         )}
       >
-        <header className="flex flex-col gap-5">
-          <ProfileAvatar avatar={profile.avatar} name={name} preload className="size-24 ring-4 ring-canvas sm:size-28" />
-          <div className="flex flex-col gap-1">
+        {/* The public page comes into focus on load; the Profile tab, visited
+            often, just shows. */}
+        <motion.header
+          initial={page ? "hidden" : false}
+          animate="show"
+          variants={stagger(0.07, 0.05)}
+          className="flex flex-col gap-5"
+        >
+          <motion.div variants={POP} className="self-start">
+            <ProfileAvatar avatar={profile.avatar} name={name} preload className="size-24 ring-4 ring-canvas sm:size-28" />
+          </motion.div>
+          <motion.div variants={FOCUS_IN} className="flex flex-col gap-1">
             <h1 id="profile-name" className="text-[2rem] leading-[1.1] font-normal tracking-[-0.02em] text-balance text-ink-strong sm:text-display-lg">
               {name}
             </h1>
             {handle && <p className="text-body-md text-mute">@{handle}</p>}
-          </div>
-          {profile.bio && <p className="max-w-[60ch] text-body-lg text-pretty text-ink">{profile.bio}</p>}
+          </motion.div>
+          {profile.bio && (
+            <motion.p variants={FOCUS_IN} className="max-w-[60ch] text-body-lg text-pretty text-ink">
+              {profile.bio}
+            </motion.p>
+          )}
           <TasteLine taste={taste} showPeak={!hidden.has("peak")} />
-          {owner && <OwnerActions handle={handle} name={name} showPublicLink={!page} />}
-        </header>
+          {owner && (
+            <motion.div variants={RISE}>
+              <OwnerActions handle={handle} name={name} showPublicLink={!page} />
+            </motion.div>
+          )}
+        </motion.header>
 
         {page && (
           <section aria-labelledby="favourites" className="flex flex-col gap-5">
@@ -94,11 +114,17 @@ export function PublicProfile({
               <>
                 <TopFilm movie={first} />
                 {rest.length > 0 && (
-                  <ol start={2} className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5">
+                  // The rest follow #1 in rank order.
+                  <motion.ol
+                    {...IN_VIEW}
+                    variants={stagger(0.05)}
+                    start={2}
+                    className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5"
+                  >
                     {rest.map((m, i) => (
                       <RankedFilm key={m.tmdbId} movie={m} rank={i + 2} />
                     ))}
-                  </ol>
+                  </motion.ol>
                 )}
               </>
             ) : (
@@ -121,14 +147,21 @@ export function PublicProfile({
           </section>
         )}
 
-        {page && handle && seenFilms.length > 0 && <SeenShelves handle={handle} films={seenFilms} owner={owner} hidden={hidden} />}
+        {page && handle && seenFilms.length > 0 && <SeenShelves handle={handle} films={seenFilms} owner={owner} />}
 
         {children}
       </main>
+      </OwnerEdits>
 
       {page && <ProfileFooter />}
     </div>
   );
+}
+
+// On the owner's own page, the Seen it switches are drafts until they press
+// Save in the bar this adds.
+export function OwnerEdits({ owner, hidden, children }: { owner: boolean; hidden: string[]; children: React.ReactNode }) {
+  return owner ? <SeenVisibility hidden={hidden}>{children}</SeenVisibility> : children;
 }
 
 // A public page's top: film stills (TMDB backdrop paths) fading into the
@@ -226,12 +259,10 @@ function SeenShelves({
   handle,
   films,
   owner,
-  hidden,
 }: {
   handle: string;
   films: UserMovie[];
   owner: boolean;
-  hidden: Set<string>;
 }) {
   const shelves = [...ANSWERS]
     .reverse()
@@ -248,13 +279,14 @@ function SeenShelves({
       </SectionHeading>
       {owner && <p className="-mt-2 text-body-sm text-mute">Switch a list off to keep it off your profile. Only you see it here.</p>}
       <CardShelf>
-        {shelves.map(({ answer, films: shelf }) => {
+        {shelves.map(({ answer, films: shelf }, i) => {
           const Icon = answer.icon;
           const card = (
             <FanCard
               href={seenPath(handle, answer.feedback)}
               posters={shelf.slice(0, 3).map(({ title, posterPath }) => ({ title, posterPath }))}
               title={answer.label}
+              index={i}
             >
               <Icon className={cn("size-3.5 shrink-0", answer.feedback === "peak" && "text-primary-soft")} aria-hidden />
               <FilmCount n={shelf.length} />
@@ -263,7 +295,7 @@ function SeenShelves({
           return (
             <li key={answer.feedback} className="flex">
               {owner ? (
-                <SeenToggle answer={answer.feedback} label={answer.label} shown={!hidden.has(answer.feedback)}>
+                <SeenToggle answer={answer.feedback} label={answer.label}>
                   {card}
                 </SeenToggle>
               ) : (
@@ -287,7 +319,7 @@ function TasteLine({ taste, showPeak }: { taste: Taste; showPeak: boolean }) {
   const directors = taste.directors.join(" and ");
   if (facts.length === 0 && !directors && taste.genres.length === 0) return null;
   return (
-    <div className="flex flex-col gap-3">
+    <motion.div variants={FOCUS_IN} className="flex flex-col gap-3">
       {facts.length > 0 && (
         <p className="flex flex-wrap items-baseline gap-x-2 text-body-md text-body">
           {facts.map((f, i) => (
@@ -316,7 +348,7 @@ function TasteLine({ taste, showPeak }: { taste: Taste; showPeak: boolean }) {
           ))}
         </ul>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -331,33 +363,50 @@ function FilmLink({ movie, children, className }: { movie: ShownFilm; children: 
   );
 }
 
+// #1 steps onto the stage: the poster rises and settles, then its caption.
+const TOP_POSTER = {
+  hidden: { opacity: 0, y: 32, rotate: -3, scale: 0.96 },
+  show: { opacity: 1, y: 0, rotate: 0, scale: 1, transition: { type: "spring", bounce: 0.2, duration: 0.8 } },
+} as const;
+const TOP_CAPTION = {
+  hidden: { opacity: 0, x: -8 },
+  show: { opacity: 1, x: 0, transition: { duration: 0.5, delay: 0.25, ease: [0.16, 1, 0.3, 1] } },
+} as const;
+
 // The #1 film gets the stage: a big poster and its title beside it.
 function TopFilm({ movie }: { movie: UserMovie }) {
   return (
     <FilmLink movie={movie} className="flex items-end gap-4 sm:gap-6">
-      <Poster
-        path={movie.posterPath}
-        title={movie.title}
-        size="w500"
-        sizes="(min-width: 640px) 220px, 46vw"
-        preload
-        className="w-[46%] max-w-56 shrink-0 shadow-glow transition-[border-color] duration-200 group-hover/film:border-hairline-soft/50"
-      />
-      <div className="flex min-w-0 flex-col gap-2 pb-1">
+      <motion.div
+        {...IN_VIEW}
+        variants={TOP_POSTER}
+        className="w-[46%] max-w-56 shrink-0"
+      >
+        <Poster
+          path={movie.posterPath}
+          title={movie.title}
+          size="w500"
+          sizes="(min-width: 640px) 220px, 46vw"
+          preload
+          className="shadow-glow transition-[border-color] duration-200 group-hover/film:border-hairline-soft/50"
+        />
+      </motion.div>
+      <motion.div {...IN_VIEW} variants={TOP_CAPTION} className="flex min-w-0 flex-col gap-2 pb-1">
         <span className="font-mono text-display-lg leading-none text-ink-strong tabular-nums" aria-label="Number 1">
           1
         </span>
         <p className="text-display-sm text-balance text-ink-strong">{movie.title}</p>
         {movie.year && <p className="font-mono text-code text-mute">{movie.year}</p>}
-      </div>
+      </motion.div>
     </FilmLink>
   );
 }
 
 // A poster in a grid, with its rank in the corner when the order means one.
+// Rises in turn when its list staggers (on the profile); static elsewhere.
 export function RankedFilm({ movie, rank }: { movie: ShownFilm; rank?: number }) {
   return (
-    <li>
+    <motion.li variants={RISE}>
       <FilmLink movie={movie} className="flex flex-col gap-2">
         <div className="relative">
           <Poster
@@ -377,6 +426,6 @@ export function RankedFilm({ movie, rank }: { movie: ShownFilm; rank?: number })
         </div>
         <p className="line-clamp-2 text-caption font-medium text-body">{movie.title}</p>
       </FilmLink>
-    </li>
+    </motion.li>
   );
 }
