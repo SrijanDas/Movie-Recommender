@@ -45,13 +45,13 @@ Nothing is stored when the source changes: lists resolve on every read. On save,
 | `app/(app)/lists/new/` | Editor for a new list: `?from=watchlist`, or `?from=my-films&filter=<filter>`. |
 | `app/(app)/lists/[id]/edit/` | Editor for a saved list, plus Delete. |
 | `app/u/[handle]/lists/[slug]/` | The public page (rewritten from `/@handle/lists/slug`), its not-found state and share image. |
-| `components/lists/` | `ListEditor`, `PublicList`, `ListsShelf` (+ `LiveTag`), `describeSource` (editor copy per source). |
+| `components/lists/` | `ListEditor`, `PublicList`, `ListsShelf` (+ `LiveTag`), `NewListMenu`, `describeSource` (editor copy per source). |
 | `components/movies/sortable-film-list.tsx` | The drag/Move/remove list shared with the favourites editor. |
 
 ## Entry points
 
 - **Watchlist:** a Share button in the header.
 - **My films:** a Share icon beside the filter; it starts from the current filter.
-- **Profile:** a "New list" tile at the end of the Lists shelf, which starts empty.
+- **Profile:** a "New list" menu in the Lists heading (`NewListMenu`): from the watchlist, from My films (All), or empty. The "New list" tile at the end of the shelf also starts empty.
 
 After the first save the editor goes to the list's page. There the owner gets the copyable link, Share (the share sheet, else copy) and Edit.

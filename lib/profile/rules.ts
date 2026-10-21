@@ -48,3 +48,21 @@ export function handleCandidates(name: string): string[] {
 
 // The public link's path for a handle.
 export const profilePath = (handle: string) => `/@${handle}`;
+
+// A Seen it answer's page on a profile, /@handle/seen/<slug>. Slugs read as
+// the answer does, not as the stored signal.
+const SEEN_SLUGS = {
+  peak: "peak",
+  liked: "good",
+  up: "kinda-liked",
+  okay: "okay",
+  no_rewatch: "no-rewatch",
+  quit: "left-midway",
+} as const;
+
+export type SeenSlugAnswer = keyof typeof SEEN_SLUGS;
+
+export const seenPath = (handle: string, answer: SeenSlugAnswer) => `/@${handle}/seen/${SEEN_SLUGS[answer]}`;
+
+export const answerFromSlug = (slug: string): SeenSlugAnswer | null =>
+  (Object.keys(SEEN_SLUGS) as SeenSlugAnswer[]).find((a) => SEEN_SLUGS[a] === slug) ?? null;

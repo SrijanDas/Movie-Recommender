@@ -41,16 +41,7 @@ export function PublicList({
 
       <main className="relative mx-auto -mt-16 flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 pb-12 sm:-mt-20 sm:px-6">
         <header className="flex flex-col gap-5">
-          <Link
-            href={profilePath(profile.handle)}
-            className="group/by flex items-center gap-2.5 self-start rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
-            <ProfileAvatar avatar={profile.avatar} name={name} preload className="size-9 ring-2 ring-canvas" />
-            <span className="flex min-w-0 flex-col leading-tight">
-              <span className="truncate text-body-sm font-semibold text-ink group-hover/by:text-primary-soft">{name}</span>
-              <span className="truncate text-caption text-mute">@{profile.handle}</span>
-            </span>
-          </Link>
+          <Byline profile={profile} />
           <div className="flex flex-col gap-3">
             <h1 id="list-title" className="text-[2rem] leading-[1.1] font-normal tracking-[-0.02em] text-balance text-ink-strong sm:text-display-lg">
               {list.name}
@@ -104,5 +95,22 @@ export function PublicList({
 
       <ProfileFooter />
     </div>
+  );
+}
+
+// Whose page this is: their picture and name, back to their profile.
+export function Byline({ profile }: { profile: Profile & { handle: string } }) {
+  const name = profile.displayName ?? profile.handle;
+  return (
+    <Link
+      href={profilePath(profile.handle)}
+      className="group/by flex items-center gap-2.5 self-start rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+    >
+      <ProfileAvatar avatar={profile.avatar} name={name} preload className="size-9 ring-2 ring-canvas" />
+      <span className="flex min-w-0 flex-col leading-tight">
+        <span className="truncate text-body-sm font-semibold text-ink group-hover/by:text-primary-soft">{name}</span>
+        <span className="truncate text-caption text-mute">@{profile.handle}</span>
+      </span>
+    </Link>
   );
 }

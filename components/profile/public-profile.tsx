@@ -1,11 +1,12 @@
 import { ArrowUpDownIcon, ArrowUpRightIcon, PencilIcon } from "lucide-react";
 import Link from "next/link";
-import { ListsShelf } from "@/components/lists/lists-shelf";
+import { CardShelf, FanCard, FilmCount, ListsShelf } from "@/components/lists/lists-shelf";
+import { NewListMenu } from "@/components/lists/new-list-menu";
 import { BannerSlideshow } from "@/components/movies/banner-slideshow";
 import { ANSWERS } from "@/components/movies/feedback";
 import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
-import { OwnerSeenShelf } from "@/components/profile/seen-shelf";
+import { SeenToggle } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
 import { ProfileFooter } from "@/components/site/footer";
 import { Logo } from "@/components/site/logo";
@@ -14,15 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ListCard } from "@/lib/lists/public";
 import type { UserMovie } from "@/lib/movies/types";
-import { profilePath } from "@/lib/profile/rules";
+import { profilePath, seenPath } from "@/lib/profile/rules";
 import type { Profile } from "@/lib/profile/store";
 import type { Taste } from "@/lib/profile/taste";
 import { cn } from "@/lib/utils";
 
 type Viewer = "owner" | "member" | "visitor";
-
-// The most posters a Seen it shelf shows before "+N more".
-const SHELF_MAX = 20;
 
 // Someone's profile: who they are, their taste in a few lines, their
 // favourites ranked, their shared lists, and everything else they've seen, by
@@ -110,7 +108,9 @@ export function PublicProfile({
 
         {handle && (owner || lists.length > 0) && (
           <section aria-labelledby="lists" className="flex flex-col gap-4">
-            <SectionHeading id="lists" title="Lists" />
+            <SectionHeading id="lists" title="Lists">
+              {owner && <NewListMenu />}
+            </SectionHeading>
             {owner && lists.length === 0 && (
               <p className="-mt-2 text-body-sm text-mute">
                 Share your watchlist, a slice of My films, or any films in your own order.
@@ -120,7 +120,7 @@ export function PublicProfile({
           </section>
         )}
 
-        {page && seenFilms.length > 0 && <SeenShelves films={seenFilms} owner={owner} hidden={hidden} />}
+        {page && handle && seenFilms.length > 0 && <SeenShelves handle={handle} films={seenFilms} owner={owner} hidden={hidden} />}
 
         {children}
       </main>
@@ -216,13 +216,16 @@ function OwnerActions({ handle, name, showPublicLink }: { handle: string | null;
   );
 }
 
-// Everything else they've seen, one shelf per answer, best first. The owner
-// edits answers from My films (Manage) and picks which shelves others see.
+// Everything else they've seen, one card per answer, best first; each opens
+// the answer's own page. The owner edits answers from My films (Manage) and
+// picks which cards others see.
 function SeenShelves({
+  handle,
   films,
   owner,
   hidden,
 }: {
+  handle: string;
   films: UserMovie[];
   owner: boolean;
   hidden: Set<string>;
@@ -232,7 +235,7 @@ function SeenShelves({
     .map((answer) => ({ answer, films: films.filter((m) => m.signal === answer.feedback) }))
     .filter((s) => s.films.length > 0);
   return (
-    <section aria-labelledby="seen" className="flex flex-col gap-6">
+    <section aria-labelledby="seen" className="flex flex-col gap-4">
       <SectionHeading id="seen" title="Seen it">
         {owner && (
           <EditLink href="/my-movies" icon={<PencilIcon />}>
@@ -240,57 +243,33 @@ function SeenShelves({
           </EditLink>
         )}
       </SectionHeading>
-      {owner && <p className="-mt-3 text-body-sm text-mute">Switch a list off to keep it off your profile. Only you see it here.</p>}
-      {shelves.map(({ answer, films: shelf }) => {
-        const Icon = answer.icon;
-        const more = shelf.length - SHELF_MAX;
-        const heading = (
-          <h3 className="flex min-w-0 items-center gap-2 text-body-md font-semibold text-ink">
-            <Icon className={cn("size-4 shrink-0", answer.feedback === "peak" ? "text-primary-soft" : "text-mute")} aria-hidden />
-            <span className="truncate">{answer.label}</span>
-            <span className="font-mono text-code font-normal text-mute tabular-nums">{shelf.length}</span>
-          </h3>
-        );
-        const list = (
-          <ul className="-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
-            {shelf.slice(0, SHELF_MAX).map((m) => (
-              <SeenFilm key={m.tmdbId} movie={m} />
-            ))}
-            {more > 0 && (
-              <li className="flex w-26 shrink-0 snap-start">
-                {owner ? (
-                  <Link
-                    href="/my-movies"
-                    className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-body outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
-                  >
-                    +{more} more
-                  </Link>
-                ) : (
-                  <span className="flex aspect-2/3 w-full items-center justify-center rounded-xl border border-border bg-canvas-soft font-mono text-code text-mute">
-                    +{more} more
-                  </span>
-                )}
-              </li>
-            )}
-          </ul>
-        );
-        return owner ? (
-          <OwnerSeenShelf
-            key={answer.feedback}
-            answer={answer.feedback}
-            label={answer.label}
-            shown={!hidden.has(answer.feedback)}
-            heading={heading}
-          >
-            {list}
-          </OwnerSeenShelf>
-        ) : (
-          <div key={answer.feedback} className="flex flex-col gap-3">
-            {heading}
-            {list}
-          </div>
-        );
-      })}
+      {owner && <p className="-mt-2 text-body-sm text-mute">Switch a list off to keep it off your profile. Only you see it here.</p>}
+      <CardShelf>
+        {shelves.map(({ answer, films: shelf }) => {
+          const Icon = answer.icon;
+          const card = (
+            <FanCard
+              href={seenPath(handle, answer.feedback)}
+              posters={shelf.slice(0, 3).map(({ title, posterPath }) => ({ title, posterPath }))}
+              title={answer.label}
+            >
+              <Icon className={cn("size-3.5 shrink-0", answer.feedback === "peak" && "text-primary-soft")} aria-hidden />
+              <FilmCount n={shelf.length} />
+            </FanCard>
+          );
+          return (
+            <li key={answer.feedback} className="flex">
+              {owner ? (
+                <SeenToggle answer={answer.feedback} label={answer.label} shown={!hidden.has(answer.feedback)}>
+                  {card}
+                </SeenToggle>
+              ) : (
+                card
+              )}
+            </li>
+          );
+        })}
+      </CardShelf>
     </section>
   );
 }
@@ -372,7 +351,8 @@ function TopFilm({ movie }: { movie: UserMovie }) {
   );
 }
 
-export function RankedFilm({ movie, rank }: { movie: ShownFilm; rank: number }) {
+// A poster in a grid, with its rank in the corner when the order means one.
+export function RankedFilm({ movie, rank }: { movie: ShownFilm; rank?: number }) {
   return (
     <li>
       <FilmLink movie={movie} className="flex flex-col gap-2">
@@ -383,32 +363,16 @@ export function RankedFilm({ movie, rank }: { movie: ShownFilm; rank: number }) 
             sizes="(min-width: 768px) 140px, (min-width: 640px) 25vw, 33vw"
             className="transition-[border-color] duration-200 group-hover/film:border-hairline-soft/50"
           />
+          {rank !== undefined && (
           <span
             className="absolute top-1.5 left-1.5 flex h-6 min-w-6 items-center justify-center rounded-md border border-border bg-canvas px-1.5 font-mono text-code text-ink tabular-nums"
             aria-label={`Number ${rank}`}
           >
             {rank}
           </span>
+          )}
         </div>
         <p className="line-clamp-2 text-caption font-medium text-body">{movie.title}</p>
-      </FilmLink>
-    </li>
-  );
-}
-
-// One poster on a Seen it shelf.
-function SeenFilm({ movie }: { movie: UserMovie }) {
-  return (
-    <li className="w-26 shrink-0 snap-start">
-      <FilmLink movie={movie} className="flex flex-col gap-2">
-        <Poster
-          path={movie.posterPath}
-          title={movie.title}
-          size="w185"
-          sizes="104px"
-          className="transition-[border-color] duration-200 group-hover/film:border-hairline-soft/50"
-        />
-        <span className="line-clamp-2 text-caption font-medium text-body">{movie.title}</span>
       </FilmLink>
     </li>
   );

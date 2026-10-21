@@ -2,7 +2,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AccountButton, AccountButtonFallback } from "@/components/site/account-button";
 import { Logo } from "@/components/site/logo";
-import { TabBar, TabBarFallback, TopNav, TopNavFallback } from "@/components/site/tab-bar";
+import {
+  SearchButton,
+  SearchButtonFallback,
+  TabBar,
+  TabBarFallback,
+  TopNav,
+  TopNavFallback,
+} from "@/components/site/tab-bar";
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfile } from "@/lib/profile/store";
@@ -20,16 +27,24 @@ function Bar({ logoHref, children }: { logoHref: string; children?: React.ReactN
   );
 }
 
-async function Account() {
+// Both lookups are request-cached, so the header and tab bar share them.
+async function getMe() {
   const user = await getCurrentUser();
   const profile = user ? await getProfile(user.id) : null;
-  return (
-    <AccountButton name={profile?.displayName ?? user?.name ?? user?.email ?? null} avatar={profile?.avatar ?? null} />
-  );
+  return { name: profile?.displayName ?? user?.name ?? user?.email ?? null, avatar: profile?.avatar ?? null };
 }
 
-// Inside the app: logo, the nav on tablet and up (phones get <AppTabBar>),
-// and the account avatar on every size.
+async function Account() {
+  const me = await getMe();
+  return <AccountButton name={me.name} avatar={me.avatar} />;
+}
+
+async function Tabs() {
+  return <TabBar me={await getMe()} />;
+}
+
+// Inside the app: logo, then the nav and account avatar on tablet and up.
+// Phones get Search here and the rest, Profile included, in <AppTabBar>.
 export function AppHeader() {
   return (
     <Bar logoHref="/recommendations">
@@ -37,9 +52,14 @@ export function AppHeader() {
         <Suspense fallback={<TopNavFallback />}>
           <TopNav />
         </Suspense>
-        <Suspense fallback={<AccountButtonFallback />}>
-          <Account />
+        <Suspense fallback={<SearchButtonFallback />}>
+          <SearchButton />
         </Suspense>
+        <div className="hidden md:flex">
+          <Suspense fallback={<AccountButtonFallback />}>
+            <Account />
+          </Suspense>
+        </div>
       </div>
     </Bar>
   );
@@ -48,7 +68,7 @@ export function AppHeader() {
 export function AppTabBar() {
   return (
     <Suspense fallback={<TabBarFallback />}>
-      <TabBar />
+      <Tabs />
     </Suspense>
   );
 }

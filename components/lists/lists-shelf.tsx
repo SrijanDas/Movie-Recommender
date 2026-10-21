@@ -64,32 +64,65 @@ function Fan({ posters }: { posters: ListCard["posters"] }) {
 
 const TILE = "flex w-40 shrink-0 snap-start flex-col gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
 
+// A horizontal shelf of cards, bleeding to the page edge on phones.
+export function CardShelf({ children, label }: { children: React.ReactNode; label?: string }) {
+  return (
+    <ul
+      aria-label={label}
+      className="-mx-4 flex snap-x scroll-px-4 gap-4 overflow-x-auto px-4 pt-1 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6"
+    >
+      {children}
+    </ul>
+  );
+}
+
+// One card on a shelf: three posters fanned, a title and a line under it.
+export function FanCard({
+  href,
+  posters,
+  title,
+  children,
+}: {
+  href: string;
+  posters: ListCard["posters"];
+  title: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link href={href} className={cn(TILE, "group/list")}>
+      <Fan posters={posters} />
+      <span className="flex flex-col gap-1">
+        <span className="line-clamp-2 text-body-sm font-semibold text-ink group-hover/list:text-primary-soft">{title}</span>
+        <span className="flex items-center gap-2 text-caption text-mute">{children}</span>
+      </span>
+    </Link>
+  );
+}
+
+export function FilmCount({ n }: { n: number }) {
+  return (
+    <span>
+      <span className="font-mono tabular-nums">{n}</span> {n === 1 ? "film" : "films"}
+    </span>
+  );
+}
+
 // Someone's shared lists, newest first, as a shelf of fanned cards. The owner
 // also gets a tile to start a new one.
 export function ListsShelf({ lists, owner }: { lists: ListCard[]; owner: boolean }) {
   return (
-    <ul className="-mx-4 flex snap-x scroll-px-4 gap-4 overflow-x-auto px-4 pt-1 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6">
+    <CardShelf>
       {lists.map((list) => (
         <li key={list.id} className="flex">
-          <Link href={list.path} className={cn(TILE, "group/list")}>
-            <Fan posters={list.posters} />
-            <span className="flex flex-col gap-1">
-              <span className="line-clamp-2 text-body-sm font-semibold text-ink group-hover/list:text-primary-soft">
-                {list.name}
+          <FanCard href={list.path} posters={list.posters} title={list.name}>
+            <FilmCount n={list.count} />
+            {list.synced && (
+              <span className="flex items-center gap-1.5" title="Updates as their films change">
+                <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+                Live
               </span>
-              <span className="flex items-center gap-2 text-caption text-mute">
-                <span>
-                  <span className="font-mono tabular-nums">{list.count}</span> {list.count === 1 ? "film" : "films"}
-                </span>
-                {list.synced && (
-                  <span className="flex items-center gap-1.5" title="Updates as their films change">
-                    <span className="size-1.5 rounded-full bg-primary" aria-hidden />
-                    Live
-                  </span>
-                )}
-              </span>
-            </span>
-          </Link>
+            )}
+          </FanCard>
         </li>
       ))}
       {owner && (
@@ -105,6 +138,6 @@ export function ListsShelf({ lists, owner }: { lists: ListCard[]; owner: boolean
           </Link>
         </li>
       )}
-    </ul>
+    </CardShelf>
   );
 }
