@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { BookmarkXIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -10,6 +11,7 @@ import { forgetMovie, rateMovie, undoRating, watchLater, type Feedback } from "@
 import { Poster } from "@/components/movies/poster";
 import { GRID } from "@/components/movies/recommendation-grid";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
+import { CARD_PRESENCE, CARD_TRANSITION } from "@/components/site/motion";
 import { Button } from "@/components/ui/button";
 import type { ListedMovie } from "@/lib/movies/types";
 
@@ -76,9 +78,11 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
       <p className="text-body-sm text-mute" aria-live="polite">
         {shown.length} {shown.length === 1 ? "film" : "films"} to watch
       </p>
-      <ul className={GRID}>
+      {/* A card you act on shrinks away and the rest slide into its place. */}
+      <ul className={`relative ${GRID}`}>
+        <AnimatePresence initial={false} mode="popLayout">
         {shown.map((movie, i) => (
-          <li key={movie.tmdbId} className="flex">
+          <motion.li key={movie.tmdbId} layout="position" {...CARD_PRESENCE} transition={CARD_TRANSITION} className="flex">
             <article className="group flex w-full flex-col gap-3">
               <Link
                 href={`/movie/${movie.tmdbId}`}
@@ -112,8 +116,9 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
                 </Button>
               </div>
             </article>
-          </li>
+          </motion.li>
         ))}
+        </AnimatePresence>
       </ul>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { RotateCwIcon } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { RefreshCwIcon, RotateCwIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -14,35 +15,60 @@ import {
 } from "@/components/movies/movie-actions";
 import { RecommendationCard } from "@/components/movies/recommendation-card";
 import { GRID, Notice } from "@/components/movies/recommendation-grid";
+import { CARD_PRESENCE, CARD_TRANSITION, staggerDelay } from "@/components/site/motion";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import type { Recommendation } from "@/lib/recommend/types";
 
-type FeedStatus = "idle" | "loading" | "error" | "done";
+type FeedStatus = "idle" | "loading" | "refreshing" | "error" | "done";
 
 // The recommendation feed: the server renders the first batch, and scrolling
 // near the end loads the next one (`moreRecommendations`), skipping every film
 // already loaded. Each batch reads the user's list fresh, so answers given
 // while scrolling shape what comes next. Acting on a card removes only that
-// card.
+// card. Refresh starts over with a new batch: it is computed from the list as
+// it is now and skips every film this visit has shown, so the grid is all new.
 export function RecommendationList({ recommendations }: { recommendations: Recommendation[] }) {
   const [items, setItems] = useState(recommendations);
   const [status, setStatus] = useState<FeedStatus>("idle");
   const loading = useRef(false);
+  // Cards acted on (rated, hidden, saved): removed in place, with Undo.
+  const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
+  // Every film shown this visit, across refreshes: never shown again.
+  const everShown = useRef(recommendations.map((m) => m.tmdbId));
+  // The latest batch, in order, so only its cards stagger in.
+  const [batch, setBatch] = useState<number[]>([]);
 
-  const loadMore = useCallback(async () => {
+  const fetchBatch = useCallback(async (replace: boolean) => {
     if (loading.current) return;
     loading.current = true;
-    setStatus("loading");
-    const next = await loadMoreRecommendations(items.map((m) => m.tmdbId));
+    setStatus(replace ? "refreshing" : "loading");
+    const next = await loadMoreRecommendations(everShown.current);
     loading.current = false;
     if (next === null) return setStatus("error");
-    const known = new Set(items.map((m) => m.tmdbId));
+    const known = new Set(everShown.current);
     const fresh = next.filter((m) => !known.has(m.tmdbId));
-    if (fresh.length === 0) return setStatus("done");
-    setItems([...items, ...fresh]);
+    if (fresh.length === 0) {
+      if (replace) setItems([]);
+      return setStatus("done");
+    }
+    everShown.current = [...everShown.current, ...fresh.map((m) => m.tmdbId)];
+    setBatch(fresh.map((m) => m.tmdbId));
+    if (replace) {
+      setItems(fresh);
+      setHidden(new Set());
+      window.scrollTo({
+        top: 0,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      });
+    } else {
+      setItems((prev) => [...prev, ...fresh]);
+    }
     setStatus("idle");
-  }, [items]);
+  }, []);
+  const loadMore = useCallback(() => fetchBatch(false), [fetchBatch]);
+  const refresh = () => void fetchBatch(true);
 
   // Load the next batch well before the end comes into view. Re-observing
   // after every batch re-checks a sentinel that is still on screen (a short
@@ -61,7 +87,6 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
     return () => observer.disconnect();
   }, [loadMore, status]);
 
-  const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
   const setShown = (id: number, shown: boolean) =>
     setHidden((prev) => {
       const next = new Set(prev);
@@ -104,24 +129,51 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
     });
   }
 
-  const shown = items.filter((r) => !hidden.has(r.tmdbId));
+  const shown = status === "refreshing" ? [] : items.filter((r) => !hidden.has(r.tmdbId));
+  const refreshing = status === "refreshing";
 
   return (
-    <div className="flex flex-col gap-8">
-      {shown.length > 0 && (
-        <ul className={GRID}>
-          {shown.map((movie, i) => (
-            <li key={movie.tmdbId} className="flex">
-              <RecommendationCard
-                movie={movie}
-                preload={i < 4}
-                onRate={(rating) => void rate(movie, rating)}
-                onWatchlist={() => void saveForLater(movie)}
-              />
-            </li>
-          ))}
-          {status === "loading" &&
-            Array.from({ length: 5 }, (_, i) => (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-body-sm text-mute" aria-live="polite">
+          {refreshing ? "Finding fresh picks…" : `${shown.length} ${shown.length === 1 ? "pick" : "picks"}`}
+        </p>
+        <Button
+          variant="outline"
+          className="h-9 gap-1.5 px-3 text-body-sm"
+          onClick={refresh}
+          disabled={refreshing || status === "loading"}
+          title="New picks, from your list as it is now"
+        >
+          <RefreshCwIcon className={cn(refreshing && "animate-spin")} />
+          {refreshing ? "Refreshing" : "Refresh"}
+        </Button>
+      </div>
+
+      {(shown.length > 0 || refreshing) && (
+        // A card you act on shrinks away and the rest slide into its place;
+        // the first batch is already on screen, later ones fade up in turn.
+        <ul className={cn("relative", GRID)}>
+          <AnimatePresence initial={false} mode="popLayout">
+            {shown.map((movie, i) => (
+              <motion.li
+                key={movie.tmdbId}
+                layout="position"
+                {...CARD_PRESENCE}
+                transition={{ ...CARD_TRANSITION, delay: staggerDelay(batch.indexOf(movie.tmdbId)) }}
+                className="flex"
+              >
+                <RecommendationCard
+                  movie={movie}
+                  preload={i < 4}
+                  onRate={(rating) => void rate(movie, rating)}
+                  onWatchlist={() => void saveForLater(movie)}
+                />
+              </motion.li>
+            ))}
+          </AnimatePresence>
+          {(status === "loading" || refreshing) &&
+            Array.from({ length: refreshing ? 10 : 5 }, (_, i) => (
               <li key={`loading-${i}`} className="flex flex-col gap-3" aria-hidden>
                 <Skeleton className="aspect-2/3 rounded-xl" />
                 <Skeleton className="h-5 w-3/4" />

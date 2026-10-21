@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckIcon, Loader2Icon } from "lucide-react";
 import { useRouter } from "@bprogress/next/app";
 import { useState, useTransition } from "react";
@@ -30,8 +31,11 @@ function Tile({
 }) {
   return (
     <li>
-      <button
+      {/* Gives under the thumb, so a tap lands before the tick appears. */}
+      <motion.button
         type="button"
+        whileTap={locked ? undefined : { scale: 0.96 }}
+        transition={{ type: "spring", bounce: 0, duration: 0.25 }}
         aria-pressed={selected}
         disabled={!!locked}
         onClick={onToggle}
@@ -54,11 +58,19 @@ function Tile({
               {locked}
             </span>
           )}
-          {selected && (
-            <span className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground animate-in zoom-in-50 duration-150">
-              <CheckIcon className="size-4" strokeWidth={3} aria-hidden />
-            </span>
-          )}
+          <AnimatePresence initial={false}>
+            {selected && (
+              <motion.span
+                initial={{ scale: 0.4, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.4, opacity: 0, transition: { duration: 0.12 } }}
+                transition={{ type: "spring", bounce: 0.35, duration: 0.3 }}
+                className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground"
+              >
+                <CheckIcon className="size-4" strokeWidth={3} aria-hidden />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </span>
         <span className="flex flex-col gap-0.5">
           <span className="line-clamp-2 text-caption leading-tight text-body">{movie.title}</span>
@@ -70,7 +82,7 @@ function Tile({
             </span>
           )}
         </span>
-      </button>
+      </motion.button>
     </li>
   );
 }

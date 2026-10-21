@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { BookmarkIcon, PopcornIcon, SearchIcon, StarIcon, UserRoundIcon, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,6 +21,8 @@ const BOTTOM_TABS = [
   ...TABS.filter(({ href }) => href !== "/search"),
   { href: "/account", label: "Profile", icon: UserRoundIcon },
 ];
+
+const TAB_SLIDE = { type: "spring", bounce: 0, duration: 0.35 } as const;
 
 const isActive = (pathname: string | null, href: string) =>
   pathname !== null && (pathname === href || pathname.startsWith(`${href}/`));
@@ -74,14 +77,16 @@ function BottomTabs({ pathname, me }: { pathname: string | null; me: Me }) {
                   active ? "font-medium text-ink-strong" : "text-mute",
                 )}
               >
-                {/* The brand's active indicator: a short green rule on top. */}
-                <span
-                  aria-hidden
-                  className={cn(
-                    "absolute top-0 h-0.5 w-8 rounded-full bg-primary transition-[opacity,transform] duration-200 ease-out",
-                    active ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0",
-                  )}
-                />
+                {/* The brand's active indicator: a short green rule on top that
+                    slides across to the tab you open. */}
+                {active && (
+                  <motion.span
+                    aria-hidden
+                    layoutId="tab-bar-indicator"
+                    transition={TAB_SLIDE}
+                    className="absolute top-0 h-0.5 w-8 rounded-full bg-primary"
+                  />
+                )}
                 {href === "/account" ? (
                   <ProfileAvatar
                     avatar={me.avatar}
@@ -104,7 +109,7 @@ function BottomTabs({ pathname, me }: { pathname: string | null; me: Me }) {
 // Tablet and up: the same destinations inline in the top bar.
 function TopLinks({ pathname }: { pathname: string | null }) {
   return (
-    <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+    <nav aria-label="Main" className="isolate hidden items-center gap-1 md:flex">
       {TABS.map(({ href, label }) => {
         const active = isActive(pathname, href);
         return (
@@ -113,10 +118,19 @@ function TopLinks({ pathname }: { pathname: string | null }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-body-sm outline-none transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50",
-              active ? "bg-muted text-ink-strong" : "text-body",
+              "relative rounded-lg px-3 py-1.5 text-body-sm outline-none transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50",
+              active ? "text-ink-strong" : "text-body",
             )}
           >
+            {/* The active pill glides to the link you open. */}
+            {active && (
+              <motion.span
+                aria-hidden
+                layoutId="top-nav-pill"
+                transition={TAB_SLIDE}
+                className="absolute inset-0 -z-10 rounded-lg bg-muted"
+              />
+            )}
             {label}
           </Link>
         );

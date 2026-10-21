@@ -1,3 +1,4 @@
+import * as motion from "framer-motion/client";
 import { BookmarkPlusIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -24,6 +25,38 @@ async function starters(): Promise<TmdbMovieSummary[]> {
   if (!isTmdbConfigured()) return [];
   return getStarterMovies().catch(() => []);
 }
+
+// Motion: the hero comes into focus once on load; each "How it works" visual
+// plays its step out (ticks, reasons, answers) when it scrolls into view.
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+const HERO = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.09, delayChildren: 0.1 } },
+};
+const HERO_LINE = {
+  hidden: { opacity: 0, y: 16, filter: "blur(8px)" },
+  show: { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 0.7, ease: EASE_OUT } },
+};
+
+// Plays once, when most of the visual is on screen.
+const IN_VIEW = { initial: "hidden", whileInView: "show", viewport: { once: true, amount: 0.6 } } as const;
+const SEQUENCE = (gap: number, delay = 0) => ({
+  hidden: {},
+  show: { transition: { staggerChildren: gap, delayChildren: delay } },
+});
+const RISE = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE_OUT } },
+};
+const TICK = {
+  hidden: { opacity: 0, scale: 0.4 },
+  show: { opacity: 1, scale: 1, transition: { type: "spring", bounce: 0.35, duration: 0.35 } },
+} as const;
+const RING = {
+  hidden: { boxShadow: "0 0 0 0px var(--primary)" },
+  show: { boxShadow: "0 0 0 2px var(--primary)", transition: { duration: 0.2 } },
+};
 
 const COLUMNS = 8;
 // Phones show 3 columns, tablets 4, laptops 6, wide screens 8.
@@ -91,16 +124,21 @@ async function PickVisual() {
   const films = (await starters()).slice(0, 3);
   if (films.length < 3) return <Skeleton className="aspect-[3/1.6] w-full max-w-sm rounded-xl" />;
   return (
-    <ul className="grid w-full max-w-sm grid-cols-3 gap-2.5">
+    <motion.ul {...IN_VIEW} variants={SEQUENCE(0.35, 0.15)} className="grid w-full max-w-sm grid-cols-3 gap-2.5">
       {films.map((m) => (
-        <li key={m.id} className="relative">
-          <Poster path={m.poster_path} title={m.title} sizes="120px" className="border-primary ring-2 ring-primary" />
-          <span className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground">
+        <motion.li key={m.id} variants={SEQUENCE(0)} className="relative">
+          <motion.div variants={RING} className="rounded-xl">
+            <Poster path={m.poster_path} title={m.title} sizes="120px" />
+          </motion.div>
+          <motion.span
+            variants={TICK}
+            className="absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-full bg-primary text-primary-foreground"
+          >
             <CheckIcon className="size-4" strokeWidth={3} aria-hidden />
-          </span>
-        </li>
+          </motion.span>
+        </motion.li>
       ))}
-    </ul>
+    </motion.ul>
   );
 }
 
@@ -119,15 +157,15 @@ async function ReasonsVisual() {
       <Poster path={film.poster_path} title={film.title} sizes="96px" className="w-24 shrink-0" />
       <div className="flex min-w-0 flex-col gap-2.5">
         <p className="text-body-md font-semibold text-ink">{film.title}</p>
-        <ul className="flex flex-wrap gap-1.5" aria-label="Why it was picked">
+        <motion.ul {...IN_VIEW} variants={SEQUENCE(0.25, 0.2)} className="flex flex-wrap gap-1.5" aria-label="Why it was picked">
           {reasons.map((r) => (
-            <li key={r}>
+            <motion.li key={r} variants={RISE}>
               <Badge variant="outline" className="h-auto whitespace-normal px-2.5 py-1 text-left text-caption font-normal text-body">
                 {r}
               </Badge>
-            </li>
+            </motion.li>
           ))}
-        </ul>
+        </motion.ul>
       </div>
     </div>
   );
@@ -136,10 +174,11 @@ async function ReasonsVisual() {
 // Step 3: the same answers the app asks, worst to best, plus the watchlist.
 function FeedbackVisual() {
   return (
-    <ul className="flex w-full max-w-sm flex-wrap gap-2" aria-label="Your answers">
+    <motion.ul {...IN_VIEW} variants={SEQUENCE(0.06, 0.1)} className="flex w-full max-w-sm flex-wrap gap-2" aria-label="Your answers">
       {ANSWERS.map(({ feedback, label, icon: Icon }) => (
-        <li
+        <motion.li
           key={feedback}
+          variants={RISE}
           className={cn(
             "flex h-10 items-center gap-2 rounded-lg border border-border px-3 text-body-sm text-ink",
             feedback === "peak" && "border-primary-soft text-primary-soft",
@@ -147,13 +186,16 @@ function FeedbackVisual() {
         >
           <Icon className="size-4" aria-hidden />
           {label}
-        </li>
+        </motion.li>
       ))}
-      <li className="flex h-10 items-center gap-2 rounded-lg border border-dashed border-border px-3 text-body-sm text-body">
+      <motion.li
+        variants={RISE}
+        className="flex h-10 items-center gap-2 rounded-lg border border-dashed border-border px-3 text-body-sm text-body"
+      >
         <BookmarkPlusIcon className="size-4" aria-hidden />
         Not yet? Save it for later
-      </li>
-    </ul>
+      </motion.li>
+    </motion.ul>
   );
 }
 
@@ -177,19 +219,24 @@ export default function LandingPage() {
           <Suspense fallback={null}>
             <PosterWall />
           </Suspense>
-          <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pt-48 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:gap-6 md:px-8 md:pb-20">
-            <h1 className="max-w-3xl text-[2rem] leading-[1.1] tracking-[-0.02em] text-balance text-ink-strong md:text-display-xl">
+          <motion.div
+            initial="hidden"
+            animate="show"
+            variants={HERO}
+            className="relative mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 pt-48 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:gap-6 md:px-8 md:pb-20"
+          >
+            <motion.h1 variants={HERO_LINE} className="max-w-3xl text-[2rem] leading-[1.1] tracking-[-0.02em] text-balance text-ink-strong md:text-display-xl">
               Your next favourite film, with reasons.
-            </h1>
-            <p className="max-w-xl text-body-lg text-pretty text-body">
+            </motion.h1>
+            <motion.p variants={HERO_LINE} className="max-w-xl text-body-lg text-pretty text-body">
               Tap a few films you love. Next Movie tells you what to watch next and exactly why: the director, the cast, the
               themes you keep coming back to.
-            </p>
-            <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:gap-5">
+            </motion.p>
+            <motion.div variants={HERO_LINE} className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:gap-5">
               <GetStarted className="w-full sm:w-auto" />
               <p className="text-center text-body-sm text-mute sm:text-left">Takes a minute. No ratings marathon.</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </section>
 
         <section aria-labelledby="how" className="mx-auto w-full max-w-6xl px-4 pt-6 md:px-8 md:pt-16">
