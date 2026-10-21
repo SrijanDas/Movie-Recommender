@@ -7,7 +7,7 @@ import { ShareButton } from "@/components/profile/share-profile";
 import { ProfileFooter } from "@/components/site/footer";
 import { ScrollHeader } from "@/components/site/scroll-header";
 import type { UserMovie } from "@/lib/movies/types";
-import { seenPath, type SeenSlugAnswer } from "@/lib/profile/rules";
+import { profilePath, seenPath, type SeenSlugAnswer } from "@/lib/profile/rules";
 import type { Profile } from "@/lib/profile/store";
 import { cn } from "@/lib/utils";
 
@@ -40,8 +40,8 @@ export function PublicSeen({
   const count = `${films.length} ${films.length === 1 ? "film" : "films"}`;
   return (
     <div className="flex min-h-svh flex-col">
-      {!owner && <ScrollHeader viewer={viewer === "member" ? "member" : "visitor"} watchId="seen-title" />}
-      <PageBackdrop paths={backdrops} visitor={viewer === "visitor"} />
+      <ScrollHeader viewer={viewer === "visitor" ? "visitor" : "member"} watchId="seen-title" back={profilePath(profile.handle)} />
+      <PageBackdrop paths={backdrops} visitor={viewer === "visitor"} back={profilePath(profile.handle)} />
 
       <main className="relative mx-auto -mt-16 flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 pb-12 sm:-mt-20 sm:px-6">
         <header className="flex flex-col gap-5">

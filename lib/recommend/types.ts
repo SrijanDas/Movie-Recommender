@@ -73,5 +73,7 @@ export type Recommendation = {
   voteAverage: number;
   voteCount: number;
   score: number;
+  // Rated films that drove the pick, strongest first ("Because you like …").
+  because: string[];
   reasons: Reason[];
 };

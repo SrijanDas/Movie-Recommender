@@ -1,4 +1,4 @@
-import { Share2Icon } from "lucide-react";
+import { ChevronRightIcon, ClockIcon, Share2Icon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -27,6 +27,15 @@ export default function WatchlistPage() {
           <p className="max-w-xl text-body-sm text-body md:text-body-md">
             Films you’ve saved for later. Once you’ve watched one, say how it was.
           </p>
+          {/* The films set aside for another time live on My films. */}
+          <Link
+            href="/my-movies?show=someday"
+            className="-ml-1 flex w-fit items-center gap-1.5 rounded-md px-1 py-1.5 text-body-sm text-body outline-none hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <ClockIcon className="size-4 text-mute" aria-hidden />
+            Might watch someday
+            <ChevronRightIcon className="size-4 text-mute" aria-hidden />
+          </Link>
         </div>
         {/* Turns the watchlist into a named list to share. */}
         <Button

@@ -1,7 +1,6 @@
 import "server-only";
 import { isInMyFilms, type UserMovie } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
-import { DEFAULT_SEEN_ANSWER } from "@/lib/recommend/types";
 import { getMovie } from "@/lib/tmdb/client";
 
 // What a public profile says about someone's taste, from their own list.
@@ -26,8 +25,6 @@ export type Taste = {
 const LOVED = new Set(["favorite", "peak", "liked"]);
 const MAX_LOOKUPS = 40;
 
-const isPeak = (m: UserMovie) =>
-  m.signal === "peak" || (m.signal === "favorite" && (m.seenSignal ?? DEFAULT_SEEN_ANSWER) === "peak");
 
 function top(counts: Map<string, number>, n: number, min = 1) {
   return [...counts]
@@ -58,7 +55,8 @@ export async function getTaste(movies: UserMovie[]): Promise<Taste> {
   return {
     favorites,
     seen: movies.filter(isInMyFilms).length,
-    peak: movies.filter(isPeak).length,
+    // Favourites count as Peak: they're the films loved most.
+    peak: movies.filter((m) => m.signal === "peak" || m.signal === "favorite").length,
     directors: top(directors, 2, 2),
     genres: top(genres, 3),
     backdropPath: details[0]?.backdrop_path ?? null,

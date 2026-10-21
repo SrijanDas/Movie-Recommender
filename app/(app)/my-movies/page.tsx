@@ -5,11 +5,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
 import { getUserMovies, withScores } from "@/lib/movies/store";
 import { getStarterResults } from "@/lib/movies/starters";
+import { isMyFilmsFilter, type MyFilmsFilter } from "@/lib/movies/types";
 
 export const metadata: Metadata = { title: "My films" };
 
-async function Lists({ searchParams }: { searchParams: Promise<{ show?: string | string[] }> }) {
-  const { show } = await searchParams;
+// ?show= as MyFilms writes it ("favourites" for the favourites); All otherwise.
+function parseShow(show: string | string[] | undefined): MyFilmsFilter {
+  const value = Array.isArray(show) ? show[0] : show;
+  if (value === "favourites") return "favorite";
+  return value !== "favorite" && isMyFilmsFilter(value) ? value : "all";
+}
+
+async function Lists({ searchParams }: { searchParams: Promise<{ show?: string | string[]; q?: string | string[] }> }) {
+  const { show, q } = await searchParams;
   const [movies, starters] = await Promise.all([
     getUserMovies(await requireUserId()).then(withScores),
     getStarterResults(),
@@ -17,7 +25,8 @@ async function Lists({ searchParams }: { searchParams: Promise<{ show?: string |
   return (
     <MyFilms
       movies={movies}
-      initialFilter={show === "favourites" ? "favorite" : "all"}
+      initialFilter={parseShow(show)}
+      initialQuery={(Array.isArray(q) ? q[0] : q) ?? ""}
       starters={starters}
     />
   );

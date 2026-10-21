@@ -21,18 +21,13 @@ const LINKS = [
 const CREDITS =
   "-mx-1 shrink-0 rounded px-1 outline-none transition-colors hover:text-body focus-visible:ring-3 focus-visible:ring-ring/50";
 
-// A profile's footer: one quiet line, so the page ends on their films, not on us.
+// A profile's footer: one quiet, centred line, so the page ends on their films, not on us.
 export function ProfileFooter() {
   return (
     <footer className="mx-auto w-full max-w-3xl px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] sm:px-6">
-      <div className="flex items-center justify-between gap-4 border-t border-border pt-5 text-caption text-mute">
-        <p>
-          © <Year /> Next Movie
-        </p>
-        <Link href="/credits" className={CREDITS}>
-          Credits
-        </Link>
-      </div>
+      <p className="border-t border-border pt-5 text-center text-caption text-mute">
+        © <Year /> Next Movie
+      </p>
     </footer>
   );
 }

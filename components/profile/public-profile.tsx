@@ -8,6 +8,7 @@ import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { SeenToggle } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
+import { BackButton } from "@/components/site/back-button";
 import { ProfileFooter } from "@/components/site/footer";
 import { Logo } from "@/components/site/logo";
 import { ScrollHeader } from "@/components/site/scroll-header";
@@ -131,12 +132,14 @@ export function PublicProfile({
 }
 
 // A public page's top: film stills (TMDB backdrop paths) fading into the
-// page, under the logo. More than one crossfades in turn.
-export function PageBackdrop({ paths, visitor }: { paths: string[]; visitor: boolean }) {
+// page, under the logo. More than one crossfades in turn. A page under a
+// profile (a list, a Seen it answer) gets Back, to `back` when opened directly.
+export function PageBackdrop({ paths, visitor, back }: { paths: string[]; visitor: boolean; back?: string }) {
   return (
     <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
       {paths.length > 0 && <BannerSlideshow paths={paths} className="[mask-image:linear-gradient(to_bottom,black_35%,transparent)]" />}
-      <div className="relative mx-auto flex max-w-3xl items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
+      <div className="relative mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
+        {back && <BackButton fallback={back} className="ml-0 h-11 rounded-full bg-canvas/80 px-3.5 text-ink shadow-[0_2px_8px_rgba(0,0,0,0.35)] hover:bg-canvas" />}
         <Logo href={visitor ? "/" : "/recommendations"} />
       </div>
     </div>

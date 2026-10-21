@@ -2,27 +2,28 @@
 
 ← Back to [CLAUDE.md](../CLAUDE.md)
 
-Everyone has a public profile at `/@handle`: picture, name, bio, a few lines about their taste, their ranked favourites, their shared lists (a shelf of fanned cards linking to `/@handle/lists/slug`, see [lists.md](lists.md)), and everything else they've seen, shelved by answer (Peak first, Left midway last). It's the link people put in their bio. When the owner views their own page they get edit controls (Share, Edit profile, Reorder favourites, a ⋯ menu per seen film to change its answer or remove it). The Profile tab (`/account`) renders the same component with `variant="app"`: only the header (picture, name, bio, taste line, link, Share/Edit) and the Lists shelf, then the account settings, with no films.
+Everyone has a public profile at `/@handle`: picture, name, bio, a few lines about their taste, their ranked favourites, their shared lists (a shelf of fanned cards linking to `/@handle/lists/slug`, see [lists.md](lists.md)), and everything else they've seen as a shelf of the same fanned cards, one per answer (Peak first, Left midway last), each opening `/@handle/seen/<answer>` with that answer's films, newest first. It's the link people put in their bio. When the owner views their own page they get edit controls (Share, Edit profile, Reorder favourites, a Manage link to My films). The Profile tab (`/account`) renders the same component with `variant="app"`: only the header (picture, name, bio, taste line, link, Share/Edit) and the Lists shelf, then the account settings, with no films.
 
-The owner picks which Seen it lists are public from a switch on each shelf heading of their own `/@handle` page (`components/profile/seen-shelf.tsx`, saved at once by `setSeenShown`); hidden shelves stay visible to the owner, dimmed. Hidden answers are stored in `profiles.hidden_seen` (a text array, migration 0011) and are left out of `/@handle` for everyone; hiding Peak also drops the "called Peak" count.
+The owner picks which Seen it lists are public from a switch under each card on their own `/@handle` page, and on the answer's own page (`SeenToggle` in `components/profile/seen-shelf.tsx`, saved at once by `setSeenShown`); hidden cards stay visible to the owner, dimmed. Hidden answers are stored in `profiles.hidden_seen` (a text array, migration 0011) and are left out of `/@handle` for everyone; their `/@handle/seen/<answer>` page is a 404 for anyone but the owner, and hiding Peak also drops the "called Peak" count.
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
-| `lib/profile/rules.ts` | Handle rules (3–20 chars, `a-z 0-9 _ .`, no leading/trailing/double dots, reserved words), `handleCandidates(name)`, `MAX_BIO`, `profilePath()`. Pure. |
+| `lib/profile/rules.ts` | Handle rules (3–20 chars, `a-z 0-9 _ .`, no leading/trailing/double dots, reserved words), `handleCandidates(name)`, `MAX_BIO`, `profilePath()`, and the Seen it page slugs (`seenPath()`, `answerFromSlug()`: `peak`, `good`, `kinda-liked`, `okay`, `no-rewatch`, `left-midway`). Pure. |
+| `lib/profile/seen.ts` | `loadSeenList(handle, slug)`: one answer's films for `/@handle/seen/<slug>`, cached per request. |
 | `lib/profile/avatar.ts` | The `profiles.avatar` string format (`upload:` / `gen:` / null), `avatarImageUrl()`, `generatedAvatarUrl()`, `randomSeed()`. Pure. |
 | `lib/profile/store.ts` | Drizzle queries: `getProfile`, `getProfileByHandle` (public), `isHandleTaken`, `suggestHandle`, `createProfile` (sign-up), `updateProfile`. |
 | `lib/profile/taste.ts` | `getTaste(movies)`: ranked favourites, films seen, Peak count, directors (≥2 loved films), top genres, #1's backdrop, and the other seen films (newest first). |
 | `app/profile/actions.ts` | `checkHandle` (live availability, used signed out on /sign-up), `suggestHandleFor`, `saveProfile` (editor, incl. photo upload). |
-| `app/u/[handle]/` | Public page, its not-found state, and `opengraph-image.tsx` (the link-preview card). |
+| `app/u/[handle]/` | Public page, its not-found state, and `opengraph-image.tsx` (the link-preview card); `seen/[answer]/` is one answer's page (`PublicSeen`). |
 | `components/profile/` | `HandleField` + `useHandleCheck`, `ProfileAvatar`, `AvatarPicker`, `ProfileEditor`, `ShareButton`/`ShareProfileButton` and `CopyLink`/`ProfileLink` (any path, used by lists too), `PublicProfile` (page + app variants). The public page ends with the one-line `ProfileFooter` (© + Credits); the full `SiteFooter` is the landing page's. |
 
 ## Rules
 
 - **Handles are unique and lowercase** (`profiles.handle` has a unique constraint). Always `normalizeHandle()` then `handleProblem()` before querying. The client checks as you type (`useHandleCheck`), but the server re-checks on save and catches the unique violation (`isHandleConflict`) for races.
 - **Sign-up reserves the handle** by inserting the `profiles` row right after `supabase.auth.signUp`, with `onboarded_at: null` (it still has a `defaultNow()` so older inserts stay onboarded). `isOnboarded()` checks `onboarded_at`, not row existence.
-- **Routing:** `next.config.ts` rewrites `/@:handle` → `/u/:handle` and `/@:handle/lists/:slug` → `/u/:handle/lists/:slug`. `proxy.ts` lets signed-out visitors reach `/@…`, `/u/…` and `/movie/…`, so every film on a profile links to its page for everyone. For anyone who isn't the owner, profiles get `ScrollHeader` (`components/site/scroll-header.tsx`): a top bar with one action (Make yours / Your picks) that slides in once the name scrolls away (on shared lists, the list name); film pages have neither. Link to profiles with `profilePath(handle)`.
+- **Routing:** `next.config.ts` rewrites `/@:handle` → `/u/:handle`, `/@:handle/lists/:slug` → `/u/:handle/lists/:slug` and `/@:handle/seen/:answer` → `/u/:handle/seen/:answer`. `proxy.ts` lets signed-out visitors reach `/@…`, `/u/…` and `/movie/…`, so every film on a profile links to its page for everyone. For anyone who isn't the owner, profiles get `ScrollHeader` (`components/site/scroll-header.tsx`): a top bar with one action (Make yours / Your picks) that slides in once the name scrolls away (on shared lists, the list name); film pages have neither. Pages under a profile (a shared list, a Seen it answer) show it to the owner too, and both its bar and the page's top carry Back (history, else the profile). Link to profiles with `profilePath(handle)`.
 - **Public data only:** the public page shows `display_name`, never `user_metadata` or email. `saveProfile` also mirrors the name into `user_metadata.full_name` for the header.
 
 ## Avatars & Storage

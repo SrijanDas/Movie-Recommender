@@ -267,7 +267,9 @@ export async function addToWatchlist(id: unknown): Promise<ActionResult> {
   if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
   try {
     const existing = (await getUserMovies(userId)).find((m) => m.tmdbId === id);
-    if (existing) {
+    // "Might watch someday" moves up to the watchlist; anything else is
+    // already answered for.
+    if (existing && existing.signal !== "someday") {
       return existing.signal === "watchlist" ? { ok: true } : { ok: false, error: "That film is already in My films." };
     }
     const snapshot = await getSnapshot(id);

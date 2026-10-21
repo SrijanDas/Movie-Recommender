@@ -20,7 +20,7 @@ app/
   (app)/my-movies/    # favourites + seen films, add more; favourites/ edits favourites (drag, Move menu, remove), saved on Done
   (app)/account/      # Profile: picture, name, @handle, share link; email, install, Credits link, sign out
   (app)/account/edit/ # edit picture (upload / poster / icon), name, username (checked free), bio
-  movie/[id]/         # film page: backdrop banner, details, "Seen it" answer + watchlist toggle; public (own layout: app shell for members, plain header for visitors)
+  movie/[id]/         # film page: backdrop banner, details, "Seen it" answer, favourite star, ⋯ menu (watchlist, not interested, might watch someday); public (own layout: app shell for members, plain header for visitors)
   (app)/lists/        # list editor: new/ (from the watchlist, a My films filter, or empty) and [id]/edit/ (see docs/lists.md)
   u/[handle]/         # public profile, served at /@handle via a rewrite; open to signed-out visitors; share image
   u/[handle]/lists/[slug]/  # a shared list, served at /@handle/lists/slug; public; share image

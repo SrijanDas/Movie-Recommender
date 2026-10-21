@@ -1,9 +1,19 @@
 "use client";
 
-import { ChevronDownIcon, ListIcon, Loader2Icon, PencilIcon, Share2Icon, StarIcon, Trash2Icon } from "lucide-react";
+import {
+  BookmarkPlusIcon,
+  ChevronDownIcon,
+  ClockIcon,
+  ListIcon,
+  Loader2Icon,
+  PencilIcon,
+  Share2Icon,
+  StarIcon,
+  Trash2Icon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useOptimistic, useState, useTransition } from "react";
+import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ANSWERS } from "@/components/movies/feedback";
 import type { SearchResult } from "@/app/actions";
@@ -12,6 +22,7 @@ import {
   favoriteMovies,
   forgetMovie,
   rateMovie,
+  watchLater,
   type Feedback,
 } from "@/components/movies/movie-actions";
 import { FilmRow, rankClass } from "@/components/movies/film-row";
@@ -31,6 +42,7 @@ import {
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { answerOf, filterMyFilms, type ListedMovie, type MyFilmsFilter } from "@/lib/movies/types";
@@ -163,15 +175,69 @@ function SeenRow({ movie, favoritesFull }: { movie: ListedMovie; favoritesFull: 
   );
 }
 
+// A film set aside as "Might watch someday": say how it was once watched
+// (it moves to the seen films), save it to the watchlist, or take it off
+// (it may be recommended again). Each moves it out of this filter.
+function SomedayRow({ movie }: { movie: ListedMovie }) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const run = (action: () => Promise<{ ok: boolean }>, done: string) =>
+    startTransition(async () => {
+      const result = await action();
+      if (!result.ok) return;
+      toast(done);
+      router.refresh();
+    });
+  return (
+    <FilmRow movie={movie} className={cn(pending && "opacity-60")}>
+      <SeenItMenu
+        title={movie.title}
+        onRate={(feedback) =>
+          run(() => rateMovie({ ...movie, signal: feedback }), ANSWERS.find((a) => a.feedback === feedback)?.ack ?? "Saved")
+        }
+        variant="row"
+        disabled={pending}
+      />
+      <Button
+        variant="ghost"
+        size="icon-lg"
+        className="text-mute hover:text-primary-soft"
+        aria-label={`Move ${movie.title} to your watchlist`}
+        title="Move to watchlist"
+        disabled={pending}
+        onClick={() => run(() => watchLater(movie.tmdbId), `${movie.title} is on your watchlist`)}
+      >
+        <BookmarkPlusIcon />
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-lg"
+        className="text-mute hover:text-ink"
+        aria-label={`Remove ${movie.title}`}
+        title="Remove"
+        disabled={pending}
+        onClick={() => run(() => forgetMovie(movie.tmdbId), `Removed ${movie.title}`)}
+      >
+        <Trash2Icon />
+      </Button>
+    </FilmRow>
+  );
+}
+
 const filmsAdded = (n: number) => (n === 1 ? "Added 1 film" : `Added ${n} films`);
 
-// All first (the default), then each answer worst to best, then Favourites
-// after Peak.
-const FILTERS = [
-  { feedback: "all" as const, short: "All", icon: ListIcon },
+// All first (the default), then Someday, set apart from the rest since those
+// films weren't seen, then each answer worst to best, then Favourites after
+// Peak.
+const FILTERS: { feedback: Filter; short: string; menu?: string; icon: typeof ListIcon }[] = [
+  { feedback: "all", short: "All", icon: ListIcon },
+  { feedback: "someday", short: "Someday", menu: "Might watch someday", icon: ClockIcon },
   ...ANSWERS,
-  { feedback: "favorite" as const, short: "Favourites", icon: StarIcon },
+  { feedback: "favorite", short: "Favourites", icon: StarIcon },
 ];
+
+// The filter as the URL spells it (?show=), so a refresh keeps it.
+export const showParam = (filter: Filter) => (filter === "favorite" ? "favourites" : filter);
 
 // Case- and accent-insensitive, so "amelie" finds "Amélie".
 const fold = (text: string) =>
@@ -184,16 +250,29 @@ export function MyFilms({
   movies,
   starters,
   initialFilter = "all",
+  initialQuery = "",
 }: {
   movies: ListedMovie[];
   starters: SearchResult[];
-  // "favorite" when linked from favourites (?show=favourites); All otherwise.
-  initialFilter?: "all" | "favorite";
+  // From the URL (?show= and ?q=), so a refresh or a shared link keeps them.
+  initialFilter?: Filter;
+  initialQuery?: string;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>(initialFilter);
   // Searches only this list, within the current filter.
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
+  // Mirror both into the URL without a navigation, so nothing reloads.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (filter === "all") params.delete("show");
+    else params.set("show", showParam(filter));
+    if (query.trim()) params.set("q", query);
+    else params.delete("q");
+    const search = params.toString();
+    const next = `${window.location.pathname}${search ? `?${search}` : ""}`;
+    if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", next);
+  }, [filter, query]);
   const needle = fold(query.trim());
   const matches = (m: ListedMovie) => !needle || fold(m.title).includes(needle);
 
@@ -202,8 +281,15 @@ export function MyFilms({
   const room = Math.max(0, MAX_FAVORITES - favorites.length);
   // Newest first (legacy "seen" rows show only under All).
   const seen = filterMyFilms(movies, "all");
+  const someday = filterMyFilms(movies, "someday");
   const countOf = (f: Filter) =>
-    f === "favorite" ? favorites.length : f === "all" ? seen.length : seen.filter((m) => answerOf(m) === f).length;
+    f === "favorite"
+      ? favorites.length
+      : f === "all"
+        ? seen.length
+        : f === "someday"
+          ? someday.length
+          : seen.filter((m) => answerOf(m) === f).length;
   const inFilter = filter === "favorite" ? [] : filterMyFilms(movies, filter);
   const shown = inFilter.filter(matches);
   const onFavorites = filter === "favorite";
@@ -216,7 +302,9 @@ export function MyFilms({
       <div className="flex flex-col gap-1.5">
         <h1 className="text-display-md text-ink-strong md:text-display-lg">My films</h1>
         <p className="text-body-sm text-body md:text-body-md">
-          {!onFavorites
+          {filter === "someday"
+            ? "Films you’ve set aside for another time. They stay out of your picks."
+            : !onFavorites
             ? "Everything that shapes your recommendations."
             : favorites.length < MIN_FAVORITES
               ? `Pick at least ${MIN_FAVORITES} favourites to unlock recommendations.`
@@ -247,7 +335,7 @@ export function MyFilms({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-auto min-w-56 p-1.5">
               <DropdownMenuRadioGroup value={filter} onValueChange={(next: Filter) => setFilter(next)}>
-                {FILTERS.map(({ feedback, short, icon: Icon }) => (
+                {FILTERS.flatMap(({ feedback, short, menu, icon: Icon }) => [
                   <DropdownMenuRadioItem
                     key={feedback}
                     value={feedback}
@@ -255,10 +343,11 @@ export function MyFilms({
                     className="h-10 gap-2.5 pr-9 pl-2 text-body-sm text-ink"
                   >
                     <Icon className={cn(feedback === "favorite" && "text-primary-soft")} />
-                    <span className="flex-1">{short}</span>
+                    <span className="flex-1">{menu ?? short}</span>
                     <span className="font-mono text-code text-mute">{countOf(feedback)}</span>
-                  </DropdownMenuRadioItem>
-                ))}
+                  </DropdownMenuRadioItem>,
+                  ...(feedback === "someday" ? [<DropdownMenuSeparator key="apart" className="my-1.5" />] : []),
+                ])}
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -322,13 +411,19 @@ export function MyFilms({
           <p className="text-body-sm text-mute">
             {filter === "all"
               ? "Tap “Seen it” on a recommendation or search result and say how it was."
+              : filter === "someday"
+                ? "Nothing set aside yet. On a recommendation, tap ⋯ and pick “Might watch someday”."
               : `Nothing marked “${ANSWERS.find((a) => a.feedback === filter)?.label}” yet.`}
           </p>
         ) : (
           <ul className="divide-y divide-border border-y border-border">
-            {shown.map((m) => (
-              <SeenRow key={m.tmdbId} movie={m} favoritesFull={room === 0} />
-            ))}
+            {shown.map((m) =>
+              filter === "someday" ? (
+                <SomedayRow key={m.tmdbId} movie={m} />
+              ) : (
+                <SeenRow key={m.tmdbId} movie={m} favoritesFull={room === 0} />
+              ),
+            )}
           </ul>
         )}
       </div>

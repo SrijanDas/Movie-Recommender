@@ -25,17 +25,19 @@ export const isInMyFilms = (movie: RatedMovie) =>
 // A film's "Seen it" answer. A favourite carries its own in seenSignal.
 export const answerOf = (movie: RatedMovie) => (movie.signal === "favorite" ? movie.seenSignal : movie.signal);
 
-// What My films can show: everything, the favourites (ranked), or one
-// "Seen it" answer.
-export type MyFilmsFilter = "all" | "favorite" | SeenAnswer;
+// What My films can show: everything seen, the favourites (ranked), one
+// "Seen it" answer, or the films set aside as "Might watch someday" (not
+// seen, so never under All).
+export type MyFilmsFilter = "all" | "favorite" | "someday" | SeenAnswer;
 export const isMyFilmsFilter = (value: unknown): value is MyFilmsFilter =>
-  value === "all" || value === "favorite" || SEEN_ANSWERS.includes(value as SeenAnswer);
+  value === "all" || value === "favorite" || value === "someday" || SEEN_ANSWERS.includes(value as SeenAnswer);
 
 // The films My films lists under a filter: favourites in rank order, anything
 // else newest first (legacy "seen" rows show only under All). `movies` comes
 // oldest first, as getUserMovies returns it.
 export function filterMyFilms<T extends RatedMovie>(movies: T[], filter: MyFilmsFilter): T[] {
   if (filter === "favorite") return favoritesInOrder(movies);
+  if (filter === "someday") return movies.filter((m) => m.signal === "someday").reverse();
   const seen = movies.filter(isInMyFilms).reverse();
   return filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
 }

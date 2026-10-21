@@ -27,6 +27,15 @@ export function describeSource(
         back: "/my-movies?show=favourites",
       };
     }
+    if (f === "someday") {
+      return {
+        from: "From the films you might watch someday.",
+        name: "Someday",
+        syncHint: "Films you mark “Might watch someday” are added here. Films you watch or save are removed.",
+        copyHint: "The list stays as it is now. Changes to your someday films won’t affect it.",
+        back: "/my-movies?show=someday",
+      };
+    }
     if (f === "all") {
       return {
         from: "From everything you’ve seen.",
@@ -42,7 +51,7 @@ export function describeSource(
       name: f === "peak" ? "Peak films" : label,
       syncHint: `Films you rate “${label}” are added here. Films you rate differently are removed.`,
       copyHint: "The list stays as it is now. Changing your ratings won’t affect it.",
-      back: "/my-movies",
+      back: `/my-movies?show=${f}`,
     };
   }
   return { from: "Pick any films you like.", name: "", syncHint: "", copyHint: "", back: "/account" };

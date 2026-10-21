@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
+import type { RelatedMovies } from "@/lib/recommend/source";
 import type {
   TmdbImage,
   TmdbMovieDetails,
@@ -196,16 +197,17 @@ export async function getWatchProviders(id: number): Promise<Record<string, Tmdb
   return results;
 }
 
-// TMDB's own "recommendations" plus "similar" lists for a movie, one page of
-// each. A page past the end comes back empty.
-export async function getRelated(id: number, page = 1): Promise<TmdbMovieSummary[]> {
+// TMDB's own "recommendations" (from TMDB users' behaviour) and "similar"
+// (genre and keyword overlap) lists for a movie, one page of each, in TMDB's
+// order. A page past the end comes back empty.
+export async function getRelated(id: number, page = 1): Promise<RelatedMovies> {
   "use cache";
   cacheLife("weeks");
   const [recommended, similar] = await Promise.all([
     tmdbFetch<TmdbPage<TmdbMovieSummary>>(`/movie/${id}/recommendations`, { page }),
     tmdbFetch<TmdbPage<TmdbMovieSummary>>(`/movie/${id}/similar`, { page }),
   ]);
-  return [...recommended.results, ...similar.results];
+  return { recommendations: recommended.results, similar: similar.results };
 }
 
 export type DiscoverParams = {
@@ -223,7 +225,7 @@ export async function discover(params: DiscoverParams, page = 1): Promise<TmdbMo
     page,
     include_adult: "false",
     sort_by: "vote_average.desc",
-    "vote_count.gte": 300,
+    "vote_count.gte": 1000,
     // Feature films only: no TV movies (genre 10770), episodes or shorts.
     without_genres: 10770,
     "with_runtime.gte": 60,

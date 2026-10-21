@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { BackButton } from "@/components/site/back-button";
 import { Logo } from "@/components/site/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -14,8 +15,9 @@ const BAR = 56;
 // `watchId` passes under where the bar sits. A page too short to scroll that
 // far (a few films on a wide screen) shows it once scrolled to the end, and
 // one that can't scroll at all shows it from the start. Visitors get one way
-// in, members a way back to their picks.
-export function ScrollHeader({ viewer, watchId }: { viewer: "member" | "visitor"; watchId: string }) {
+// in, members a way back to their picks. A page under a profile also gets
+// Back, to `back` when opened directly.
+export function ScrollHeader({ viewer, watchId, back }: { viewer: "member" | "visitor"; watchId: string; back?: string }) {
   const [shown, setShown] = useState(false);
   const visitor = viewer === "visitor";
 
@@ -53,7 +55,10 @@ export function ScrollHeader({ viewer, watchId }: { viewer: "member" | "visitor"
       )}
     >
       <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Logo href={visitor ? "/" : "/recommendations"} />
+        <div className="flex min-w-0 items-center gap-1">
+          {back && <BackButton fallback={back} iconOnly />}
+          <Logo href={visitor ? "/" : "/recommendations"} />
+        </div>
         <Button size="sm" render={<Link href={visitor ? "/sign-up" : "/recommendations"} />} nativeButton={false}>
           {visitor ? "Make yours" : "Your picks"}
         </Button>

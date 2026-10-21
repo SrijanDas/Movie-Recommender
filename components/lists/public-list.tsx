@@ -36,8 +36,8 @@ export function PublicList({
   const path = listPath(profile.handle, list.slug);
   return (
     <div className="flex min-h-svh flex-col">
-      {!owner && <ScrollHeader viewer={viewer === "member" ? "member" : "visitor"} watchId="list-title" />}
-      <PageBackdrop paths={backdrops} visitor={viewer === "visitor"} />
+      <ScrollHeader viewer={viewer === "visitor" ? "visitor" : "member"} watchId="list-title" back={profilePath(profile.handle)} />
+      <PageBackdrop paths={backdrops} visitor={viewer === "visitor"} back={profilePath(profile.handle)} />
 
       <main className="relative mx-auto -mt-16 flex w-full max-w-3xl flex-1 flex-col gap-10 px-4 pb-12 sm:-mt-20 sm:px-6">
         <header className="flex flex-col gap-5">

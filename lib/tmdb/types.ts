@@ -45,6 +45,8 @@ export type TmdbMovieDetails = {
   vote_count: number;
   popularity: number;
   runtime: number | null;
+  // The franchise it belongs to, if any ("The Dark Knight Collection").
+  belongs_to_collection: { id: number; name: string } | null;
   genres: TmdbGenre[];
   credits: { cast: TmdbCastMember[]; crew: TmdbCrewMember[] };
   keywords: { keywords: TmdbKeyword[] };

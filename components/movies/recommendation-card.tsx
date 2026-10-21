@@ -30,8 +30,6 @@ export function RecommendationCard({
   onRate: (rating: Rating) => void;
   onWatchlist: () => void;
 }) {
-  const because = movie.reasons.flatMap((r) => r.because);
-  const becauseTitles = [...new Set(because)].slice(0, 2);
   // An installed PWA has no tabs: a new tab is a cold-started window with the
   // splash screen, so there the film opens in place and Back restores the list.
   const newTab = useInstallState() !== "installed";
@@ -101,8 +99,8 @@ export function RecommendationCard({
             ))}
           </ul>
         )}
-        {becauseTitles.length > 0 && (
-          <p className="text-caption text-mute">Because you like {becauseTitles.join(" and ")}</p>
+        {movie.because.length > 0 && (
+          <p className="text-caption text-mute">Because you like {movie.because.join(" and ")}</p>
         )}
       </div>
 
