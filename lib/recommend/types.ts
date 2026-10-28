@@ -72,6 +72,8 @@ export type Recommendation = {
   overview: string;
   voteAverage: number;
   voteCount: number;
+  // Genre names, for the genre filter.
+  genres: string[];
   score: number;
   // Rated films that drove the pick, strongest first ("Because you like …").
   because: string[];

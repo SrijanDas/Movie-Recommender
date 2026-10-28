@@ -1,6 +1,7 @@
 import { PencilIcon } from "lucide-react";
 import { Byline } from "@/components/lists/public-list";
 import { ANSWERS } from "@/components/movies/feedback";
+import { GenreFilteredFilms } from "@/components/movies/genre-filter";
 import { EditLink, OwnerEdits, PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
 import { SeenToggle } from "@/components/profile/seen-shelf";
 import { ShareButton } from "@/components/profile/share-profile";
@@ -25,7 +26,8 @@ export function PublicSeen({
 }: {
   profile: Profile & { handle: string };
   answer: SeenSlugAnswer;
-  films: UserMovie[];
+  // With their genre names, for the genre filter.
+  films: (UserMovie & { genres?: string[] })[];
   // Stills (TMDB backdrop paths) of the first films.
   backdrops: string[];
   viewer: Viewer;
@@ -81,11 +83,11 @@ export function PublicSeen({
         </header>
 
         {films.length > 0 ? (
-          <ul aria-label={label} className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5">
-            {films.map((m) => (
-              <RankedFilm key={m.tmdbId} movie={m} />
-            ))}
-          </ul>
+          <GenreFilteredFilms
+            label={label}
+            className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5"
+            films={films.map((m) => ({ tmdbId: m.tmdbId, genres: m.genres, node: <RankedFilm movie={m} /> }))}
+          />
         ) : (
           <p className="text-body-md text-body">
             {owner ? "No films with this answer yet. Answer Seen it on a film and it shows up here." : "No films here right now."}

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ANSWERS } from "@/components/movies/feedback";
 import { FilmCardHeading } from "@/components/movies/film-meta";
+import { GenreFilter, inGenre } from "@/components/movies/genre-filter";
 import { forgetMovie, rateMovie, undoRating, watchLater, type Feedback } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { GRID } from "@/components/movies/recommendation-grid";
@@ -16,9 +17,11 @@ import { Button } from "@/components/ui/button";
 import type { ListedMovie } from "@/lib/movies/types";
 
 // Saved-for-later films. Saying how one was (it moves to My films → Seen it)
-// or removing it takes the card away at once, with Undo.
+// or removing it takes the card away at once, with Undo. Genre chips narrow
+// the grid to one genre.
 export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
   const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
+  const [genre, setGenre] = useState<string | null>(null);
   const setShown = (id: number, shown: boolean) =>
     setHidden((prev) => {
       const next = new Set(prev);
@@ -57,9 +60,10 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
     });
   }
 
-  const shown = movies.filter((m) => !hidden.has(m.tmdbId));
+  const saved = movies.filter((m) => !hidden.has(m.tmdbId));
+  const shown = saved.filter(inGenre(genre));
 
-  if (shown.length === 0) {
+  if (saved.length === 0) {
     return (
       <div className="flex flex-col items-start gap-4 rounded-xl border border-border bg-muted p-5 sm:p-8">
         <h2 className="text-display-sm text-ink">Nothing saved yet</h2>
@@ -76,8 +80,10 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-body-sm text-mute" aria-live="polite">
-        {shown.length} {shown.length === 1 ? "film" : "films"} to watch
+        {saved.length} {saved.length === 1 ? "film" : "films"} to watch
       </p>
+      <GenreFilter films={saved} value={genre} onChange={setGenre} />
+      {shown.length === 0 && <p className="text-body-sm text-mute">No {genre} films left on your watchlist.</p>}
       {/* A card you act on shrinks away and the rest slide into its place. */}
       <ul className={`relative ${GRID}`}>
         <AnimatePresence initial={false} mode="popLayout">

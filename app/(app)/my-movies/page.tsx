@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { MyFilms } from "@/components/movies/my-films";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
-import { getUserMovies, withScores } from "@/lib/movies/store";
+import { getUserMovies, withDetails } from "@/lib/movies/store";
 import { getStarterResults } from "@/lib/movies/starters";
 import { isMyFilmsFilter, type MyFilmsFilter } from "@/lib/movies/types";
 
@@ -16,10 +16,10 @@ function parseShow(show: string | string[] | undefined): MyFilmsFilter {
   return value !== "favorite" && isMyFilmsFilter(value) ? value : "all";
 }
 
-async function Lists({ searchParams }: { searchParams: Promise<{ show?: string | string[]; q?: string | string[] }> }) {
-  const { show, q } = await searchParams;
+async function Lists({ searchParams }: { searchParams: Promise<{ show?: string | string[]; q?: string | string[]; genre?: string | string[] }> }) {
+  const { show, q, genre } = await searchParams;
   const [movies, starters] = await Promise.all([
-    getUserMovies(await requireUserId()).then(withScores),
+    getUserMovies(await requireUserId()).then(withDetails),
     getStarterResults(),
   ]);
   return (
@@ -27,6 +27,7 @@ async function Lists({ searchParams }: { searchParams: Promise<{ show?: string |
       movies={movies}
       initialFilter={parseShow(show)}
       initialQuery={(Array.isArray(q) ? q[0] : q) ?? ""}
+      initialGenre={(Array.isArray(genre) ? genre[0] : genre) || null}
       starters={starters}
     />
   );

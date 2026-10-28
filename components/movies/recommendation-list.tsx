@@ -13,6 +13,7 @@ import {
   watchLater,
   type Rating,
 } from "@/components/movies/movie-actions";
+import { GenreFilter, inGenre } from "@/components/movies/genre-filter";
 import { RecommendationCard } from "@/components/movies/recommendation-card";
 import { GRID, Notice } from "@/components/movies/recommendation-grid";
 import { CARD_PRESENCE, CARD_TRANSITION, staggerDelay } from "@/components/site/motion";
@@ -29,6 +30,8 @@ type FeedStatus = "idle" | "loading" | "refreshing" | "error" | "done";
 // while scrolling shape what comes next. Acting on a card removes only that
 // card. Refresh starts over with a new batch: it is computed from the list as
 // it is now and skips every film this visit has shown, so the grid is all new.
+// Genre chips narrow the grid to one genre; while too few cards match to
+// fill the screen, the feed keeps loading batches to find more.
 export function RecommendationList({ recommendations }: { recommendations: Recommendation[] }) {
   const [items, setItems] = useState(recommendations);
   const [status, setStatus] = useState<FeedStatus>("idle");
@@ -39,6 +42,7 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
   const everShown = useRef(recommendations.map((m) => m.tmdbId));
   // The latest batch, in order, so only its cards stagger in.
   const [batch, setBatch] = useState<number[]>([]);
+  const [genre, setGenre] = useState<string | null>(null);
 
   const fetchBatch = useCallback(async (replace: boolean) => {
     if (loading.current) return;
@@ -129,7 +133,8 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
     });
   }
 
-  const shown = status === "refreshing" ? [] : items.filter((r) => !hidden.has(r.tmdbId));
+  const remaining = status === "refreshing" ? [] : items.filter((r) => !hidden.has(r.tmdbId));
+  const shown = remaining.filter(inGenre(genre));
   const refreshing = status === "refreshing";
 
   return (
@@ -149,6 +154,8 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
           {refreshing ? "Refreshing" : "Refresh"}
         </Button>
       </div>
+
+      <GenreFilter films={remaining} value={genre} onChange={setGenre} />
 
       {(shown.length > 0 || refreshing) && (
         // A card you act on shrinks away and the rest slide into its place;
@@ -185,7 +192,10 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
 
       <div ref={sentinel} aria-live="polite">
         {status === "loading" && shown.length === 0 && (
-          <p className="text-body-sm text-mute">Finding more films…</p>
+          <p className="text-body-sm text-mute">{genre ? `Finding more ${genre} films…` : "Finding more films…"}</p>
+        )}
+        {(status === "idle" || status === "done") && genre && shown.length === 0 && (
+          <p className="text-body-sm text-mute">No {genre} picks right now.</p>
         )}
         {status === "loading" && shown.length > 0 && <span className="sr-only">Loading more films</span>}
         {status === "error" && (

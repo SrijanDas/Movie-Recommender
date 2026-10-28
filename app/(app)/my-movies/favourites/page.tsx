@@ -4,13 +4,13 @@ import { Suspense } from "react";
 import { FavoritesEditor } from "@/components/movies/favorites-editor";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
-import { getUserMovies, withScores } from "@/lib/movies/store";
+import { getUserMovies, withDetails } from "@/lib/movies/store";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 
 export const metadata: Metadata = { title: "Edit favourites" };
 
 async function Editor() {
-  const movies = await getUserMovies(await requireUserId()).then(withScores);
+  const movies = await getUserMovies(await requireUserId()).then(withDetails);
   return <FavoritesEditor favorites={favoritesInOrder(movies)} />;
 }
 

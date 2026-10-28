@@ -7,14 +7,14 @@ import { WatchlistGrid } from "@/components/movies/watchlist-grid";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
-import { getUserMovies, withScores } from "@/lib/movies/store";
+import { getUserMovies, withDetails } from "@/lib/movies/store";
 
 export const metadata: Metadata = { title: "Watchlist" };
 
 async function Saved() {
   const movies = await getUserMovies(await requireUserId());
   // Newest first.
-  const saved = await withScores(movies.filter((m) => m.signal === "watchlist").reverse());
+  const saved = await withDetails(movies.filter((m) => m.signal === "watchlist").reverse());
   return <WatchlistGrid movies={saved} />;
 }
 

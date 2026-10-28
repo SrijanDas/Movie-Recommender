@@ -26,6 +26,7 @@ import {
   type Feedback,
 } from "@/components/movies/movie-actions";
 import { FilmRow, rankClass } from "@/components/movies/film-row";
+import { GenreFilter, inGenre } from "@/components/movies/genre-filter";
 import { SearchField } from "@/components/movies/search-field";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Button } from "@/components/ui/button";
@@ -251,30 +252,37 @@ export function MyFilms({
   starters,
   initialFilter = "all",
   initialQuery = "",
+  initialGenre = null,
 }: {
   movies: ListedMovie[];
   starters: SearchResult[];
-  // From the URL (?show= and ?q=), so a refresh or a shared link keeps them.
+  // From the URL (?show=, ?q= and ?genre=), so a refresh or a shared link keeps them.
   initialFilter?: Filter;
   initialQuery?: string;
+  initialGenre?: string | null;
 }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>(initialFilter);
   // Searches only this list, within the current filter.
   const [query, setQuery] = useState(initialQuery);
-  // Mirror both into the URL without a navigation, so nothing reloads.
+  // Narrows the current filter to one genre, like the search.
+  const [genre, setGenre] = useState<string | null>(initialGenre);
+  // Mirror all three into the URL without a navigation, so nothing reloads.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (filter === "all") params.delete("show");
     else params.set("show", showParam(filter));
     if (query.trim()) params.set("q", query);
     else params.delete("q");
+    if (genre) params.set("genre", genre);
+    else params.delete("genre");
     const search = params.toString();
     const next = `${window.location.pathname}${search ? `?${search}` : ""}`;
     if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", next);
-  }, [filter, query]);
+  }, [filter, query, genre]);
   const needle = fold(query.trim());
-  const matches = (m: ListedMovie) => !needle || fold(m.title).includes(needle);
+  const ofGenre = inGenre(genre);
+  const matches = (m: ListedMovie) => ofGenre(m) && (!needle || fold(m.title).includes(needle));
 
   const favorites = favoritesInOrder(movies);
   const favoriteIds = new Set(favorites.map((m) => m.tmdbId));
@@ -295,7 +303,11 @@ export function MyFilms({
   const onFavorites = filter === "favorite";
   const current = FILTERS.find((f) => f.feedback === filter) ?? FILTERS[0];
   const CurrentIcon = current.icon;
-  const noMatch = <p className="text-body-sm text-mute">No films here match “{query.trim()}”.</p>;
+  const noMatch = (
+    <p className="text-body-sm text-mute">
+      {needle ? `No ${genre ? `${genre} ` : ""}films here match “${query.trim()}”.` : `No ${genre} films here.`}
+    </p>
+  );
 
   return (
     <div className={cn("flex flex-col gap-5 md:gap-6", onFavorites && favorites.length > 0 && "pb-16")}>
@@ -365,6 +377,8 @@ export function MyFilms({
           </Button>
         </div>
 
+        <GenreFilter films={onFavorites ? favorites : inFilter} value={genre} onChange={setGenre} />
+
         {onFavorites ? (
           <>
             {room > 0 && (
@@ -390,7 +404,7 @@ export function MyFilms({
               </div>
             )}
             <FavoritesList favorites={favorites} matches={matches} />
-            {needle && favorites.length > 0 && !favorites.some(matches) && noMatch}
+            {(needle || genre) && favorites.length > 0 && !favorites.some(matches) && noMatch}
             {favorites.length > 0 && (
               // Floats in thumb reach, just above the bottom tab bar on phones.
               <Button

@@ -7,7 +7,7 @@ import { PlainHeader } from "@/components/site/header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
-import { getUserMovies, withScores } from "@/lib/movies/store";
+import { getUserMovies, withDetails } from "@/lib/movies/store";
 import { isOnboarded } from "@/lib/onboarding";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { getStarterMovies, isTmdbConfigured } from "@/lib/tmdb/client";
@@ -25,7 +25,7 @@ async function Picker() {
     isTmdbConfigured() ? getStarterMovies().catch(() => []) : [],
   ]);
   if (onboarded) redirect("/recommendations");
-  const saved = await withScores(favoritesInOrder(movies));
+  const saved = await withDetails(favoritesInOrder(movies));
   return (
     <FavoritesPicker
       saved={saved.map(({ tmdbId, title, year, posterPath, voteAverage, voteCount }) => ({

@@ -51,7 +51,7 @@ async function List({ params }: { params: Params }) {
     <PublicList
       profile={profile}
       list={list}
-      films={films}
+      films={films.map((f, i) => ({ ...f, genres: details[i]?.genres.map((g) => g.name) }))}
       backdrops={backdrops}
       viewer={!viewer ? "visitor" : viewer.id === profile.userId ? "owner" : "member"}
     />

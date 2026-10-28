@@ -1,6 +1,7 @@
 import { PencilIcon } from "lucide-react";
 import Link from "next/link";
 import { LiveTag } from "@/components/lists/lists-shelf";
+import { GenreFilteredFilms } from "@/components/movies/genre-filter";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
 import { CopyLink, ShareButton } from "@/components/profile/share-profile";
@@ -26,7 +27,8 @@ export function PublicList({
 }: {
   profile: Profile & { handle: string };
   list: SharedList;
-  films: ListFilm[];
+  // With their genre names, for the genre filter.
+  films: (ListFilm & { genres?: string[] })[];
   // Each film's still (TMDB backdrop path), in list order.
   backdrops: string[];
   viewer: Viewer;
@@ -81,11 +83,17 @@ export function PublicList({
         </header>
 
         {films.length > 0 ? (
-          <ol aria-label={list.name} className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5">
-            {films.map((m, i) => (
-              <RankedFilm key={m.tmdbId} movie={m} rank={i + 1} />
-            ))}
-          </ol>
+          // A film keeps its place in the list when a genre is chosen.
+          <GenreFilteredFilms
+            ordered
+            label={list.name}
+            className="grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-4 md:grid-cols-5"
+            films={films.map((m, i) => ({
+              tmdbId: m.tmdbId,
+              genres: m.genres,
+              node: <RankedFilm movie={m} rank={i + 1} />,
+            }))}
+          />
         ) : (
           <p className="text-body-md text-body">
             {owner ? "Every film has left this list. Edit it to add some." : "No films in this list right now."}

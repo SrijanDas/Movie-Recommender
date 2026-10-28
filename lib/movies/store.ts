@@ -21,14 +21,16 @@ export async function getSnapshot(tmdbId: number): Promise<MovieSnapshot | null>
     : null;
 }
 
-// Add each film's TMDB score for display. getMovie is cached for weeks and
-// already fetched when a film is saved, so these are almost always cache hits;
-// a film TMDB can't return just shows no score.
-export async function withScores(movies: UserMovie[]): Promise<ListedMovie[]> {
+// Add each film's TMDB score and genres for display. getMovie is cached for
+// weeks and already fetched when a film is saved, so these are almost always
+// cache hits; a film TMDB can't return just shows no score or genres.
+export async function withDetails(movies: UserMovie[]): Promise<ListedMovie[]> {
   const details = await Promise.all(movies.map((m) => getMovie(m.tmdbId).catch(() => null)));
   return movies.map((m, i) => {
     const d = details[i];
-    return d ? { ...m, voteAverage: d.vote_average, voteCount: d.vote_count } : m;
+    return d
+      ? { ...m, voteAverage: d.vote_average, voteCount: d.vote_count, genres: (d.genres ?? []).map((g) => g.name) }
+      : m;
   });
 }
 

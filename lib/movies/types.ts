@@ -11,10 +11,11 @@ export type MovieSnapshot = {
 
 export type UserMovie = RatedMovie & MovieSnapshot;
 
-// TMDB's audience score. Not stored (scores drift): pages add it from the
-// cached TMDB details with withScores() before showing a list.
+// TMDB's audience score and the film's genre names. Not stored (scores
+// drift): pages add them from the cached TMDB details with withDetails()
+// before showing a list.
 export type TmdbScore = { voteAverage: number; voteCount: number };
-export type ListedMovie = UserMovie & Partial<TmdbScore>;
+export type ListedMovie = UserMovie & Partial<TmdbScore> & { genres?: string[] };
 
 // Whether a film lists on My films: everything watched and answered for,
 // favourites included. "Not interested" (down), "Might watch someday" and

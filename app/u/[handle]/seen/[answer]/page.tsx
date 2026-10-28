@@ -47,14 +47,18 @@ async function Seen({ params }: { params: Params }) {
   const viewer = await getCurrentUser();
   const owner = viewer?.id === seen.profile.userId;
   if (seen.hidden && !owner) notFound();
-  // getMovie is cached for weeks and already warm for most saved films.
-  const details = await Promise.all(seen.films.slice(0, BACKDROPS).map((f) => getMovie(f.tmdbId).catch(() => null)));
-  const backdrops = details.map((d) => d?.backdrop_path).filter((p): p is string => Boolean(p));
+  // Every film's genres, and the stills of the newest. getMovie is cached for
+  // weeks and already warm for most saved films.
+  const details = await Promise.all(seen.films.map((f) => getMovie(f.tmdbId).catch(() => null)));
+  const backdrops = details
+    .slice(0, BACKDROPS)
+    .map((d) => d?.backdrop_path)
+    .filter((p): p is string => Boolean(p));
   return (
     <PublicSeen
       profile={seen.profile}
       answer={seen.answer}
-      films={seen.films}
+      films={seen.films.map((f, i) => ({ ...f, genres: details[i]?.genres.map((g) => g.name) }))}
       backdrops={backdrops}
       viewer={!viewer ? "visitor" : owner ? "owner" : "member"}
     />

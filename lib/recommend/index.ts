@@ -110,6 +110,7 @@ export async function getRecommendations(
         overview: movie.overview,
         voteAverage: movie.vote_average,
         voteCount: movie.vote_count,
+        genres: genreNames(movie),
         score,
         because: anchors,
         reasons,
