@@ -2,7 +2,6 @@
 
 import {
   BookmarkPlusIcon,
-  CheckIcon,
   ClockIcon,
   ListIcon,
   Loader2Icon,
@@ -26,7 +25,7 @@ import {
   type Feedback,
 } from "@/components/movies/movie-actions";
 import { FilmRow, rankClass } from "@/components/movies/film-row";
-import { FilterSection, FilterSheet, GenreChoices, canFilterGenre, inGenre } from "@/components/movies/film-filter";
+import { FilterField, FilterSheet, GenreField, canFilterGenre, inGenre } from "@/components/movies/film-filter";
 import { SearchField } from "@/components/movies/search-field";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,6 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { answerOf, filterMyFilms, isMyFilmsFilter, type ListedMovie, type MyFilmsFilter } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
@@ -350,33 +348,21 @@ export function MyFilms({
             }}
             triggerClassName="h-11 max-w-[45%] shrink-0 rounded-lg border-input bg-muted text-ink"
           >
-            <FilterSection title="Show">
-              <ToggleGroup
-                aria-label="Show"
-                orientation="vertical"
-                value={[draftFilter]}
-                onValueChange={(next) => isMyFilmsFilter(next[0]) && setDraftFilter(next[0])}
-                className="-mx-2 w-auto gap-0.5"
-              >
-                {FILTERS.flatMap(({ feedback, short, menu, icon: Icon }) => [
-                  <ToggleGroupItem
-                    key={feedback}
-                    value={feedback}
-                    className="h-11 w-full justify-start gap-2.5 px-2 text-body-sm font-normal text-ink aria-pressed:bg-muted"
-                  >
-                    <Icon className={cn(feedback === "favorite" ? "text-primary-soft" : "text-mute")} />
-                    <span className="flex-1 text-left">{menu ?? short}</span>
-                    <span className="font-mono text-code text-mute tabular-nums">{countOf(feedback)}</span>
-                    <CheckIcon className="text-primary-soft opacity-0 group-aria-pressed/toggle:opacity-100" aria-hidden />
-                  </ToggleGroupItem>,
-                  ...(feedback === "someday" ? [<div key="apart" role="separator" className="mx-2 my-1.5 h-px bg-border" />] : []),
-                ])}
-              </ToggleGroup>
-            </FilterSection>
+            <FilterField
+              label="Show"
+              value={draftFilter}
+              onChange={(next) => isMyFilmsFilter(next) && setDraftFilter(next)}
+              options={FILTERS.map(({ feedback, short, menu, icon }) => ({
+                value: feedback,
+                label: menu ?? short,
+                count: countOf(feedback),
+                icon,
+                iconClassName: feedback === "favorite" ? "text-primary-soft" : undefined,
+                separatorAfter: feedback === "someday",
+              }))}
+            />
             {canFilterGenre(draftFilms, draftGenre) && (
-              <FilterSection title="Genre">
-                <GenreChoices films={draftFilms} value={draftGenre} onChange={setDraftGenre} />
-              </FilterSection>
+              <GenreField films={draftFilms} value={draftGenre} onChange={setDraftGenre} />
             )}
           </FilterSheet>
           {/* Share what's showing: the films under this filter, as a named list. */}

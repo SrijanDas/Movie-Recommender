@@ -1,10 +1,17 @@
 "use client";
 
 import { SlidersHorizontalIcon, XIcon, type LucideIcon } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 // A film with its genre names (from the cached film details). A film whose
@@ -32,13 +39,72 @@ export const canFilterGenre = (films: WithGenres[], genre: string | null) =>
 
 const filmCount = (n: number, noun: [string, string] = ["film", "films"]) => `${n} ${n === 1 ? noun[0] : noun[1]}`;
 
-const chip =
-  "h-9 gap-1.5 rounded-full border border-border bg-transparent px-3 text-body-sm font-normal text-body hover:bg-muted hover:text-ink aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-canvas aria-pressed:hover:bg-ink aria-pressed:hover:text-canvas";
-const chipCount = "font-mono text-code text-mute tabular-nums group-aria-pressed/toggle:text-canvas/70";
+// One choice in a filter field.
+export type FilterOption = {
+  value: string;
+  label: string;
+  count?: number;
+  icon?: LucideIcon;
+  iconClassName?: string;
+  // Draws a line under this option, to set the ones before it apart.
+  separatorAfter?: boolean;
+};
 
-// The genre chips inside a filter sheet: All, then each genre the films have,
-// most common first, with counts. Tapping one only changes the draft.
-export function GenreChoices({
+// One filter inside the sheet: its label, then the current choice; tap it to
+// pick another from a menu. Picking only changes the draft.
+export function FilterField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: FilterOption[];
+  onChange: (value: string) => void;
+}) {
+  const id = useId();
+  const current = options.find((o) => o.value === value);
+  const CurrentIcon = current?.icon;
+  return (
+    <div className="flex flex-col gap-2">
+      <span id={id} className="text-body-sm font-semibold text-ink">
+        {label}
+      </span>
+      <Select value={value} onValueChange={(next) => typeof next === "string" && onChange(next)}>
+        <SelectTrigger
+          aria-labelledby={id}
+          className="h-11 w-full rounded-lg border-input bg-muted px-3 text-body-sm text-ink data-[size=default]:h-11 dark:bg-muted dark:hover:bg-muted"
+        >
+          <SelectValue>
+            {() =>
+              current && (
+                <>
+                  {CurrentIcon && <CurrentIcon className={cn("text-mute", current.iconClassName)} />}
+                  <span className="truncate">{current.label}</span>
+                </>
+              )
+            }
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false} className="max-h-[min(22rem,var(--available-height))] bg-background p-1.5 ring-border">
+          {options.flatMap(({ value: v, label: l, count, icon: Icon, iconClassName, separatorAfter }) => [
+            <SelectItem key={v} value={v} className="h-10 gap-2.5 pr-9 pl-2 text-body-sm text-ink">
+              {Icon && <Icon className={cn("text-mute", iconClassName)} />}
+              <span className="flex-1 truncate">{l}</span>
+              {count !== undefined && <span className="font-mono text-code text-mute tabular-nums">{count}</span>}
+            </SelectItem>,
+            ...(separatorAfter ? [<SelectSeparator key={`${v}-apart`} className="mx-0 my-1.5" />] : []),
+          ])}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+// The Genre field: All genres, then each genre the films have, most common
+// first, with counts.
+export function GenreField({
   films,
   value,
   onChange,
@@ -48,36 +114,18 @@ export function GenreChoices({
   onChange: (genre: string | null) => void;
 }) {
   const genres = genreCounts(films);
-  // Keep the chosen genre visible when none of these films have it, so it can be cleared.
+  // Keep the chosen genre listed when none of these films have it, so it stays shown.
   if (value && !genres.some(([g]) => g === value)) genres.push([value, 0]);
   return (
-    <ToggleGroup
-      aria-label="Genre"
-      value={[value ?? ALL]}
-      onValueChange={(next) => onChange(next[0] && next[0] !== ALL ? next[0] : null)}
-      className="w-full flex-wrap gap-2"
-    >
-      <ToggleGroupItem value={ALL} className={chip}>
-        All
-        <span className={chipCount}>{films.length}</span>
-      </ToggleGroupItem>
-      {genres.map(([genre, n]) => (
-        <ToggleGroupItem key={genre} value={genre} className={chip}>
-          {genre}
-          <span className={chipCount}>{n}</span>
-        </ToggleGroupItem>
-      ))}
-    </ToggleGroup>
-  );
-}
-
-// One titled group of choices inside a filter sheet.
-export function FilterSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-body-sm font-semibold text-ink">{title}</h3>
-      {children}
-    </section>
+    <FilterField
+      label="Genre"
+      value={value ?? ALL}
+      onChange={(next) => onChange(next === ALL ? null : next)}
+      options={[
+        { value: ALL, label: "All genres", count: films.length, separatorAfter: true },
+        ...genres.map(([genre, count]) => ({ value: genre, label: genre, count })),
+      ]}
+    />
   );
 }
 
@@ -143,7 +191,7 @@ export function FilterSheet({
           </DialogClose>
         </header>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto overscroll-contain px-4 py-5 sm:px-5">
           {children}
         </div>
 
@@ -198,9 +246,7 @@ export function GenreFilterButton({
       onApply={() => onChange(draft)}
       triggerClassName={className}
     >
-      <FilterSection title="Genre">
-        <GenreChoices films={films} value={draft} onChange={setDraft} />
-      </FilterSection>
+      <GenreField films={films} value={draft} onChange={setDraft} />
     </FilterSheet>
   );
 }
