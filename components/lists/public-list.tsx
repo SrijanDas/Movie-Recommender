@@ -1,7 +1,7 @@
 import { PencilIcon } from "lucide-react";
 import Link from "next/link";
 import { LiveTag } from "@/components/lists/lists-shelf";
-import { GenreFilteredFilms } from "@/components/movies/genre-filter";
+import { GenreFilteredFilms } from "@/components/movies/film-filter";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
 import { CopyLink, ShareButton } from "@/components/profile/share-profile";

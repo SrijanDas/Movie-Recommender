@@ -2,7 +2,7 @@
 
 import {
   BookmarkPlusIcon,
-  ChevronDownIcon,
+  CheckIcon,
   ClockIcon,
   ListIcon,
   Loader2Icon,
@@ -26,7 +26,7 @@ import {
   type Feedback,
 } from "@/components/movies/movie-actions";
 import { FilmRow, rankClass } from "@/components/movies/film-row";
-import { GenreFilter, inGenre } from "@/components/movies/genre-filter";
+import { FilterSection, FilterSheet, GenreChoices, canFilterGenre, inGenre } from "@/components/movies/film-filter";
 import { SearchField } from "@/components/movies/search-field";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { Button } from "@/components/ui/button";
@@ -38,15 +38,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { answerOf, filterMyFilms, type ListedMovie, type MyFilmsFilter } from "@/lib/movies/types";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { answerOf, filterMyFilms, isMyFilmsFilter, type ListedMovie, type MyFilmsFilter } from "@/lib/movies/types";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { MAX_FAVORITES, MIN_FAVORITES } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
@@ -267,6 +260,9 @@ export function MyFilms({
   const [query, setQuery] = useState(initialQuery);
   // Narrows the current filter to one genre, like the search.
   const [genre, setGenre] = useState<string | null>(initialGenre);
+  // The filter sheet's choices, applied only on Apply.
+  const [draftFilter, setDraftFilter] = useState<Filter>(filter);
+  const [draftGenre, setDraftGenre] = useState<string | null>(genre);
   // Mirror all three into the URL without a navigation, so nothing reloads.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -302,7 +298,10 @@ export function MyFilms({
   const shown = inFilter.filter(matches);
   const onFavorites = filter === "favorite";
   const current = FILTERS.find((f) => f.feedback === filter) ?? FILTERS[0];
-  const CurrentIcon = current.icon;
+  // The films the sheet's draft would show, for its genre counts and summary.
+  const filmsIn = (f: Filter) => (f === "favorite" ? favorites : filterMyFilms(movies, f));
+  const draftFilms = filmsIn(draftFilter);
+  const draftShown = draftFilms.filter((m) => inGenre(draftGenre)(m) && (!needle || fold(m.title).includes(needle))).length;
   const noMatch = (
     <p className="text-body-sm text-mute">
       {needle ? `No ${genre ? `${genre} ` : ""}films here match “${query.trim()}”.` : `No ${genre} films here.`}
@@ -331,38 +330,55 @@ export function MyFilms({
           <div className="min-w-0 flex-1">
             <SearchField value={query} onChange={setQuery} placeholder="Search my films" />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="h-11 max-w-[45%] shrink-0 gap-1.5 rounded-lg border-input bg-muted px-3 text-body-sm text-ink"
-                  aria-label={`Show: ${current.short}`}
-                />
-              }
-            >
-              <CurrentIcon className={cn(filter === "favorite" && "text-primary-soft")} />
-              <span className="truncate">{current.short}</span>
-              <ChevronDownIcon className="text-mute" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-auto min-w-56 p-1.5">
-              <DropdownMenuRadioGroup value={filter} onValueChange={(next: Filter) => setFilter(next)}>
+          <FilterSheet
+            label={genre ? `${current.short} · ${genre}` : current.short}
+            icon={current.icon}
+            active={filter !== "all" || genre !== null}
+            summary={`${draftShown} ${draftShown === 1 ? "film" : "films"}`}
+            resettable={draftFilter !== "all" || draftGenre !== null}
+            onOpen={() => {
+              setDraftFilter(filter);
+              setDraftGenre(genre);
+            }}
+            onReset={() => {
+              setDraftFilter("all");
+              setDraftGenre(null);
+            }}
+            onApply={() => {
+              setFilter(draftFilter);
+              setGenre(draftGenre);
+            }}
+            triggerClassName="h-11 max-w-[45%] shrink-0 rounded-lg border-input bg-muted text-ink"
+          >
+            <FilterSection title="Show">
+              <ToggleGroup
+                aria-label="Show"
+                orientation="vertical"
+                value={[draftFilter]}
+                onValueChange={(next) => isMyFilmsFilter(next[0]) && setDraftFilter(next[0])}
+                className="-mx-2 w-auto gap-0.5"
+              >
                 {FILTERS.flatMap(({ feedback, short, menu, icon: Icon }) => [
-                  <DropdownMenuRadioItem
+                  <ToggleGroupItem
                     key={feedback}
                     value={feedback}
-                    closeOnClick
-                    className="h-10 gap-2.5 pr-9 pl-2 text-body-sm text-ink"
+                    className="h-11 w-full justify-start gap-2.5 px-2 text-body-sm font-normal text-ink aria-pressed:bg-muted"
                   >
-                    <Icon className={cn(feedback === "favorite" && "text-primary-soft")} />
-                    <span className="flex-1">{menu ?? short}</span>
-                    <span className="font-mono text-code text-mute">{countOf(feedback)}</span>
-                  </DropdownMenuRadioItem>,
-                  ...(feedback === "someday" ? [<DropdownMenuSeparator key="apart" className="my-1.5" />] : []),
+                    <Icon className={cn(feedback === "favorite" ? "text-primary-soft" : "text-mute")} />
+                    <span className="flex-1 text-left">{menu ?? short}</span>
+                    <span className="font-mono text-code text-mute tabular-nums">{countOf(feedback)}</span>
+                    <CheckIcon className="text-primary-soft opacity-0 group-aria-pressed/toggle:opacity-100" aria-hidden />
+                  </ToggleGroupItem>,
+                  ...(feedback === "someday" ? [<div key="apart" role="separator" className="mx-2 my-1.5 h-px bg-border" />] : []),
                 ])}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </ToggleGroup>
+            </FilterSection>
+            {canFilterGenre(draftFilms, draftGenre) && (
+              <FilterSection title="Genre">
+                <GenreChoices films={draftFilms} value={draftGenre} onChange={setDraftGenre} />
+              </FilterSection>
+            )}
+          </FilterSheet>
           {/* Share what's showing: the films under this filter, as a named list. */}
           <Button
             variant="outline"
@@ -376,8 +392,6 @@ export function MyFilms({
             <Share2Icon />
           </Button>
         </div>
-
-        <GenreFilter films={onFavorites ? favorites : inFilter} value={genre} onChange={setGenre} />
 
         {onFavorites ? (
           <>

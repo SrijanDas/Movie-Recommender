@@ -4,17 +4,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { RefreshCwIcon, RotateCwIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { ANSWERS } from "@/components/movies/feedback";
 import {
   loadMoreRecommendations,
   rateMovie,
   undoRating,
   watchLater,
-  type Rating,
 } from "@/components/movies/movie-actions";
-import { GenreFilter, inGenre } from "@/components/movies/genre-filter";
-import { RecommendationCard } from "@/components/movies/recommendation-card";
+import { GenreFilterButton, inGenre } from "@/components/movies/film-filter";
+import { RecommendationCard, type Acted } from "@/components/movies/recommendation-card";
 import { GRID, Notice } from "@/components/movies/recommendation-grid";
 import { CARD_PRESENCE, CARD_TRANSITION, staggerDelay } from "@/components/site/motion";
 import { Button } from "@/components/ui/button";
@@ -27,17 +24,19 @@ type FeedStatus = "idle" | "loading" | "refreshing" | "error" | "done";
 // The recommendation feed: the server renders the first batch, and scrolling
 // near the end loads the next one (`moreRecommendations`), skipping every film
 // already loaded. Each batch reads the user's list fresh, so answers given
-// while scrolling shape what comes next. Acting on a card removes only that
-// card. Refresh starts over with a new batch: it is computed from the list as
-// it is now and skips every film this visit has shown, so the grid is all new.
-// Genre chips narrow the grid to one genre; while too few cards match to
-// fill the screen, the feed keeps loading batches to find more.
+// while scrolling shape what comes next. Acting on a card leaves it in place,
+// marked with what was done and an Undo, so the grid never shifts under your
+// thumb; Refresh drops those cards. Refresh starts over with a new batch: it
+// is computed from the list as it is now and skips every film this visit has
+// shown, so the grid is all new.
+// Filter narrows the grid to one genre once applied; while too few cards
+// match to fill the screen, the feed keeps loading batches to find more.
 export function RecommendationList({ recommendations }: { recommendations: Recommendation[] }) {
   const [items, setItems] = useState(recommendations);
   const [status, setStatus] = useState<FeedStatus>("idle");
   const loading = useRef(false);
-  // Cards acted on (rated, hidden, saved): removed in place, with Undo.
-  const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
+  // Cards acted on (rated, hidden, saved), and how: marked in place, with Undo.
+  const [acted, setActed] = useState<ReadonlyMap<number, Acted>>(() => new Map());
   // Every film shown this visit, across refreshes: never shown again.
   const everShown = useRef(recommendations.map((m) => m.tmdbId));
   // The latest batch, in order, so only its cards stagger in.
@@ -61,7 +60,7 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
     setBatch(fresh.map((m) => m.tmdbId));
     if (replace) {
       setItems(fresh);
-      setHidden(new Set());
+      setActed(new Map());
       window.scrollTo({
         top: 0,
         behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
@@ -76,7 +75,7 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
 
   // Load the next batch well before the end comes into view. Re-observing
   // after every batch re-checks a sentinel that is still on screen (a short
-  // batch, or every card hidden), so the feed keeps filling.
+  // batch, or too few cards in the chosen genre), so the feed keeps filling.
   const sentinel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const target = sentinel.current;
@@ -91,75 +90,66 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
     return () => observer.disconnect();
   }, [loadMore, status]);
 
-  const setShown = (id: number, shown: boolean) =>
-    setHidden((prev) => {
-      const next = new Set(prev);
-      if (shown) next.delete(id);
-      else next.add(id);
+  const mark = (id: number, how: Acted | null) =>
+    setActed((prev) => {
+      const next = new Map(prev);
+      if (how) next.set(id, how);
+      else next.delete(id);
       return next;
     });
 
-  async function rate(movie: Recommendation, rating: Rating) {
+  async function act(movie: Recommendation, how: Acted) {
     const { tmdbId, title, posterPath, year } = movie;
-    setShown(tmdbId, false);
-    const result = await rateMovie({ tmdbId, title, posterPath, year, signal: rating });
-    if (!result.ok) return setShown(tmdbId, true);
-    const answer = ANSWERS.find((a) => a.feedback === rating);
-    const [message, description] =
-      rating === "down"
-        ? [`Hid ${title}`, "You’ll see fewer films like it."]
-        : rating === "someday"
-          ? [`Hid ${title} for now`, "Your picks stay the same."]
-          : [answer?.ack ?? "Noted.", `${answer?.label}: ${title}`];
-    toast(message, {
-      description,
-      action: {
-        label: "Undo",
-        onClick: () => void undoRating(tmdbId).then((r) => r.ok && setShown(tmdbId, true)),
-      },
-    });
+    mark(tmdbId, how);
+    const result =
+      how === "watchlist"
+        ? await watchLater(tmdbId)
+        : await rateMovie({ tmdbId, title, posterPath, year, signal: how });
+    if (!result.ok) mark(tmdbId, null);
   }
 
-  async function saveForLater({ tmdbId, title }: Recommendation) {
-    setShown(tmdbId, false);
-    const result = await watchLater(tmdbId);
-    if (!result.ok) return setShown(tmdbId, true);
-    toast("Added to your watchlist", {
-      description: title,
-      action: {
-        label: "Undo",
-        onClick: () => void undoRating(tmdbId).then((r) => r.ok && setShown(tmdbId, true)),
-      },
-    });
+  async function undo({ tmdbId }: Recommendation) {
+    const how = acted.get(tmdbId);
+    if (!how) return;
+    mark(tmdbId, null);
+    const result = await undoRating(tmdbId);
+    if (!result.ok) mark(tmdbId, how);
   }
 
-  const remaining = status === "refreshing" ? [] : items.filter((r) => !hidden.has(r.tmdbId));
+  const remaining = status === "refreshing" ? [] : items;
   const shown = remaining.filter(inGenre(genre));
+  const open = shown.filter((r) => !acted.has(r.tmdbId)).length;
   const refreshing = status === "refreshing";
 
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-body-sm text-mute" aria-live="polite">
-          {refreshing ? "Finding fresh picks…" : `${shown.length} ${shown.length === 1 ? "pick" : "picks"}`}
+        <p className="min-w-0 text-body-sm text-mute" aria-live="polite">
+          {refreshing ? "Finding fresh picks…" : `${open} ${open === 1 ? "pick" : "picks"}`}
         </p>
-        <Button
-          variant="outline"
-          className="h-9 gap-1.5 px-3 text-body-sm"
-          onClick={refresh}
-          disabled={refreshing || status === "loading"}
-          title="New picks, from your list as it is now"
-        >
-          <RefreshCwIcon className={cn(refreshing && "animate-spin")} />
-          {refreshing ? "Refreshing" : "Refresh"}
-        </Button>
+        <div className="flex min-w-0 items-center gap-2">
+          <GenreFilterButton
+            films={remaining}
+            value={genre}
+            onChange={setGenre}
+            noun={["pick", "picks"]}
+            className="min-w-0"
+          />
+          <Button
+            variant="outline"
+            className="h-9 gap-1.5 px-3 text-body-sm"
+            onClick={refresh}
+            disabled={refreshing || status === "loading"}
+            title="New picks, from your list as it is now"
+          >
+            <RefreshCwIcon className={cn(refreshing && "animate-spin")} />
+            {refreshing ? "Refreshing" : "Refresh"}
+          </Button>
+        </div>
       </div>
 
-      <GenreFilter films={remaining} value={genre} onChange={setGenre} />
-
       {(shown.length > 0 || refreshing) && (
-        // A card you act on shrinks away and the rest slide into its place;
-        // the first batch is already on screen, later ones fade up in turn.
+        // The first batch is already on screen; later ones fade up in turn.
         <ul className={cn("relative", GRID)}>
           <AnimatePresence initial={false} mode="popLayout">
             {shown.map((movie, i) => (
@@ -173,8 +163,10 @@ export function RecommendationList({ recommendations }: { recommendations: Recom
                 <RecommendationCard
                   movie={movie}
                   preload={i < 4}
-                  onRate={(rating) => void rate(movie, rating)}
-                  onWatchlist={() => void saveForLater(movie)}
+                  acted={acted.get(movie.tmdbId)}
+                  onRate={(rating) => void act(movie, rating)}
+                  onWatchlist={() => void act(movie, "watchlist")}
+                  onUndo={() => void undo(movie)}
                 />
               </motion.li>
             ))}

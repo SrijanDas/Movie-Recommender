@@ -1,7 +1,16 @@
 "use client";
 
-import { BanIcon, BookmarkPlusIcon, ClockIcon, EllipsisVerticalIcon } from "lucide-react";
+import {
+  BanIcon,
+  BookmarkCheckIcon,
+  BookmarkPlusIcon,
+  ClockIcon,
+  EllipsisVerticalIcon,
+  Undo2Icon,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
+import { ANSWERS } from "@/components/movies/feedback";
 import { FilmCardHeading } from "@/components/movies/film-meta";
 import type { Rating } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
@@ -16,19 +25,36 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Recommendation } from "@/lib/recommend/types";
+import { cn } from "@/lib/utils";
 
-// Saving, removing and undo live in RecommendationList; the card only says
-// which action was taken.
+// What was done to a card: a rating, or saved to the watchlist.
+export type Acted = Rating | "watchlist";
+
+function actedLabel(acted: Acted): { label: string; icon: LucideIcon } {
+  if (acted === "watchlist") return { label: "On your watchlist", icon: BookmarkCheckIcon };
+  if (acted === "down") return { label: "Not interested", icon: BanIcon };
+  if (acted === "someday") return { label: "Maybe someday", icon: ClockIcon };
+  const answer = ANSWERS.find((a) => a.feedback === acted);
+  return { label: answer?.label ?? "Seen it", icon: answer?.icon ?? BookmarkCheckIcon };
+}
+
+// Saving and undo live in RecommendationList; the card only says which action
+// was taken. Once acted on, the card stays put, dimmed, saying what was done
+// with an Undo in place of its actions; the next Refresh drops it.
 export function RecommendationCard({
   movie,
   preload,
+  acted,
   onRate,
   onWatchlist,
+  onUndo,
 }: {
   movie: Recommendation;
   preload?: boolean;
+  acted?: Acted;
   onRate: (rating: Rating) => void;
   onWatchlist: () => void;
+  onUndo: () => void;
 }) {
   // An installed PWA has no tabs: a new tab is a cold-started window with the
   // splash screen, so there the film opens in place and Back restores the list.
@@ -50,7 +76,10 @@ export function RecommendationCard({
           title={movie.title}
           preload={preload}
           sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
-          className="transition-shadow duration-200 group-hover:shadow-glow"
+          className={cn(
+            "transition-[box-shadow,opacity,filter] duration-300 ease-out group-hover:shadow-glow",
+            acted && "opacity-40 grayscale",
+          )}
         />
         <FilmCardHeading
           title={movie.title}
@@ -62,6 +91,7 @@ export function RecommendationCard({
       </Link>
 
       {/* Sits over the poster's top-right corner, outside the link. */}
+      {!acted && (
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
@@ -86,8 +116,9 @@ export function RecommendationCard({
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      )}
 
-      <div className="-mt-1 flex flex-col gap-2">
+      <div className={cn("-mt-1 flex flex-col gap-2 transition-opacity duration-300", acted && "opacity-50")}>
         {movie.reasons.length > 0 && (
           <ul className="flex flex-wrap gap-1.5" aria-label="Why it was picked">
             {movie.reasons.map((r) => (
@@ -104,7 +135,8 @@ export function RecommendationCard({
         )}
       </div>
 
-      {/* One row: Seen it takes the room left by the bookmark. */}
+      {acted ? <ActedRow acted={acted} title={movie.title} onUndo={onUndo} /> : (
+      /* One row: Seen it takes the room left by the bookmark. */
       <div className="mt-auto flex items-center gap-1.5">
         <SeenItMenu title={movie.title} onRate={onRate} variant="compact" className="min-w-0 flex-1" />
         <Button
@@ -118,6 +150,29 @@ export function RecommendationCard({
           <BookmarkPlusIcon />
         </Button>
       </div>
+      )}
     </article>
+  );
+}
+
+// Takes the actions row's place, at the same height, so nothing below moves.
+function ActedRow({ acted, title, onUndo }: { acted: Acted; title: string; onUndo: () => void }) {
+  const { label, icon: Icon } = actedLabel(acted);
+  return (
+    <div className="mt-auto flex h-10 items-center gap-1.5" role="status">
+      <p className="flex min-w-0 flex-1 items-center gap-1.5 text-body-sm text-primary-soft">
+        <Icon className="size-4 shrink-0" aria-hidden />
+        <span className="truncate">{label}</span>
+      </p>
+      <Button
+        variant="ghost"
+        className="h-10 shrink-0 gap-1.5 px-2.5 text-body-sm text-body hover:text-ink"
+        aria-label={`Undo: ${label}, ${title}`}
+        onClick={onUndo}
+      >
+        <Undo2Icon />
+        Undo
+      </Button>
+    </div>
   );
 }

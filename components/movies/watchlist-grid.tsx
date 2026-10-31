@@ -7,7 +7,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ANSWERS } from "@/components/movies/feedback";
 import { FilmCardHeading } from "@/components/movies/film-meta";
-import { GenreFilter, inGenre } from "@/components/movies/genre-filter";
+import { GenreFilterButton, inGenre } from "@/components/movies/film-filter";
 import { forgetMovie, rateMovie, undoRating, watchLater, type Feedback } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
 import { GRID } from "@/components/movies/recommendation-grid";
@@ -17,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import type { ListedMovie } from "@/lib/movies/types";
 
 // Saved-for-later films. Saying how one was (it moves to My films → Seen it)
-// or removing it takes the card away at once, with Undo. Genre chips narrow
-// the grid to one genre.
+// or removing it takes the card away at once, with Undo. Filter narrows the
+// grid to one genre, once applied.
 export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
   const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
   const [genre, setGenre] = useState<string | null>(null);
@@ -79,10 +79,12 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-body-sm text-mute" aria-live="polite">
-        {saved.length} {saved.length === 1 ? "film" : "films"} to watch
-      </p>
-      <GenreFilter films={saved} value={genre} onChange={setGenre} />
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        <p className="text-body-sm text-mute" aria-live="polite">
+          {genre ? `${shown.length} of ${saved.length}` : saved.length} {saved.length === 1 ? "film" : "films"} to watch
+        </p>
+        <GenreFilterButton films={saved} value={genre} onChange={setGenre} className="min-w-0" />
+      </div>
       {shown.length === 0 && <p className="text-body-sm text-mute">No {genre} films left on your watchlist.</p>}
       {/* A card you act on shrinks away and the rest slide into its place. */}
       <ul className={`relative ${GRID}`}>

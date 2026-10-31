@@ -1,7 +1,7 @@
 import { PencilIcon } from "lucide-react";
 import { Byline } from "@/components/lists/public-list";
 import { ANSWERS } from "@/components/movies/feedback";
-import { GenreFilteredFilms } from "@/components/movies/genre-filter";
+import { GenreFilteredFilms } from "@/components/movies/film-filter";
 import { EditLink, OwnerEdits, PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
 import { SeenToggle } from "@/components/profile/seen-shelf";
 import { ShareButton } from "@/components/profile/share-profile";
