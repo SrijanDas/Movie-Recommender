@@ -5,6 +5,7 @@ import {
   addFavoriteMovies,
   addLikedMovies,
   addToWatchlist,
+  clearWatching,
   moreRecommendations,
   rateRecommendation,
   removeFavorite,
@@ -12,6 +13,8 @@ import {
   undoRating as undoSavedRating,
   saveFavoritesEdit as saveSavedFavoritesEdit,
   setFavorites,
+  snoozeWatchCheckIn,
+  startWatching,
   type ActionResult,
 } from "@/app/actions";
 import type { UserMovie } from "@/lib/movies/types";
@@ -78,4 +81,20 @@ export async function likeMovies(ids: number[]): Promise<ActionResult> {
 
 export async function forgetMovie(tmdbId: number): Promise<ActionResult> {
   return report(await removeMovie(tmdbId));
+}
+
+// The user tapped a watch option (`via` names it): the film is being watched.
+// Silent on failure: it's a side effect of opening a link, not the action.
+export async function markStarted(tmdbId: number, via: string): Promise<void> {
+  await startWatching(tmdbId, via).catch(() => undefined);
+}
+
+// The check-in's "Still watching": ask again tomorrow.
+export async function snoozeCheckIn(tmdbId: number): Promise<ActionResult> {
+  return report(await snoozeWatchCheckIn(tmdbId));
+}
+
+// The check-in's "Didn't watch it": the film goes back to a plain save.
+export async function didntWatch(tmdbId: number): Promise<ActionResult> {
+  return report(await clearWatching(tmdbId));
 }

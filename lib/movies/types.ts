@@ -9,7 +9,20 @@ export type MovieSnapshot = {
   year: number | null;
 };
 
-export type UserMovie = RatedMovie & MovieSnapshot;
+// Watching progress, on watchlist rows only: `startedAt` is set when the
+// user taps a watch option on the film page, `startedVia` names it, and
+// `nudgedAt` is when they last told the check-in "Still watching".
+export type WatchProgress = {
+  startedAt?: Date | null;
+  startedVia?: string | null;
+  nudgedAt?: Date | null;
+};
+
+export type UserMovie = RatedMovie & MovieSnapshot & WatchProgress;
+
+// A watchlist film the user has started: it lists first on the watchlist,
+// and the app asks how it went (lib/watch/check-in.ts).
+export const isWatching = (movie: RatedMovie & WatchProgress) => movie.signal === "watchlist" && !!movie.startedAt;
 
 // TMDB's audience score and the film's genre names. Not stored (scores
 // drift): pages add them from the cached TMDB details with withDetails()
@@ -43,6 +56,10 @@ export function filterMyFilms<T extends RatedMovie>(movies: T[], filter: MyFilms
   return filter === "all" ? seen : seen.filter((m) => answerOf(m) === filter);
 }
 
-// The watchlist, newest first. `movies` comes oldest first.
-export const watchlistOf = <T extends RatedMovie>(movies: T[]): T[] =>
-  movies.filter((m) => m.signal === "watchlist").reverse();
+// The watchlist: films being watched first (latest started first), then
+// the rest newest first. `movies` comes oldest first.
+export const watchlistOf = <T extends RatedMovie & WatchProgress>(movies: T[]): T[] => {
+  const saved = movies.filter((m) => m.signal === "watchlist").reverse();
+  const watching = saved.filter(isWatching).sort((a, b) => b.startedAt!.getTime() - a.startedAt!.getTime());
+  return [...watching, ...saved.filter((m) => !isWatching(m))];
+};

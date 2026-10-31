@@ -230,7 +230,7 @@ async function MovieDetails({ id: raw }: { id: string }) {
         </div>
 
         <Suspense fallback={<WhereToWatchSkeleton />}>
-          <WhereToWatch tmdbId={id} title={movie.title} />
+          <WhereToWatch tmdbId={id} title={movie.title} imdbId={movie.external_ids?.imdb_id ?? null} tracked={!!userId} />
         </Suspense>
 
         {media.trailer && (

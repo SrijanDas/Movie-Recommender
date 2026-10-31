@@ -9,9 +9,11 @@ import {
   getUserMovies,
   putMovies,
   rankFavorites,
+  setWatchProgress,
   unfavoriteMovies,
   type UserMovie,
 } from "@/lib/movies/store";
+import { isInMyFilms } from "@/lib/movies/types";
 import { markOnboarded } from "@/lib/onboarding";
 import { getRecommendations } from "@/lib/recommend";
 import {
@@ -275,6 +277,59 @@ export async function addToWatchlist(id: unknown): Promise<ActionResult> {
     const snapshot = await getSnapshot(id);
     if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
     await putMovies(userId, [{ tmdbId: id, signal: "watchlist", ...snapshot }]);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// The user tapped a watch option on the film page: the film is now being
+// watched, so it joins the watchlist (or stays on it) with `startedAt` set,
+// and the check-in asks how it went next time the app opens. A film already
+// seen (a favourite or a "Seen it" answer) is a rewatch: nothing changes.
+// No revalidation: the film page looks the same.
+const MAX_VIA = 60;
+
+export async function startWatching(id: unknown, via: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id) || typeof via !== "string" || via.length === 0 || via.length > MAX_VIA) {
+    return { ok: false, error: "Unknown movie." };
+  }
+  try {
+    const existing = (await getUserMovies(userId)).find((m) => m.tmdbId === id);
+    if (existing && isInMyFilms(existing)) return { ok: true };
+    const snapshot = existing ?? (await getSnapshot(id));
+    if (!snapshot) return { ok: false, error: "That movie couldn't be found." };
+    await putMovies(userId, [
+      { ...snapshot, tmdbId: id, signal: "watchlist", rank: null, seenSignal: null, startedAt: new Date(), startedVia: via, nudgedAt: null },
+    ]);
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// "Still watching": the check-in leaves this film alone for a day.
+export async function snoozeWatchCheckIn(id: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  try {
+    await setWatchProgress(userId, id, { nudgedAt: new Date() });
+    return { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+// "Didn't watch it": forget the start. The film stays on the watchlist.
+export async function clearWatching(id: unknown): Promise<ActionResult> {
+  const userId = await getCurrentUserId();
+  if (!userId) return SIGN_IN_REQUIRED;
+  if (!isTmdbId(id)) return { ok: false, error: "Unknown movie." };
+  try {
+    await setWatchProgress(userId, id, { startedAt: null, startedVia: null, nudgedAt: null });
     return { ok: true };
   } catch (error) {
     return failure(error);

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { WatchCheckIn } from "@/components/movies/watch-check-in";
 import { AppHeader, AppTabBar } from "@/components/site/header";
 import { getCurrentUserId } from "@/lib/auth";
 import { isOnboarded } from "@/lib/onboarding";
@@ -20,6 +21,10 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
       <AppHeader />
       <Suspense fallback={null}>
         <OnboardingGate />
+      </Suspense>
+      {/* "Did you finish it?" about a film started from its page; once per open. */}
+      <Suspense fallback={null}>
+        <WatchCheckIn />
       </Suspense>
       {/* Room for the bottom tab bar on phones. */}
       <main className="flex flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>

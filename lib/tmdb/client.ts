@@ -128,7 +128,7 @@ export async function getMovie(id: number): Promise<TmdbMovieDetails | null> {
   cacheLife("weeks");
   try {
     return await tmdbFetch<TmdbMovieDetails>(`/movie/${id}`, {
-      append_to_response: "credits,keywords",
+      append_to_response: "credits,keywords,external_ids",
     });
   } catch (error) {
     if (error instanceof TmdbError && error.status === 404) return null;

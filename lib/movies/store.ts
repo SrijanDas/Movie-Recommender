@@ -5,13 +5,13 @@ import { userMovies } from "@/lib/db/schema";
 import { getMovie } from "@/lib/tmdb/client";
 import { DEFAULT_SEEN_ANSWER } from "@/lib/recommend/types";
 import { releaseYear } from "@/lib/tmdb/images";
-import type { ListedMovie, MovieSnapshot, UserMovie } from "./types";
+import type { ListedMovie, MovieSnapshot, UserMovie, WatchProgress } from "./types";
 
 // The signed-in user's movie list in Postgres. See docs/recommendations.md.
 // Every function takes the verified user id; callers get it from
 // getCurrentUserId() and must not pass anything else.
 
-export type { ListedMovie, MovieSnapshot, UserMovie } from "./types";
+export type { ListedMovie, MovieSnapshot, UserMovie, WatchProgress } from "./types";
 
 // Title/poster/year for a TMDB id, or null if TMDB doesn't know it.
 export async function getSnapshot(tmdbId: number): Promise<MovieSnapshot | null> {
@@ -48,27 +48,40 @@ export async function getUserMovies(userId: string): Promise<UserMovie[]> {
     title: r.title,
     posterPath: r.posterPath,
     year: r.year,
+    startedAt: r.startedAt,
+    startedVia: r.startedVia,
+    nudgedAt: r.nudgedAt,
   }));
 }
 
-// Insert or overwrite. Callers must pass validated ids and snapshots.
+// Insert or overwrite. Callers must pass validated ids and snapshots. Watch
+// progress not passed is cleared: every rewrite is a fresh save or an answer.
 export async function putMovies(userId: string, movies: UserMovie[]) {
   for (const m of movies) {
+    const row = {
+      signal: m.signal,
+      rank: m.rank ?? null,
+      seenSignal: m.seenSignal ?? null,
+      title: m.title,
+      posterPath: m.posterPath,
+      year: m.year,
+      startedAt: m.startedAt ?? null,
+      startedVia: m.startedVia ?? null,
+      nudgedAt: m.nudgedAt ?? null,
+    };
     await db
       .insert(userMovies)
-      .values({ userId, ...m, rank: m.rank ?? null, seenSignal: m.seenSignal ?? null })
-      .onConflictDoUpdate({
-        target: [userMovies.userId, userMovies.tmdbId],
-        set: {
-          signal: m.signal,
-          rank: m.rank ?? null,
-          seenSignal: m.seenSignal ?? null,
-          title: m.title,
-          posterPath: m.posterPath,
-          year: m.year,
-        },
-      });
+      .values({ userId, tmdbId: m.tmdbId, ...row })
+      .onConflictDoUpdate({ target: [userMovies.userId, userMovies.tmdbId], set: row });
   }
+}
+
+// Change only a film's watch progress (snooze the check-in, or forget a start).
+export async function setWatchProgress(userId: string, tmdbId: number, patch: WatchProgress) {
+  await db
+    .update(userMovies)
+    .set(patch)
+    .where(and(eq(userMovies.userId, userId), eq(userMovies.tmdbId, tmdbId)));
 }
 
 // Take these films out of the favourites. Each turns back into its "Seen it"

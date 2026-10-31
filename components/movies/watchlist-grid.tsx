@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BookmarkXIcon } from "lucide-react";
+import { BookmarkXIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,10 +13,12 @@ import { Poster } from "@/components/movies/poster";
 import { GRID } from "@/components/movies/recommendation-grid";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { CARD_PRESENCE, CARD_TRANSITION } from "@/components/site/motion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ListedMovie } from "@/lib/movies/types";
+import { isWatching, type ListedMovie } from "@/lib/movies/types";
 
-// Saved-for-later films. Saying how one was (it moves to My films → Seen it)
+// Saved-for-later films, the ones being watched first with a "Watching"
+// mark on the poster. Saying how one was (it moves to My films → Seen it)
 // or removing it takes the card away at once, with Undo. Filter narrows the
 // grid to one genre, once applied.
 export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
@@ -96,13 +98,22 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
                 href={`/movie/${movie.tmdbId}`}
                 className="flex flex-col gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
-                <Poster
-                  path={movie.posterPath}
-                  title={movie.title}
-                  preload={i < 4}
-                  sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
-                  className="transition-shadow duration-200 group-hover:shadow-glow"
-                />
+                <div className="relative">
+                  <Poster
+                    path={movie.posterPath}
+                    title={movie.title}
+                    preload={i < 4}
+                    sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
+                    className="transition-shadow duration-200 group-hover:shadow-glow"
+                  />
+                  {isWatching(movie) && (
+                    <Badge className="absolute top-2 left-2 h-6 gap-1 bg-primary pl-1.5 text-caption font-medium text-primary-foreground shadow-md">
+                      <PlayIcon className="fill-current" />
+                      Watching
+                      {movie.startedVia && <span className="sr-only"> on {movie.startedVia}</span>}
+                    </Badge>
+                  )}
+                </div>
                 <FilmCardHeading
                   title={movie.title}
                   year={movie.year}

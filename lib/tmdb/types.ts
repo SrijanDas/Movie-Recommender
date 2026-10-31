@@ -32,7 +32,7 @@ export type TmdbMovieSummary = {
   genre_ids: number[];
 };
 
-// `/movie/{id}?append_to_response=credits,keywords`
+// `/movie/{id}?append_to_response=credits,keywords,external_ids`
 export type TmdbMovieDetails = {
   id: number;
   title: string;
@@ -50,6 +50,8 @@ export type TmdbMovieDetails = {
   genres: TmdbGenre[];
   credits: { cast: TmdbCastMember[]; crew: TmdbCrewMember[] };
   keywords: { keywords: TmdbKeyword[] };
+  // The IMDb id ("tt0111161") opens the film in players that key on it.
+  external_ids?: { imdb_id: string | null };
 };
 
 // `/movie/{id}/videos`

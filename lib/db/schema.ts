@@ -42,6 +42,16 @@ export const userMovies = pgTable(
     // Favourites only: the "Seen it" answer it also carries (a favourite was
     // seen, so it lists under Seen it too). Null for every other signal.
     seenSignal: movieSignal("seen_signal"),
+    // Set when the user taps a watch option on the film page. Meaningful only
+    // on a watchlist row: that film is "Watching", and the app asks how it
+    // went next time it opens (see lib/watch/check-in.ts). Any other write
+    // of the row (a "Seen it" answer, a fresh save) clears all three.
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    // The option tapped, e.g. "Stremio" or "Netflix".
+    startedVia: text("started_via"),
+    // When the user last said "Still watching" to the check-in, which waits
+    // a day before asking again.
+    nudgedAt: timestamp("nudged_at", { withTimezone: true }),
     // Display snapshot so lists render without a TMDB round-trip.
     title: text("title").notNull(),
     posterPath: text("poster_path"),
