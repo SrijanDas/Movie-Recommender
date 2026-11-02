@@ -16,7 +16,7 @@ app/
   onboarding/         # "/onboarding" — favourites picker; shown once, until profiles.onboarded_at is set
   (app)/layout.tsx    # app shell: top bar, bottom tab bar (phones), onboarding gate
   (app)/recommendations/  # poster grid with reasons, feedback, film search
-  (app)/watchlist/    # films saved for later
+  (app)/watchlist/    # films saved for later, under the "From friends" shelf of tips (see docs/social.md)
   (app)/my-movies/    # favourites + seen films, add more; favourites/ edits favourites (drag, Move menu, remove), saved on Done
   (app)/account/      # Profile: picture, name, @handle, share link; email, install, Credits link, sign out
   (app)/account/edit/ # edit picture (upload / poster / icon), name, username (checked free), bio
@@ -24,6 +24,9 @@ app/
   (app)/lists/        # list editor: new/ (from the watchlist, a My films filter, or empty) and [id]/edit/ (see docs/lists.md)
   u/[handle]/         # public profile, served at /@handle via a rewrite; open to signed-out visitors; share image
   u/[handle]/lists/[slug]/  # a shared list, served at /@handle/lists/slug; public; share image
+  u/[handle]/followers/, following/  # people lists, served at /@handle/followers and /following; public
+  (app)/search/people/  # the People tab of Search: find and follow people
+  social/actions.ts   # follow, like a list, send/dismiss a tip, people search (see docs/social.md)
   lists/actions.ts    # saveListAction, deleteListAction
   profile/actions.ts  # checkHandle, suggestHandleFor, saveProfile (see docs/profiles.md)
   auth/confirm/       # route handler: finishes email-link sign-in
@@ -33,6 +36,7 @@ components/
   ui/                 # shadcn components (restyled to DESIGN.md)
   movies/             # poster, search, favourites picker, recommendation card, watchlist grid, list controls, sortable film list
   lists/              # shared lists: editor, public page, profile shelf
+  social/             # people search, follow button, list likes, send sheets, the tips shelf
   site/               # logo, headers, tab bar, sign-in form, PWA (service worker + install prompt)
 public/sw.js          # service worker: network-only, /offline fallback for navigations
 lib/
@@ -44,6 +48,7 @@ lib/
   recommend/          # recommendation engine (pure functions + candidate gathering)
   movies/store.ts     # the user's movie list in Postgres
   lists/              # shared lists: rules, resolution (sync vs copy), store
+  social/             # follows, list likes, tips: rules + store
 drizzle/              # generated SQL migrations
 proxy.ts              # Next 16 proxy — refreshes the session; signed-out users only reach /, /sign-in, /sign-up, /offline, /auth/*
 next.config.ts        # framework config — see nextjs-16.md

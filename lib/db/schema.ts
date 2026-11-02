@@ -8,6 +8,7 @@
 
 import {
   boolean,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -139,4 +140,77 @@ export const listItems = pgTable(
     year: smallint("year"),
   },
   (t) => [primaryKey({ columns: [t.listId, t.tmdbId] })],
+).enableRLS();
+
+// Who follows whom. One row per (follower, followed); following is public
+// and needs no approval. See docs/social.md.
+export const follows = pgTable(
+  "follows",
+  {
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    followingId: uuid("following_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.followerId, t.followingId] }), index("follows_following_idx").on(t.followingId)],
+).enableRLS();
+
+// A member's like on a shared list. One row per (list, user).
+export const listLikes = pgTable(
+  "list_likes",
+  {
+    listId: uuid("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.listId, t.userId] })],
+).enableRLS();
+
+// A film (or a few), or a shared list, one member sent another with a note.
+// A list tip has `list_id`; a film tip has rows in tip_films. The recipient
+// sees it on their watchlist until they dismiss it.
+export const tips = pgTable(
+  "tips",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fromUserId: uuid("from_user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    toUserId: uuid("to_user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    // The list sent, when it's a list; goes with the list if it's deleted.
+    listId: uuid("list_id").references(() => lists.id, { onDelete: "cascade" }),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    // When the recipient first opened their watchlist with it there.
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+    // Set when the recipient dismisses it; dismissed tips never show again.
+    dismissedAt: timestamp("dismissed_at", { withTimezone: true }),
+  },
+  (t) => [index("tips_to_user_idx").on(t.toUserId)],
+).enableRLS();
+
+// The films in a film tip, in the order they were picked.
+export const tipFilms = pgTable(
+  "tip_films",
+  {
+    tipId: uuid("tip_id")
+      .notNull()
+      .references(() => tips.id, { onDelete: "cascade" }),
+    tmdbId: integer("tmdb_id").notNull(),
+    position: smallint("position").notNull(),
+    // Display snapshot so tips render without a TMDB round-trip.
+    title: text("title").notNull(),
+    posterPath: text("poster_path"),
+    year: smallint("year"),
+  },
+  (t) => [primaryKey({ columns: [t.tipId, t.tmdbId] })],
 ).enableRLS();

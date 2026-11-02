@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PlusIcon } from "lucide-react";
+import { HeartIcon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { Poster } from "@/components/movies/poster";
 import { IN_VIEW, RISE, stagger } from "@/components/site/motion-variants";
@@ -54,7 +54,7 @@ const CARD = {
 
 // Three posters fanned like a hand of cards, as on the share image: the first
 // film in front, the next two behind it.
-function Fan({ posters }: { posters: ListCard["posters"] }) {
+export function Fan({ posters }: { posters: ListCard["posters"] }) {
   const [first, second, third] = posters;
   const card = "shadow-[0_8px_20px_rgba(0,0,0,0.45)] transition-[border-color] duration-300 group-hover/list:border-hairline-soft/50";
   return (
@@ -159,6 +159,13 @@ export function ListsShelf({ lists, owner }: { lists: ListCard[]; owner: boolean
         <li key={list.id} className="flex">
           <FanCard href={list.path} posters={list.posters} title={list.name} index={i}>
             <FilmCount n={list.count} />
+            {list.likes > 0 && (
+              <span className="flex items-center gap-1" title={`${list.likes} ${list.likes === 1 ? "like" : "likes"}`}>
+                <HeartIcon className="size-3.5" aria-hidden />
+                <span className="font-mono tabular-nums">{list.likes}</span>
+                <span className="sr-only">{list.likes === 1 ? "like" : "likes"}</span>
+              </span>
+            )}
             {list.synced && (
               <span className="flex items-center gap-1.5" title="Updates as their films change">
                 <span className="size-1.5 rounded-full bg-primary" aria-hidden />

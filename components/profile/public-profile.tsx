@@ -9,6 +9,7 @@ import { Poster } from "@/components/movies/poster";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { SeenToggle, SeenVisibility } from "@/components/profile/seen-shelf";
 import { ProfileLink, ShareProfileButton } from "@/components/profile/share-profile";
+import { FollowStats } from "@/components/social/follow-stats";
 import { BackButton } from "@/components/site/back-button";
 import { FOCUS_IN, IN_VIEW, POP, RISE, stagger } from "@/components/site/motion-variants";
 import { ProfileFooter } from "@/components/site/footer";
@@ -39,6 +40,8 @@ export function PublicProfile({
   viewer,
   variant = "page",
   lists = [],
+  social,
+  memberActions,
   children,
 }: {
   profile: Profile;
@@ -47,6 +50,10 @@ export function PublicProfile({
   variant?: "page" | "app";
   // Their shared lists, newest first.
   lists?: ListCard[];
+  // Who follows them and whom they follow.
+  social?: { followers: number; following: number };
+  // For a member on someone else's page: Follow and Recommend.
+  memberActions?: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const handle = profile.handle;
@@ -88,12 +95,22 @@ export function PublicProfile({
             </h1>
             {handle && <p className="text-body-md text-mute">@{handle}</p>}
           </motion.div>
+          {handle && social && (
+            <motion.div variants={FOCUS_IN}>
+              <FollowStats handle={handle} followers={social.followers} following={social.following} />
+            </motion.div>
+          )}
           {profile.bio && (
             <motion.p variants={FOCUS_IN} className="max-w-[60ch] text-body-lg text-pretty text-ink">
               {profile.bio}
             </motion.p>
           )}
           <TasteLine taste={taste} showPeak={!hidden.has("peak")} />
+          {viewer === "member" && memberActions && (
+            <motion.div variants={RISE} className="flex flex-wrap gap-2">
+              {memberActions}
+            </motion.div>
+          )}
           {owner && (
             <motion.div variants={RISE}>
               <OwnerActions handle={handle} name={name} showPublicLink={!page} />
@@ -169,7 +186,8 @@ export function OwnerEdits({ owner, hidden, children }: { owner: boolean; hidden
 // profile (a list, a Seen it answer) gets Back, to `back` when opened directly.
 export function PageBackdrop({ paths, visitor, back }: { paths: string[]; visitor: boolean; back?: string }) {
   return (
-    <div className="relative h-[clamp(13rem,38svh,24rem)] w-full overflow-hidden bg-canvas">
+    // With no stills the band is just the bar, so the page's title follows close behind.
+    <div className={cn("relative w-full overflow-hidden bg-canvas", paths.length > 0 ? "h-[clamp(13rem,38svh,24rem)]" : "h-[8.75rem] sm:h-[9.75rem]")}>
       {paths.length > 0 && <BannerSlideshow paths={paths} className="[mask-image:linear-gradient(to_bottom,black_35%,transparent)]" />}
       <div className="relative mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
         {back && <BackButton fallback={back} className="ml-0 h-11 rounded-full bg-canvas/80 px-3.5 text-ink shadow-[0_2px_8px_rgba(0,0,0,0.35)] hover:bg-canvas" />}

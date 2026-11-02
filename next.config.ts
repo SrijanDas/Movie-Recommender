@@ -15,12 +15,15 @@ const nextConfig: NextConfig = {
   },
   async rewrites() {
     // Public profiles are shared as /@handle, their lists as
-    // /@handle/lists/slug and their Seen it lists as /@handle/seen/answer; the
-    // routes live under /u/[handle].
+    // /@handle/lists/slug, their Seen it lists as /@handle/seen/answer and
+    // their people as /@handle/followers and /following; the routes live
+    // under /u/[handle].
     return [
       { source: "/@:handle", destination: "/u/:handle" },
       { source: "/@:handle/lists/:slug", destination: "/u/:handle/lists/:slug" },
       { source: "/@:handle/seen/:answer", destination: "/u/:handle/seen/:answer" },
+      { source: "/@:handle/followers", destination: "/u/:handle/followers" },
+      { source: "/@:handle/following", destination: "/u/:handle/following" },
     ];
   },
   async headers() {

@@ -4,6 +4,7 @@ import { getUserMovies } from "@/lib/movies/store";
 import { normalizeHandle } from "@/lib/profile/rules";
 import { getProfileByHandle, type Profile } from "@/lib/profile/store";
 import { resolveList, type ListFilm } from "./resolve";
+import { getListLikeCounts } from "@/lib/social/store";
 import { getListBySlug, getUserLists, type SharedList } from "./store";
 import { listPath } from "./rules";
 
@@ -33,11 +34,13 @@ export type ListCard = {
   path: string;
   count: number;
   synced: boolean;
+  likes: number;
   posters: { title: string; posterPath: string | null }[];
 };
 
 export async function getListCards(userId: string, handle: string): Promise<ListCard[]> {
   const [lists, movies] = await Promise.all([getUserLists(userId), getUserMovies(userId)]);
+  const likes = await getListLikeCounts(lists.map((l) => l.id));
   return lists.map((list) => {
     const films = resolveList(list, list.items, movies);
     return {
@@ -46,6 +49,7 @@ export async function getListCards(userId: string, handle: string): Promise<List
       path: listPath(handle, list.slug),
       count: films.length,
       synced: list.synced,
+      likes: likes.get(list.id) ?? 0,
       posters: films.slice(0, 3).map(({ title, posterPath }) => ({ title, posterPath })),
     };
   });

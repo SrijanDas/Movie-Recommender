@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth";
 import { getProfile } from "@/lib/profile/store";
+import { countUnseenTips } from "@/lib/social/store";
 
 // Sticky top bar. In the installed iOS app it runs under the status bar, so
 // it pads by the safe area.
@@ -30,8 +31,8 @@ function Bar({ logoHref, children }: { logoHref: string; children?: React.ReactN
 // Both lookups are request-cached, so the header and tab bar share them.
 async function getMe() {
   const user = await getCurrentUser();
-  const profile = user ? await getProfile(user.id) : null;
-  return { name: profile?.displayName ?? user?.name ?? user?.email ?? null, avatar: profile?.avatar ?? null };
+  const [profile, unseen] = user ? await Promise.all([getProfile(user.id), countUnseenTips(user.id)]) : [null, 0];
+  return { name: profile?.displayName ?? user?.name ?? user?.email ?? null, avatar: profile?.avatar ?? null, unseen };
 }
 
 async function Account() {
@@ -43,6 +44,10 @@ async function Tabs() {
   return <TabBar me={await getMe()} />;
 }
 
+async function Nav() {
+  return <TopNav unseen={(await getMe()).unseen} />;
+}
+
 // Inside the app: logo, then the nav and account avatar on tablet and up.
 // Phones get Search here and the rest, Profile included, in <AppTabBar>.
 export function AppHeader() {
@@ -50,7 +55,7 @@ export function AppHeader() {
     <Bar logoHref="/recommendations">
       <div className="flex items-center gap-3">
         <Suspense fallback={<TopNavFallback />}>
-          <TopNav />
+          <Nav />
         </Suspense>
         <Suspense fallback={<SearchButtonFallback />}>
           <SearchButton />

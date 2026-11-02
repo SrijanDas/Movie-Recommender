@@ -1,6 +1,6 @@
 # movie-recom
 
-Movie recommendation web app. **Status:** MVP built: landing page, required sign-in, one-step onboarding (favourites picker, min 3), recommendations with reasons, search and feedback, a watchlist with watch tracking and a "Did you finish it?" check-in, a "My films" page, shareable named lists, and an installable PWA shell with a bottom tab bar. Movie data comes from TMDB. There is no test suite.
+Movie recommendation web app. **Status:** MVP built: landing page, required sign-in, one-step onboarding (favourites picker, min 3), recommendations with reasons, search and feedback, a watchlist with watch tracking and a "Did you finish it?" check-in, a "My films" page, shareable named lists, people search with follows, list likes, films and lists sent between friends, and an installable PWA shell with a bottom tab bar. Movie data comes from TMDB. There is no test suite.
 
 **What we're building and why:** [PRODUCT.md](PRODUCT.md). Read it before changing product behaviour.
 
@@ -55,6 +55,7 @@ bun run db:migrate   # apply migrations
 | [docs/recommendations.md](docs/recommendations.md) | touching TMDB calls, the recommendation engine, its weights, or the user's movie list |
 | [docs/lists.md](docs/lists.md) | touching shared lists: the list editor, sync vs copy, `/@handle/lists/…`, or the profile Lists shelf |
 | [docs/profiles.md](docs/profiles.md) | touching usernames, public profiles (`/@handle`), avatars and Storage, or sharing |
+| [docs/social.md](docs/social.md) | touching people search, follows, list likes, or films/lists sent to a friend (tips, the Watchlist "From friends" shelf, the tab badge) |
 | [docs/database.md](docs/database.md) | adding tables, writing queries, or running migrations |
 | [docs/development.md](docs/development.md) | setting up, running, linting, building, or managing dependencies |
 

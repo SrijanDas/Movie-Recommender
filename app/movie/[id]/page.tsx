@@ -10,6 +10,7 @@ import { StillsGallery } from "@/components/movies/stills-gallery";
 import { VideoPlayer } from "@/components/movies/video-player";
 import { WhereToWatch } from "@/components/movies/where-to-watch";
 import { Notice } from "@/components/movies/recommendation-grid";
+import { SendToFriend } from "@/components/social/send-to-friend";
 import { BackButton } from "@/components/site/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -206,12 +207,19 @@ async function MovieDetails({ id: raw }: { id: string }) {
               )}
             </div>
             {userId && (
-              <MovieVerdict
-                tmdbId={id}
-                snapshot={{ title: movie.title, posterPath: movie.poster_path, year }}
-                saved={listed?.signal ?? null}
-                seenAnswer={listed?.seenSignal ?? null}
-              />
+              <div className="flex flex-col gap-2">
+                <MovieVerdict
+                  tmdbId={id}
+                  snapshot={{ title: movie.title, posterPath: movie.poster_path, year }}
+                  saved={listed?.signal ?? null}
+                  seenAnswer={listed?.seenSignal ?? null}
+                />
+                {/* Pass it on: it lands at the top of their watchlist. */}
+                <SendToFriend
+                  films={[{ tmdbId: id, title: movie.title, posterPath: movie.poster_path, year }]}
+                  className="h-10 self-start px-3 text-body-sm font-semibold text-body hover:text-ink"
+                />
+              </div>
             )}
             {movie.tagline && <p className="text-body-lg text-pretty text-ink">{movie.tagline}</p>}
             {movie.overview && <p className="max-w-prose text-body-md text-pretty text-body">{movie.overview}</p>}

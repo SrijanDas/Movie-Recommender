@@ -11,6 +11,7 @@ import { getListCards } from "@/lib/lists/public";
 import { getUserMovies } from "@/lib/movies/store";
 import { getProfile } from "@/lib/profile/store";
 import { getTaste } from "@/lib/profile/taste";
+import { getFollowStats } from "@/lib/social/store";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -19,15 +20,17 @@ export const metadata: Metadata = { title: "Profile" };
 async function OwnProfile() {
   const userId = await requireUserId();
   const [user, profile, movies] = await Promise.all([getCurrentUser(), getProfile(userId), getUserMovies(userId)]);
-  const [taste, lists] = await Promise.all([
+  const [taste, lists, social] = await Promise.all([
     getTaste(movies),
     profile?.handle ? getListCards(userId, profile.handle) : [],
+    getFollowStats(userId),
   ]);
   return (
     <PublicProfile
       variant="app"
       viewer="owner"
       lists={lists}
+      social={social}
       profile={{
         userId,
         handle: profile?.handle ?? null,

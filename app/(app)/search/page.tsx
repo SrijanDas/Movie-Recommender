@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { searchMoviesAction } from "@/app/actions";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { SearchView } from "@/components/movies/search-view";
+import { SearchTabs } from "@/components/social/search-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPopularPool, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
@@ -67,6 +68,7 @@ export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 pt-5 pb-8 sm:px-6 md:py-10">
       <h1 className="text-display-md text-ink-strong md:text-display-lg">Search</h1>
+      <SearchTabs active="films" />
       <Suspense fallback={<SearchSkeleton />}>
         {searchParams.then(({ q }) => (
           <Search q={typeof q === "string" ? q.trim().slice(0, 100) : ""} />

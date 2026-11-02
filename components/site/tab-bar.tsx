@@ -31,22 +31,39 @@ const isActive = (pathname: string | null, href: string) =>
 // navs render inside <Suspense>; the fallbacks are the same links with no
 // active tab.
 
-type Me = { name: string | null; avatar: string | null };
+// `unseen`: films and lists friends sent that haven't been looked at yet;
+// shown as a count on the Watchlist tab.
+type Me = { name: string | null; avatar: string | null; unseen: number };
+
+function UnseenBadge({ n, className }: { n: number; className?: string }) {
+  if (n <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-primary px-1 font-mono text-caption leading-none font-semibold text-primary-foreground tabular-nums",
+        className,
+      )}
+      aria-label={`${n} new from friends`}
+    >
+      {n > 9 ? "9+" : n}
+    </span>
+  );
+}
 
 export function TabBar({ me }: { me: Me }) {
   return <BottomTabs pathname={usePathname()} me={me} />;
 }
 
 export function TabBarFallback() {
-  return <BottomTabs pathname={null} me={{ name: null, avatar: null }} />;
+  return <BottomTabs pathname={null} me={{ name: null, avatar: null, unseen: 0 }} />;
 }
 
-export function TopNav() {
-  return <TopLinks pathname={usePathname()} />;
+export function TopNav({ unseen }: { unseen: number }) {
+  return <TopLinks pathname={usePathname()} unseen={unseen} />;
 }
 
 export function TopNavFallback() {
-  return <TopLinks pathname={null} />;
+  return <TopLinks pathname={null} unseen={0} />;
 }
 
 export function SearchButton() {
@@ -94,7 +111,10 @@ function BottomTabs({ pathname, me }: { pathname: string | null; me: Me }) {
                     className={cn("size-6 transition-shadow duration-200 ease-out", active && "ring-2 ring-primary")}
                   />
                 ) : (
-                  <Icon className={cn("size-5", active && "text-primary")} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+                  <span className="relative flex">
+                    <Icon className={cn("size-5", active && "text-primary")} strokeWidth={active ? 2.25 : 1.75} aria-hidden />
+                    {href === "/watchlist" && <UnseenBadge n={me.unseen} className="absolute -top-1.5 -right-2.5" />}
+                  </span>
                 )}
                 {label}
               </Link>
@@ -107,7 +127,7 @@ function BottomTabs({ pathname, me }: { pathname: string | null; me: Me }) {
 }
 
 // Tablet and up: the same destinations inline in the top bar.
-function TopLinks({ pathname }: { pathname: string | null }) {
+function TopLinks({ pathname, unseen }: { pathname: string | null; unseen: number }) {
   return (
     <nav aria-label="Main" className="isolate hidden items-center gap-1 md:flex">
       {TABS.map(({ href, label }) => {
@@ -118,7 +138,7 @@ function TopLinks({ pathname }: { pathname: string | null }) {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "relative rounded-lg px-3 py-1.5 text-body-sm outline-none transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50",
+              "relative flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-body-sm outline-none transition-colors hover:text-ink focus-visible:ring-3 focus-visible:ring-ring/50",
               active ? "text-ink-strong" : "text-body",
             )}
           >
@@ -132,6 +152,7 @@ function TopLinks({ pathname }: { pathname: string | null }) {
               />
             )}
             {label}
+            {href === "/watchlist" && <UnseenBadge n={unseen} />}
           </Link>
         );
       })}

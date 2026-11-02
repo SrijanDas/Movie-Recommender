@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { loadSharedList } from "@/lib/lists/public";
 import { listPath } from "@/lib/lists/rules";
+import { getListLikes } from "@/lib/social/store";
 import { getMovie } from "@/lib/tmdb/client";
 
 // A shared list. Served at /@handle/lists/slug (next.config.ts rewrites it
@@ -47,8 +48,10 @@ async function List({ params }: { params: Params }) {
     Promise.all(films.map((f) => getMovie(f.tmdbId).catch(() => null))),
   ]);
   const backdrops = details.map((d) => d?.backdrop_path).filter((p): p is string => Boolean(p));
+  const likes = await getListLikes(list.id, viewer?.id ?? null);
   return (
     <PublicList
+      likes={likes}
       profile={profile}
       list={list}
       films={films.map((f, i) => ({ ...f, genres: details[i]?.genres.map((g) => g.name) }))}

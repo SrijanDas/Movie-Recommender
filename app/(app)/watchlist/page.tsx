@@ -4,19 +4,30 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { GRID } from "@/components/movies/recommendation-grid";
 import { WatchlistGrid } from "@/components/movies/watchlist-grid";
+import { TipsShelf } from "@/components/social/tips-shelf";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
 import { getUserMovies, withDetails } from "@/lib/movies/store";
 import { watchlistOf } from "@/lib/movies/types";
+import type { Signal } from "@/lib/recommend/types";
+import { getInbox } from "@/lib/social/store";
 
 export const metadata: Metadata = { title: "Watchlist" };
 
 async function Saved() {
-  const movies = await getUserMovies(await requireUserId());
+  const userId = await requireUserId();
+  const [movies, tips] = await Promise.all([getUserMovies(userId), getInbox(userId)]);
   // Films being watched first, then newest first.
   const saved = await withDetails(watchlistOf(movies));
-  return <WatchlistGrid movies={saved} />;
+  // What's already in the list, so a tip's films show as saved or seen.
+  const known: Record<number, Signal> = Object.fromEntries(movies.map((m) => [m.tmdbId, m.signal]));
+  return (
+    <>
+      {tips.length > 0 && <TipsShelf tips={tips} known={known} />}
+      <WatchlistGrid movies={saved} />
+    </>
+  );
 }
 
 export default function WatchlistPage() {

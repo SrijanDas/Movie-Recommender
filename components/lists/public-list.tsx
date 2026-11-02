@@ -5,6 +5,8 @@ import { GenreFilteredFilms } from "@/components/movies/film-filter";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { PageBackdrop, RankedFilm } from "@/components/profile/public-profile";
 import { CopyLink, ShareButton } from "@/components/profile/share-profile";
+import { LikeListButton } from "@/components/social/like-list-button";
+import { SendToFriend } from "@/components/social/send-to-friend";
 import { ProfileFooter } from "@/components/site/footer";
 import { ScrollHeader } from "@/components/site/scroll-header";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ export function PublicList({
   films,
   backdrops,
   viewer,
+  likes,
 }: {
   profile: Profile & { handle: string };
   list: SharedList;
@@ -32,10 +35,13 @@ export function PublicList({
   // Each film's still (TMDB backdrop path), in list order.
   backdrops: string[];
   viewer: Viewer;
+  // How many liked it, and whether the viewer did.
+  likes: { count: number; liked: boolean };
 }) {
   const owner = viewer === "owner";
   const name = profile.displayName ?? profile.handle;
   const path = listPath(profile.handle, list.slug);
+  const like = <LikeListButton listId={list.id} count={likes.count} liked={likes.liked} viewer={viewer === "visitor" ? "visitor" : "member"} path={path} />;
   return (
     <div className="flex min-h-svh flex-col">
       <ScrollHeader viewer={viewer === "visitor" ? "visitor" : "member"} watchId="list-title" back={profilePath(profile.handle)} />
@@ -56,7 +62,7 @@ export function PublicList({
               {list.synced && <LiveTag />}
             </p>
           </div>
-          {owner && (
+          {owner ? (
             <div className="flex flex-col gap-2">
               <CopyLink path={path} className="sm:max-w-md" />
               <div className="flex gap-2">
@@ -67,6 +73,7 @@ export function PublicList({
                   label="Share list"
                   className="flex-1 sm:flex-none"
                 />
+                <SendToFriend list={{ id: list.id, name: list.name }} iconOnly />
                 <Button
                   variant="outline"
                   className="sm:px-4"
@@ -78,6 +85,13 @@ export function PublicList({
                   <span className="max-sm:sr-only">Edit list</span>
                 </Button>
               </div>
+              <div className="flex">{like}</div>
+            </div>
+          ) : (
+            // Like it, and pass it on to someone who'd want it.
+            <div className="flex flex-wrap gap-2">
+              {like}
+              {viewer === "member" && <SendToFriend list={{ id: list.id, name: list.name }} className="h-10 px-3 text-body-sm font-semibold text-body hover:text-ink" />}
             </div>
           )}
         </header>

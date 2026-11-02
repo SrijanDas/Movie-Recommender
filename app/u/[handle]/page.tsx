@@ -2,13 +2,17 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PublicProfile } from "@/components/profile/public-profile";
+import { FollowButton } from "@/components/social/follow-button";
+import { RecommendTo } from "@/components/social/recommend-to";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentUser } from "@/lib/auth";
 import { getListCards } from "@/lib/lists/public";
 import { getUserMovies } from "@/lib/movies/store";
 import { favoritesInOrder } from "@/lib/recommend/profile";
 import { normalizeHandle, profilePath } from "@/lib/profile/rules";
-import { getProfileByHandle } from "@/lib/profile/store";
+import { getProfile, getProfileByHandle } from "@/lib/profile/store";
+import { getFollowStats, isFollowing } from "@/lib/social/store";
+import { filterMyFilms } from "@/lib/movies/types";
 import { getTaste } from "@/lib/profile/taste";
 
 // A public profile. Served at /@handle (next.config.ts rewrites it here) and
@@ -41,19 +45,47 @@ export async function generateMetadata({ params }: PageProps<"/u/[handle]">): Pr
 async function Profile({ params }: { params: PageProps<"/u/[handle]">["params"] }) {
   const profile = await load((await params).handle);
   if (!profile) notFound();
-  const [viewer, movies, lists] = await Promise.all([
+  const [viewer, movies, lists, social] = await Promise.all([
     getCurrentUser(),
     getUserMovies(profile.userId),
     getListCards(profile.userId, profile.handle),
+    getFollowStats(profile.userId),
   ]);
   const taste = await getTaste(movies);
+  const member = viewer && viewer.id !== profile.userId ? viewer : null;
   return (
     <PublicProfile
       profile={profile}
       taste={taste}
       lists={lists}
-      viewer={!viewer ? "visitor" : viewer.id === profile.userId ? "owner" : "member"}
+      social={social}
+      viewer={!viewer ? "visitor" : member ? "member" : "owner"}
+      memberActions={member && <MemberActions viewerId={member.id} profile={profile} />}
     />
+  );
+}
+
+// Follow them, or send them a film (from your own films, or any) or one of
+// your lists.
+async function MemberActions({ viewerId, profile }: { viewerId: string; profile: { userId: string; handle: string; displayName: string | null; avatar: string | null } }) {
+  const [following, mine, me] = await Promise.all([
+    isFollowing(viewerId, profile.userId),
+    getUserMovies(viewerId),
+    getProfile(viewerId),
+  ]);
+  const lists = me?.handle ? await getListCards(viewerId, me.handle) : [];
+  // Your favourites first, then everything else you've seen, newest first.
+  const seen = filterMyFilms(mine, "all");
+  const favourites = filterMyFilms(mine, "favorite");
+  const starters = [...favourites, ...seen.filter((m) => m.signal !== "favorite")]
+    .slice(0, 60)
+    .map(({ tmdbId, title, year, posterPath }) => ({ tmdbId, title, year, posterPath }));
+  const name = profile.displayName ?? profile.handle;
+  return (
+    <>
+      <FollowButton userId={profile.userId} name={name} following={following} className="flex-1 sm:flex-none" />
+      <RecommendTo person={profile} starters={starters} lists={lists} className="flex-1 sm:flex-none" />
+    </>
   );
 }
 
