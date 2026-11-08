@@ -210,25 +210,34 @@ export async function getRelated(id: number, page = 1): Promise<RelatedMovies> {
   return { recommendations: recommended.results, similar: similar.results };
 }
 
+// The /discover/movie filters the engine uses. TMDB separators: "," means
+// AND, "|" means OR. Numeric ids throughout (people, genres, keywords).
 export type DiscoverParams = {
-  // TMDB separators: "," means AND, "|" means OR.
   with_people?: string;
+  with_crew?: string;
+  with_cast?: string;
   with_genres?: string;
   with_keywords?: string;
+  // ISO 639-1 code ("ko").
+  with_original_language?: string;
+  // "YYYY-MM-DD".
+  "primary_release_date.gte"?: string;
+  "primary_release_date.lte"?: string;
+  "vote_count.gte"?: number;
+  sort_by?: "vote_average.desc" | "popularity.desc" | "vote_count.desc";
 };
 
+// One page of /discover/movie. The caller decides every filter, including
+// the vote floor: sorted by rating with no floor, TMDB returns obscure films
+// with a handful of 10/10 votes.
 export async function discover(params: DiscoverParams, page = 1): Promise<TmdbMovieSummary[]> {
   "use cache";
   cacheLife("days");
   const data = await tmdbFetch<TmdbPage<TmdbMovieSummary>>("/discover/movie", {
+    sort_by: "vote_average.desc",
     ...params,
     page,
     include_adult: "false",
-    sort_by: "vote_average.desc",
-    "vote_count.gte": 1000,
-    // Feature films only: no TV movies (genre 10770), episodes or shorts.
-    without_genres: 10770,
-    "with_runtime.gte": 60,
   });
   return data.results;
 }

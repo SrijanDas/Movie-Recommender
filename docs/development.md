@@ -44,6 +44,7 @@ Put secrets in `.env.local` (gitignored via `.env*`). Only `NEXT_PUBLIC_`-prefix
 | `DATABASE_URL` | Drizzle / Postgres, transaction pooler string ([database.md](database.md)) |
 | `TMDB_API_TOKEN` | TMDB API read access token ([recommendations.md](recommendations.md)) |
 | `NEXT_PUBLIC_SITE_URL` (optional) | Origin used in magic-link emails |
+| `CRON_SECRET` | Bearer token the daily `/api/cron/memories` job must send ([memories.md](memories.md)) |
 
 | Variable | Used by |
 | --- | --- |

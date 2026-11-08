@@ -10,6 +10,7 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -19,12 +20,15 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { authUsers } from "drizzle-orm/supabase";
 import { SIGNALS } from "../recommend/types"; // relative: drizzle-kit does not resolve "@/"
 import { LIST_SOURCES } from "../lists/rules";
+import { MEMORY_KINDS, type MemoryFilm } from "../memories/types";
 
 export const movieSignal = pgEnum("movie_signal", SIGNALS);
 export const listSource = pgEnum("list_source", LIST_SOURCES);
+export const memoryKind = pgEnum("memory_kind", MEMORY_KINDS);
 
 // Every movie a user has an opinion on: their favourites, other likes, and
 // feedback on recommendations. One row per (user, movie).
@@ -53,6 +57,15 @@ export const userMovies = pgTable(
     // When the user last said "Still watching" to the check-in, which waits
     // a day before asking again.
     nudgedAt: timestamp("nudged_at", { withTimezone: true }),
+    // When the user watched it: set when a watchlist film gets a "Seen it"
+    // answer or becomes a favourite (to started_at if they started it from
+    // the film page, else the moment they answered). Kept through later
+    // answers; cleared if the film leaves My films. Null for films logged as
+    // seen without passing through the watchlist, since when they were
+    // watched is unknown. Feeds memories (lib/memories).
+    watchedAt: timestamp("watched_at", { withTimezone: true }),
+    // The watch option they started it from, if any (started_via, kept).
+    watchedVia: text("watched_via"),
     // Display snapshot so lists render without a TMDB round-trip.
     title: text("title").notNull(),
     posterPath: text("poster_path"),
@@ -63,7 +76,10 @@ export const userMovies = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.tmdbId] })],
+  (t) => [
+    primaryKey({ columns: [t.userId, t.tmdbId] }),
+    index("user_movies_watched_at_idx").on(t.watchedAt),
+  ],
 ).enableRLS();
 
 // One row per user, created at sign-up (which reserves the handle) or, for
@@ -213,4 +229,32 @@ export const tipFilms = pgTable(
     year: smallint("year"),
   },
   (t) => [primaryKey({ columns: [t.tipId, t.tmdbId] })],
+).enableRLS();
+
+// Memories waiting to reach the user: "on this day" a film was watched in an
+// earlier year, and the recap of a month or year just ended. Queued daily by
+// /api/cron/memories (lib/memories/queue.ts); a delivery channel (push,
+// email, in-app) sends the unsent ones and stamps sent_at. One row per
+// (user, kind, period), so re-running a day never queues twice.
+export const memories = pgTable(
+  "memories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    kind: memoryKind("kind").notNull(),
+    // The period it covers: "2026-11-08" (on this day), "2026-10" (month
+    // recap) or "2025" (year recap).
+    period: text("period").notNull(),
+    // The films, as they were when queued.
+    films: jsonb("films").$type<MemoryFilm[]>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("memories_user_kind_period_idx").on(t.userId, t.kind, t.period),
+    index("memories_unsent_idx").on(t.createdAt).where(sql`${t.sentAt} is null`),
+  ],
 ).enableRLS();

@@ -24,6 +24,9 @@ export type RatedMovie = {
   // Favourites only: the "Seen it" answer it also carries (one of
   // SEEN_ANSWERS). Null/undefined for other signals.
   seenSignal?: Signal | null;
+  // When the user last said this about the film (the row's updated_at).
+  // Recent answers weigh more; favourites ignore it. Missing means "now".
+  ratedAt?: Date | null;
 };
 
 // The answers to "Seen it", worst to best. A favourite carries one in
@@ -58,9 +61,11 @@ export type Feature = {
 
 export type MovieFeatures = Record<Dimension, Feature[]>;
 
+// Why a film was picked. Mostly a shared feature; "language" and "era" fire
+// only when the user's taste is concentrated enough for them to be decisive.
 export type Reason = {
-  dimension: Dimension;
-  text: string; // e.g. "Directed by Denis Villeneuve"
+  dimension: Dimension | "language" | "era";
+  text: string; // e.g. "Directed by Denis Villeneuve", "In Korean", "1970s"
   because: string[]; // titles of liked movies that share this feature
 };
 

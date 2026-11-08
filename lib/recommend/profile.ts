@@ -12,6 +12,18 @@ import {
 export const FAVORITE_TOP = 2.5;
 export const FAVORITE_BOTTOM = 1.5;
 
+// Answers age: one from HALF_LIFE_DAYS ago counts half, and never less than
+// DECAY_FLOOR of a fresh one (Koren 2009: tastes drift, so recent ratings
+// say more). Favourites don't age: they're curated and ranked by hand.
+export const HALF_LIFE_DAYS = 180;
+export const DECAY_FLOOR = 0.35;
+
+export function decay(ratedAt: Date | null | undefined, now: Date): number {
+  if (!ratedAt) return 1;
+  const days = Math.max(0, (now.getTime() - ratedAt.getTime()) / 86_400_000);
+  return Math.max(DECAY_FLOOR, 2 ** (-days / HALF_LIFE_DAYS));
+}
+
 export function favoriteWeight(position: number, count: number): number {
   if (count <= 1) return FAVORITE_TOP;
   return FAVORITE_TOP - ((FAVORITE_TOP - FAVORITE_BOTTOM) * position) / (count - 1);
@@ -27,13 +39,17 @@ export function favoritesInOrder<T extends RatedMovie>(movies: T[]): T[] {
     .map(({ m }) => m);
 }
 
-// Every rated movie with the weight it contributes to the profile.
-export function weighMovies<T extends RatedMovie>(rated: T[]): (T & { weight: number })[] {
+// Every rated movie with the weight it contributes to the profile. `now`
+// is a parameter so scripts and tuning runs are repeatable.
+export function weighMovies<T extends RatedMovie>(rated: T[], now = new Date()): (T & { weight: number })[] {
   const favorites = favoritesInOrder(rated);
   const byPosition = new Map(favorites.map((m, i) => [m.tmdbId, favoriteWeight(i, favorites.length)]));
   return rated.map((m) => ({
     ...m,
-    weight: m.signal === "favorite" ? (byPosition.get(m.tmdbId) ?? FAVORITE_BOTTOM) : signalWeight(m.signal),
+    weight:
+      m.signal === "favorite"
+        ? (byPosition.get(m.tmdbId) ?? FAVORITE_BOTTOM)
+        : signalWeight(m.signal) * decay(m.ratedAt, now),
   }));
 }
 

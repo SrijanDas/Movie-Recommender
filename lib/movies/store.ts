@@ -45,6 +45,7 @@ export async function getUserMovies(userId: string): Promise<UserMovie[]> {
     signal: r.signal,
     rank: r.rank,
     seenSignal: r.seenSignal,
+    ratedAt: r.updatedAt,
     title: r.title,
     posterPath: r.posterPath,
     year: r.year,
@@ -54,8 +55,25 @@ export async function getUserMovies(userId: string): Promise<UserMovie[]> {
   }));
 }
 
+// Signals for films the user hasn't seen: they don't list on My films.
+const UNSEEN = sql.raw(`('down', 'someday', 'watchlist')`);
+
+// When a film was watched, worked out from the row being overwritten: a
+// watchlist film that gets an answer was watched now (or when it was
+// started from the film page); a film leaving My films forgets it; anything
+// else keeps what it had. A fresh insert has no watch date (see schema).
+const watchedAtOnRewrite = sql`case
+  when excluded.signal in ${UNSEEN} then null
+  when ${userMovies.signal} = 'watchlist' then coalesce(${userMovies.startedAt}, now())
+  else ${userMovies.watchedAt} end`;
+const watchedViaOnRewrite = sql`case
+  when excluded.signal in ${UNSEEN} then null
+  when ${userMovies.signal} = 'watchlist' then ${userMovies.startedVia}
+  else ${userMovies.watchedVia} end`;
+
 // Insert or overwrite. Callers must pass validated ids and snapshots. Watch
 // progress not passed is cleared: every rewrite is a fresh save or an answer.
+// The watch date (watched_at) is never passed; it follows from the rewrite.
 export async function putMovies(userId: string, movies: UserMovie[]) {
   for (const m of movies) {
     const row = {
@@ -72,7 +90,12 @@ export async function putMovies(userId: string, movies: UserMovie[]) {
     await db
       .insert(userMovies)
       .values({ userId, tmdbId: m.tmdbId, ...row })
-      .onConflictDoUpdate({ target: [userMovies.userId, userMovies.tmdbId], set: row });
+      .onConflictDoUpdate({
+        target: [userMovies.userId, userMovies.tmdbId],
+        // Postgres evaluates every SET against the old row, so these see the
+        // started_at/started_via that `row` is clearing.
+        set: { ...row, watchedAt: watchedAtOnRewrite, watchedVia: watchedViaOnRewrite },
+      });
   }
 }
 

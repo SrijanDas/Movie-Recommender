@@ -30,6 +30,8 @@ export type TmdbMovieSummary = {
   vote_count: number;
   popularity: number;
   genre_ids: number[];
+  // ISO 639-1 code of the language it was made in ("en", "ko").
+  original_language: string;
 };
 
 // `/movie/{id}?append_to_response=credits,keywords,external_ids`
@@ -44,6 +46,7 @@ export type TmdbMovieDetails = {
   vote_average: number;
   vote_count: number;
   popularity: number;
+  original_language: string;
   runtime: number | null;
   // The franchise it belongs to, if any ("The Dark Knight Collection").
   belongs_to_collection: { id: number; name: string } | null;

@@ -56,6 +56,7 @@ bun run db:migrate   # apply migrations
 | [docs/lists.md](docs/lists.md) | touching shared lists: the list editor, sync vs copy, `/@handle/lists/…`, or the profile Lists shelf |
 | [docs/profiles.md](docs/profiles.md) | touching usernames, public profiles (`/@handle`), avatars and Storage, or sharing |
 | [docs/social.md](docs/social.md) | touching people search, follows, list likes, or films/lists sent to a friend (tips, the Watchlist "From friends" shelf, the tab badge) |
+| [docs/memories.md](docs/memories.md) | touching watch dates (`watched_at`), "on this day" memories, month/year recaps, the daily cron job, or notification delivery |
 | [docs/database.md](docs/database.md) | adding tables, writing queries, or running migrations |
 | [docs/development.md](docs/development.md) | setting up, running, linting, building, or managing dependencies |
 
