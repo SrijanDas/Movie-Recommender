@@ -51,4 +51,10 @@ grid samples from the most-voted films and series. Pickers (onboarding, lists, s
 It shows four sideways shelves (`components/movies/home-shelves.tsx`):
 New films (`/movie/now_playing`), New episodes (`/tv/on_the_air`), Popular films and Popular series
 (`/movie/popular`, `/tv/popular`), cached for hours via `getHomeShelves`. Recommendations have their own tab,
-"For you" (`/recommendations`); onboarding still ends there.
+"For you" (`/recommendations`). Onboarding ends on Home too.
+
+**Sideloading For you:** Home's `WarmRecommendations` reads the member's films during render, then calls
+`getFirstRecommendations` inside `after()`, once the page has been sent. That function is
+`getRecommendations` behind `"use cache"` (`cacheLife("minutes")`), keyed by the exact film list, and the For
+you page calls the same function, so it opens on the cached batch. Any new answer changes the list and
+therefore the key. Refresh and "load more" still compute fresh (`loadMoreRecommendations`).

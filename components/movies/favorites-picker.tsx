@@ -170,7 +170,7 @@ export function FavoritesPicker({
     startTransition(async () => {
       const result = await saveFavorites(picked.map((m) => ({ ...m, signal: "favorite" })));
       // Replace, so Back never returns to onboarding.
-      if (result.ok) router.replace("/recommendations");
+      if (result.ok) router.replace("/home");
     });
 
   return (

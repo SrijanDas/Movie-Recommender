@@ -9,7 +9,7 @@ import {
 import { RecommendationList } from "@/components/movies/recommendation-list";
 import { requireUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
-import { getRecommendations } from "@/lib/recommend";
+import { getFirstRecommendations } from "@/lib/recommend";
 import { MIN_FAVORITES } from "@/lib/recommend/types";
 import { isTmdbConfigured } from "@/lib/tmdb/client";
 
@@ -29,7 +29,7 @@ async function Results() {
   const loved = movies.filter((m) => m.signal === "favorite" || m.signal === "liked" || m.signal === "peak" || m.signal === "up").length;
   if (loved < MIN_FAVORITES) return <NeedMoreNotice loved={loved} min={MIN_FAVORITES} />;
 
-  const recommendations = await getRecommendations(movies);
+  const recommendations = await getFirstRecommendations(movies);
   if (recommendations.length === 0) return <RanOutNotice />;
   return <RecommendationList recommendations={recommendations} />;
 }

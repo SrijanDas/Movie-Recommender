@@ -52,7 +52,7 @@ Each card says which of your films it was picked for ("Because you like Spirited
 
 - **Always explain.** Every recommendation shows why it was picked.
 - **Never repeat.** A film you've rated, liked or marked seen never shows up as a recommendation.
-- **Account first, value fast.** Signing up is one email; onboarding is one screen of taps, then recommendations.
+- **Account first, value fast.** Signing up is one email; onboarding is one screen of taps, then Home, with your picks already being worked out in the background.
 - **Mobile app first.** Every screen is designed as a phone app first: bottom tab bar (Home, For you, Watchlist, My films, Profile) with Search in the header, thumb-reach actions, installable to the home screen. Tapping beats typing, and there's one obvious next step.
 - **Cinematic and calm.** A dark interface where posters do the talking (see [DESIGN.md](DESIGN.md)).
 

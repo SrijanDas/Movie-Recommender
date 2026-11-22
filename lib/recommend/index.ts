@@ -1,4 +1,5 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 import * as tmdb from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 import type { TmdbMovieDetails } from "@/lib/tmdb/types";
@@ -81,6 +82,15 @@ function clusterQuery(members: RatedFilm[], share: number): ClusterQuery {
 // has already shown, so scrolling continues down the ranking instead of
 // repeating it. `source` defaults to TMDB; scripts can pass their own. `now`
 // dates the answers for time decay.
+// The first batch for a film list, cached for a few minutes per exact list
+// (any new answer makes a new key). Home computes it in the background, so
+// the For you tab opens on it instead of working it out from scratch.
+export async function getFirstRecommendations(rated: RatedMovie[]): Promise<Recommendation[]> {
+  "use cache";
+  cacheLife("minutes");
+  return getRecommendations(rated);
+}
+
 export async function getRecommendations(
   rated: RatedMovie[],
   skip: Iterable<number> = [],
