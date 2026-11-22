@@ -28,7 +28,9 @@ export const isWatching = (movie: RatedMovie & WatchProgress) => movie.signal ==
 // drift): pages add them from the cached TMDB details with withDetails()
 // before showing a list.
 export type TmdbScore = { voteAverage: number; voteCount: number };
-export type ListedMovie = UserMovie & Partial<TmdbScore> & { genres?: string[] };
+// `kind: "series"` marks a series on the watchlist (stored in user_series,
+// numbered separately from films).
+export type ListedMovie = UserMovie & Partial<TmdbScore> & { genres?: string[]; kind?: "series" };
 
 // Whether a film lists on My films: everything watched and answered for,
 // favourites included. "Not interested" (down), "Might watch someday" and

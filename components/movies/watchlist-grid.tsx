@@ -8,8 +8,10 @@ import { toast } from "sonner";
 import { ANSWERS } from "@/components/movies/feedback";
 import { FilmCardHeading } from "@/components/movies/film-meta";
 import { GenreFilterButton, inGenre } from "@/components/movies/film-filter";
+import { forgetSeries, setSeriesSignal } from "@/app/series/actions";
 import { forgetMovie, rateMovie, undoRating, watchLater, type Feedback } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
+import { SeriesLabel } from "@/components/movies/title-tile";
 import { GRID } from "@/components/movies/recommendation-grid";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { CARD_PRESENCE, CARD_TRANSITION } from "@/components/site/motion";
@@ -20,49 +22,54 @@ import { isWatching, type ListedMovie } from "@/lib/movies/types";
 // Saved-for-later films, the ones being watched first with a "Watching"
 // mark on the poster. Saying how one was (it moves to My films → Seen it)
 // or removing it takes the card away at once, with Undo. Filter narrows the
-// grid to one genre, once applied.
+// grid to one genre, once applied. Series (`kind: "series"`) mix in with a
+// "Series" label; their answers and removals go to user_series.
 export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
-  const [hidden, setHidden] = useState<ReadonlySet<number>>(() => new Set());
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const [genre, setGenre] = useState<string | null>(null);
-  const setShown = (id: number, shown: boolean) =>
+  const setShown = (movie: ListedMovie, shown: boolean) =>
     setHidden((prev) => {
       const next = new Set(prev);
-      if (shown) next.delete(id);
-      else next.add(id);
+      if (shown) next.delete(keyOf(movie));
+      else next.add(keyOf(movie));
       return next;
     });
 
-  // Undo puts the film back on the watchlist.
-  const restore = (tmdbId: number) =>
-    void undoRating(tmdbId)
-      .then((r) => (r.ok ? watchLater(tmdbId) : r))
-      .then((r) => r.ok && setShown(tmdbId, true));
+  // Puts a film or series back on the watchlist (Undo).
+  const save = (movie: ListedMovie) =>
+    void (movie.kind === "series" ? setSeriesSignal(movie.tmdbId, "watchlist") : watchLater(movie.tmdbId)).then(
+      (r) => r.ok && setShown(movie, true),
+    );
+  const restore = (movie: ListedMovie) =>
+    movie.kind === "series"
+      ? save(movie)
+      : void undoRating(movie.tmdbId).then((r) => r.ok && save(movie));
 
   async function rate(movie: ListedMovie, feedback: Feedback) {
-    setShown(movie.tmdbId, false);
-    const result = await rateMovie({ ...movie, signal: feedback });
-    if (!result.ok) return setShown(movie.tmdbId, true);
+    setShown(movie, false);
+    const result =
+      movie.kind === "series"
+        ? await setSeriesSignal(movie.tmdbId, feedback)
+        : await rateMovie({ ...movie, signal: feedback });
+    if (!result.ok) return setShown(movie, true);
     const answer = ANSWERS.find((a) => a.feedback === feedback);
     toast(answer?.ack ?? "Noted.", {
       description: `${answer?.label}: ${movie.title}`,
-      action: { label: "Undo", onClick: () => restore(movie.tmdbId) },
+      action: { label: "Undo", onClick: () => restore(movie) },
     });
   }
 
   async function remove(movie: ListedMovie) {
-    setShown(movie.tmdbId, false);
-    const result = await forgetMovie(movie.tmdbId);
-    if (!result.ok) return setShown(movie.tmdbId, true);
+    setShown(movie, false);
+    const result = movie.kind === "series" ? await forgetSeries(movie.tmdbId) : await forgetMovie(movie.tmdbId);
+    if (!result.ok) return setShown(movie, true);
     toast("Removed from your watchlist", {
       description: movie.title,
-      action: {
-        label: "Undo",
-        onClick: () => void watchLater(movie.tmdbId).then((r) => r.ok && setShown(movie.tmdbId, true)),
-      },
+      action: { label: "Undo", onClick: () => save(movie) },
     });
   }
 
-  const saved = movies.filter((m) => !hidden.has(m.tmdbId));
+  const saved = movies.filter((m) => !hidden.has(keyOf(m)));
   const shown = saved.filter(inGenre(genre));
 
   if (saved.length === 0) {
@@ -70,7 +77,7 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
       <div className="flex flex-col items-start gap-4 rounded-xl border border-border bg-muted p-5 sm:p-8">
         <h2 className="text-display-sm text-ink">Nothing saved yet</h2>
         <p className="max-w-prose text-body-md text-body">
-          Tap the bookmark on a recommendation, or on any film’s page, to keep it here for movie night.
+          Tap the bookmark on a recommendation, or in the ⋯ menu on any film or series page, to keep it here for movie night.
         </p>
         <Button render={<Link href="/recommendations" />} nativeButton={false}>
           See what to watch
@@ -83,19 +90,19 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
     <div className="flex flex-col gap-4">
       <div className="flex min-h-9 items-center justify-between gap-3">
         <p className="text-body-sm text-mute" aria-live="polite">
-          {genre ? `${shown.length} of ${saved.length}` : saved.length} {saved.length === 1 ? "film" : "films"} to watch
+          {genre ? `${shown.length} of ${saved.length}` : saved.length} to watch
         </p>
         <GenreFilterButton films={saved} value={genre} onChange={setGenre} className="min-w-0" />
       </div>
-      {shown.length === 0 && <p className="text-body-sm text-mute">No {genre} films left on your watchlist.</p>}
+      {shown.length === 0 && <p className="text-body-sm text-mute">Nothing in {genre} left on your watchlist.</p>}
       {/* A card you act on shrinks away and the rest slide into its place. */}
       <ul className={`relative ${GRID}`}>
         <AnimatePresence initial={false} mode="popLayout">
         {shown.map((movie, i) => (
-          <motion.li key={movie.tmdbId} layout="position" {...CARD_PRESENCE} transition={CARD_TRANSITION} className="flex">
+          <motion.li key={keyOf(movie)} layout="position" {...CARD_PRESENCE} transition={CARD_TRANSITION} className="flex">
             <article className="group flex w-full flex-col gap-3">
               <Link
-                href={`/movie/${movie.tmdbId}`}
+                href={movie.kind === "series" ? `/series/${movie.tmdbId}` : `/movie/${movie.tmdbId}`}
                 className="flex flex-col gap-3 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <div className="relative">
@@ -106,6 +113,7 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
                     sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
                     className="transition-shadow duration-200 group-hover:shadow-glow"
                   />
+                  {movie.kind === "series" && <SeriesLabel />}
                   {isWatching(movie) && (
                     <Badge className="absolute top-2 left-2 h-6 gap-1 bg-primary pl-1.5 text-caption font-medium text-primary-foreground shadow-md">
                       <PlayIcon className="fill-current" />
@@ -142,3 +150,6 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
     </div>
   );
 }
+
+// Films and series are numbered separately, so both parts make the key.
+const keyOf = (movie: ListedMovie) => `${movie.kind ?? "movie"}:${movie.tmdbId}`;

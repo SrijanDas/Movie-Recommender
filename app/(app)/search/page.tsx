@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { searchMoviesAction } from "@/app/actions";
+import { searchTitlesAction } from "@/app/actions";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { SearchView } from "@/components/movies/search-view";
 import { SearchTabs } from "@/components/social/search-tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getPopularPool, isTmdbConfigured } from "@/lib/tmdb/client";
-import { releaseYear } from "@/lib/tmdb/images";
+import { toResult } from "@/lib/tmdb/results";
 
 export const metadata: Metadata = { title: "Search" };
 
@@ -33,19 +33,12 @@ async function Search({ q }: { q: string }) {
     );
   }
   await connection();
-  const [pool, results] = await Promise.all([getPopularPool().catch(() => []), searchMoviesAction(q)]);
+  const [pool, results] = await Promise.all([getPopularPool().catch(() => []), searchTitlesAction(q)]);
   const starters = pickRandom(pool, POPULAR_COUNT);
   return (
     <SearchView
       key={q}
-      starters={starters.map((m) => ({
-        tmdbId: m.id,
-        title: m.title,
-        year: releaseYear(m.release_date),
-        posterPath: m.poster_path,
-        voteAverage: m.vote_average,
-        voteCount: m.vote_count,
-      }))}
+      starters={starters.map(toResult)}
       initial={{ query: q, results }}
     />
   );

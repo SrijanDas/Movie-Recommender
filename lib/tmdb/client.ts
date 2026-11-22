@@ -5,7 +5,11 @@ import type {
   TmdbImage,
   TmdbMovieDetails,
   TmdbMovieSummary,
+  TmdbMultiResult,
   TmdbPage,
+  TmdbPerson,
+  TmdbSeriesDetails,
+  TmdbSeriesSummary,
   TmdbRegionProviders,
   TmdbVideo,
 } from "./types";
@@ -101,10 +105,73 @@ export async function getStarterMovies(): Promise<TmdbMovieSummary[]> {
   return getMostVotedMovies(2);
 }
 
+// Films and series in one ranked list; people are dropped (finding people
+// is the People tab's job).
+export async function searchTitles(query: string) {
+  "use cache";
+  cacheLife("days");
+  const data = await tmdbFetch<TmdbPage<TmdbMultiResult>>("/search/multi", { query, include_adult: "false" });
+  return data.results.filter((r) => r.media_type !== "person");
+}
+
 // Search's "Popular and acclaimed" grid samples from this larger pool, so it
-// rotates between visits.
-export async function getPopularPool(): Promise<TmdbMovieSummary[]> {
-  return getMostVotedMovies(5);
+// rotates between visits: the most-voted films and series together.
+export async function getPopularPool() {
+  const [movies, series] = await Promise.all([getMostVotedMovies(5), getMostVotedSeries()]);
+  return [
+    ...movies.map((m) => ({ ...m, media_type: "movie" as const })),
+    ...series.map((s) => ({ ...s, media_type: "tv" as const })),
+  ];
+}
+
+async function getMostVotedSeries(): Promise<TmdbSeriesSummary[]> {
+  "use cache";
+  cacheLife("weeks");
+  const pages = await Promise.all(
+    [1, 2].map((page) => tmdbFetch<TmdbPage<TmdbSeriesSummary>>("/discover/tv", { sort_by: "vote_count.desc", page })),
+  );
+  return pages.flatMap((p) => p.results).filter((s) => s.poster_path);
+}
+
+// The home page's shelves: what's new and what's popular, films and series.
+export async function getHomeShelves() {
+  "use cache";
+  cacheLife("hours");
+  const [newMovies, newSeries, popularMovies, popularSeries] = await Promise.all([
+    tmdbFetch<TmdbPage<TmdbMovieSummary>>("/movie/now_playing"),
+    tmdbFetch<TmdbPage<TmdbSeriesSummary>>("/tv/on_the_air"),
+    tmdbFetch<TmdbPage<TmdbMovieSummary>>("/movie/popular"),
+    tmdbFetch<TmdbPage<TmdbSeriesSummary>>("/tv/popular"),
+  ]);
+  return {
+    newMovies: newMovies.results,
+    newSeries: newSeries.results,
+    popularMovies: popularMovies.results,
+    popularSeries: popularSeries.results,
+  };
+}
+
+// Returns null for ids TMDB doesn't know (404), so one bad id can't break a page.
+export async function getSeries(id: number): Promise<TmdbSeriesDetails | null> {
+  "use cache";
+  cacheLife("days");
+  try {
+    return await tmdbFetch<TmdbSeriesDetails>(`/tv/${id}`, { append_to_response: "credits,external_ids" });
+  } catch (error) {
+    if (error instanceof TmdbError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+export async function getPerson(id: number): Promise<TmdbPerson | null> {
+  "use cache";
+  cacheLife("weeks");
+  try {
+    return await tmdbFetch<TmdbPerson>(`/person/${id}`, { append_to_response: "combined_credits" });
+  } catch (error) {
+    if (error instanceof TmdbError && error.status === 404) return null;
+    throw error;
+  }
 }
 
 async function getMostVotedMovies(pageCount: number): Promise<TmdbMovieSummary[]> {
@@ -155,15 +222,18 @@ const EXTRA_TYPES = new Set(["Clip", "Featurette", "Behind the Scenes", "Teaser"
 
 const byVotes = (a: TmdbImage, b: TmdbImage) => b.vote_average - a.vote_average || b.vote_count - a.vote_count;
 
-export async function getMovieMedia(id: number): Promise<MovieMedia> {
+// TMDB's path segment for each kind of title.
+export type TitleKind = "movie" | "tv";
+
+export async function getMovieMedia(id: number, kind: TitleKind = "movie"): Promise<MovieMedia> {
   "use cache";
   cacheLife("weeks");
   const [images, videos] = await Promise.all([
     // English logos, and stills with no text on them.
-    tmdbFetch<{ backdrops: TmdbImage[]; logos: TmdbImage[] }>(`/movie/${id}/images`, {
+    tmdbFetch<{ backdrops: TmdbImage[]; logos: TmdbImage[] }>(`/${kind}/${id}/images`, {
       include_image_language: "en,null",
     }),
-    tmdbFetch<{ results: TmdbVideo[] }>(`/movie/${id}/videos`),
+    tmdbFetch<{ results: TmdbVideo[] }>(`/${kind}/${id}/videos`),
   ]);
 
   const logo = images.logos.filter((l) => l.iso_639_1 === "en").sort(byVotes)[0] ?? null;
@@ -188,11 +258,14 @@ export async function getMovieMedia(id: number): Promise<MovieMedia> {
 
 // Where the film streams, rents and sells, by ISO 3166-1 country code. Data
 // comes from JustWatch, which TMDB requires us to credit.
-export async function getWatchProviders(id: number): Promise<Record<string, TmdbRegionProviders>> {
+export async function getWatchProviders(
+  id: number,
+  kind: TitleKind = "movie",
+): Promise<Record<string, TmdbRegionProviders>> {
   "use cache";
   cacheLife("days");
   const { results } = await tmdbFetch<{ results: Record<string, TmdbRegionProviders> }>(
-    `/movie/${id}/watch/providers`,
+    `/${kind}/${id}/watch/providers`,
   );
   return results;
 }

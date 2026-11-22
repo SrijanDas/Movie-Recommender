@@ -1,7 +1,7 @@
 import { PlayIcon } from "lucide-react";
 import { WatchOption } from "@/components/movies/watch-option";
 import { getViewerRegion, regionName } from "@/lib/region";
-import { getWatchProviders } from "@/lib/tmdb/client";
+import { getWatchProviders, type TitleKind } from "@/lib/tmdb/client";
 import { logoUrl } from "@/lib/tmdb/images";
 import { providerLink } from "@/lib/tmdb/provider-links";
 import type { TmdbProvider, TmdbRegionProviders } from "@/lib/tmdb/types";
@@ -31,13 +31,15 @@ export async function WhereToWatch({
   title,
   imdbId,
   tracked,
+  kind = "movie",
 }: {
+  kind?: TitleKind;
   tmdbId: number;
   title: string;
   imdbId: string | null;
   tracked: boolean;
 }) {
-  const [region, all] = await Promise.all([getViewerRegion(), getWatchProviders(tmdbId).catch(() => null)]);
+  const [region, all] = await Promise.all([getViewerRegion(), getWatchProviders(tmdbId, kind).catch(() => null)]);
   if (!all) return null;
   const offers = all[region];
   const country = regionName(region);
@@ -48,7 +50,7 @@ export async function WhereToWatch({
     : imdbId
       ? [{ label: "Free", providers: [] as TmdbProvider[] }]
       : [];
-  const stremio = imdbId ? stremioLinks(imdbId) : null;
+  const stremio = imdbId ? stremioLinks(imdbId, kind === "tv") : null;
 
   return (
     <section aria-labelledby="where-to-watch" className="flex flex-col gap-3">

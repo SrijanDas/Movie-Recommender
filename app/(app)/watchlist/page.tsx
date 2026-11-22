@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUserId } from "@/lib/auth";
 import { getUserMovies, withDetails } from "@/lib/movies/store";
-import { watchlistOf } from "@/lib/movies/types";
+import { isWatching, watchlistOf } from "@/lib/movies/types";
+import { getWatchlistSeries } from "@/lib/series/store";
 import type { Signal } from "@/lib/recommend/types";
 import { getInbox } from "@/lib/social/store";
 
@@ -17,9 +18,13 @@ export const metadata: Metadata = { title: "Watchlist" };
 
 async function Saved() {
   const userId = await requireUserId();
-  const [movies, tips] = await Promise.all([getUserMovies(userId), getInbox(userId)]);
-  // Films being watched first, then newest first.
-  const saved = await withDetails(watchlistOf(movies));
+  const [movies, tips, series] = await Promise.all([getUserMovies(userId), getInbox(userId), getWatchlistSeries(userId)]);
+  // Films being watched first, then films and series together, newest first.
+  const films = await withDetails(watchlistOf(movies));
+  const rest = [...films.filter((m) => !isWatching(m)), ...series].sort(
+    (a, b) => (b.ratedAt?.getTime() ?? 0) - (a.ratedAt?.getTime() ?? 0),
+  );
+  const saved = [...films.filter(isWatching), ...rest];
   // What's already in the list, so a tip's films show as saved or seen.
   const known: Record<number, Signal> = Object.fromEntries(movies.map((m) => [m.tmdbId, m.signal]));
   return (
@@ -37,7 +42,7 @@ export default function WatchlistPage() {
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <h1 className="text-display-md text-ink-strong md:text-display-lg">Watchlist</h1>
           <p className="max-w-xl text-body-sm text-body md:text-body-md">
-            Films you’ve saved for later, with the ones you’ve started first. Once you’ve watched one, say how it was.
+            Films and series you’ve saved for later, with the films you’ve started first. Once you’ve watched one, say how it was.
           </p>
           {/* The films set aside for another time live on My films. */}
           <Link

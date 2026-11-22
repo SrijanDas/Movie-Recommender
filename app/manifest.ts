@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Next Movie",
     short_name: "Next Movie",
     description: "Tap a few films you love and we’ll tell you what to watch next, and why.",
-    start_url: "/recommendations",
+    start_url: "/home",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

@@ -1,49 +1,62 @@
-import { FilmRating } from "@/components/movies/film-meta";
-import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 import { Suspense } from "react";
 import { BannerSlideshow } from "@/components/movies/banner-slideshow";
-import { MovieVerdict } from "@/components/movies/movie-verdict";
+import { FilmRating } from "@/components/movies/film-meta";
 import { Poster } from "@/components/movies/poster";
+import { Notice } from "@/components/movies/recommendation-grid";
 import { StillsGallery } from "@/components/movies/stills-gallery";
 import { VideoPlayer } from "@/components/movies/video-player";
 import { WhereToWatch } from "@/components/movies/where-to-watch";
-import { Notice } from "@/components/movies/recommendation-grid";
-import { SendToFriend } from "@/components/social/send-to-friend";
 import { BackButton } from "@/components/site/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCurrentUserId } from "@/lib/auth";
-import { getUserMovies } from "@/lib/movies/store";
-import { getMovie, getMovieMedia, isTmdbConfigured, type MovieMedia } from "@/lib/tmdb/client";
-import { profileUrl, releaseYear, titleLogoUrl } from "@/lib/tmdb/images";
+import type { MovieMedia, TitleKind } from "@/lib/tmdb/client";
+import { profileUrl, titleLogoUrl } from "@/lib/tmdb/images";
+import type { TmdbCastMember, TmdbGenre } from "@/lib/tmdb/types";
 import { cn } from "@/lib/utils";
+
+// The film and series pages share this layout; the person page shares its
+// column, shelf and skeleton.
+
+export const NO_MEDIA: MovieMedia = { logo: null, stills: [], trailer: null, extras: [] };
+
+// The page column; the banner runs full-bleed above it.
+export const PAGE = "mx-auto w-full max-w-4xl px-4 sm:px-6";
+
+// A row that scrolls sideways, bleeding to the screen edge on phones.
+export const SHELF =
+  "-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6";
 
 const CAST_SHOWN = 15;
 
-const NO_MEDIA: MovieMedia = { logo: null, stills: [], trailer: null, extras: [] };
-
-// A row that scrolls sideways, bleeding to the screen edge on phones.
-const SHELF =
-  "-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6";
-
-function parseId(raw: string) {
+export function parseId(raw: string) {
   const id = /^\d{1,9}$/.test(raw) ? Number(raw) : NaN;
   return id > 0 ? id : null;
 }
 
-function initials(name: string) {
+export function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+export function NotConnected() {
+  return (
+    <div className={cn(PAGE, "pt-16 md:pt-20")}>
+      <Notice
+        title="The film database isn’t connected"
+        body="Set TMDB_API_TOKEN in .env.local to your TMDB API read access token, then restart the server."
+      />
+    </div>
+  );
 }
 
 // The banner's height; the poster rises into its faded lower edge.
 const BANNER = "h-[clamp(12rem,34svh,26rem)]";
 
-// The film's stills, full-bleed under the header, looping and fading into
-// the page. Starts on its main backdrop.
+// The stills, full-bleed under the header, looping and fading into the
+// page. Starts on the main backdrop.
 function Banner({ paths }: { paths: string[] }) {
   if (paths.length === 0) return null;
   return (
@@ -53,7 +66,7 @@ function Banner({ paths }: { paths: string[] }) {
   );
 }
 
-function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+export function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
       <h2 id={id} className="text-display-sm text-ink">
@@ -64,7 +77,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
   );
 }
 
-// The film's title logo when it has one, as most posters set it; the plain
+// The title logo when there is one, as most posters set it; the plain
 // title otherwise. Screen readers always get the text.
 function Title({ title, logo }: { title: string; logo: MovieMedia["logo"] }) {
   if (!logo) return <h1 className="text-display-md text-balance text-ink-strong md:text-display-lg">{title}</h1>;
@@ -85,83 +98,74 @@ function Title({ title, logo }: { title: string; logo: MovieMedia["logo"] }) {
   );
 }
 
-// One cast member: a portrait headshot, or their initials when there's none.
-function CastCard({ name, character, path }: { name: string; character: string; path: string | null }) {
+// One cast member: a portrait headshot (or their initials), opening their page.
+function CastCard({ id, name, character, path }: { id: number; name: string; character: string; path: string | null }) {
   const src = profileUrl(path);
   return (
     <li className="w-28 shrink-0 snap-start">
-      <div className="relative flex aspect-2/3 items-center justify-center overflow-hidden rounded-xl border border-border bg-canvas-soft">
-        {src ? (
-          <Image src={src} alt="" fill unoptimized loading="lazy" sizes="112px" className="object-cover object-top" />
-        ) : (
-          <span aria-hidden className="text-display-sm text-mute">
-            {initials(name)}
-          </span>
-        )}
-      </div>
-      <p className="mt-2 line-clamp-2 text-caption font-medium text-ink">{name}</p>
-      {character && <p className="line-clamp-2 text-caption text-mute">{character}</p>}
+      <Link
+        href={`/person/${id}`}
+        className="group flex flex-col rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <div className="relative flex aspect-2/3 items-center justify-center overflow-hidden rounded-xl border border-border bg-canvas-soft transition-shadow duration-150 group-hover:shadow-glow">
+          {src ? (
+            <Image src={src} alt="" fill unoptimized loading="lazy" sizes="112px" className="object-cover object-top" />
+          ) : (
+            <span aria-hidden className="text-display-sm text-mute">
+              {initials(name)}
+            </span>
+          )}
+        </div>
+        <p className="mt-2 line-clamp-2 text-caption font-medium text-ink">{name}</p>
+        {character && <p className="line-clamp-2 text-caption text-mute">{character}</p>}
+      </Link>
     </li>
   );
 }
 
-// Headshot from TMDB, or the person's initials when TMDB has no photo.
-function PersonAvatar({ name, path, className }: { name: string; path: string | null; className?: string }) {
+// Headshot, or the person's initials when there's no photo.
+function PersonAvatar({ name, path }: { name: string; path: string | null }) {
   const src = profileUrl(path);
   return (
-    <Avatar className={className ?? "size-12"}>
+    <Avatar className="size-12">
       {src && <AvatarImage src={src} alt="" loading="lazy" className="object-top" />}
       <AvatarFallback className="bg-canvas-soft text-caption font-medium text-mute">{initials(name)}</AvatarFallback>
     </Avatar>
   );
 }
 
-function formatRuntime(minutes: number | null) {
-  if (!minutes) return null;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return h ? `${h}h ${m}m` : `${m}m`;
-}
+export type TitleData = {
+  kind: TitleKind;
+  id: number;
+  title: string;
+  posterPath: string | null;
+  backdropPath: string | null;
+  tagline: string;
+  overview: string;
+  genres: TmdbGenre[];
+  rating: { average: number; count: number };
+  // Year, runtime or seasons, joined with "·".
+  facts: string[];
+  // Directors of a film, creators of a series.
+  makers: { role: string; people: { id: number; name: string; profile_path: string | null }[] };
+  cast: TmdbCastMember[];
+  imdbId: string | null;
+  media: MovieMedia;
+  // Members' actions under the title; absent for visitors.
+  actions?: React.ReactNode;
+  // Tapping a where-to-watch option marks a member's film as being watched.
+  tracked: boolean;
+};
 
-export async function generateMetadata({ params }: PageProps<"/movie/[id]">): Promise<Metadata> {
-  const id = parseId((await params).id);
-  const movie = id && isTmdbConfigured() ? await getMovie(id) : null;
-  if (!movie) return { title: "Film" };
-  return { title: movie.title, description: movie.overview || undefined };
-}
-
-async function MovieDetails({ id: raw }: { id: string }) {
-  if (!isTmdbConfigured()) {
-    return (
-      <div className={cn(PAGE, "pt-16 md:pt-20")}>
-        <Notice
-          title="The film database isn’t connected"
-          body="Set TMDB_API_TOKEN in .env.local to your TMDB API read access token, then restart the server."
-        />
-      </div>
-    );
-  }
-  const id = parseId(raw);
-  const movie = id ? await getMovie(id) : null;
-  if (!id || !movie) notFound();
-
-  // Signed-out visitors see the film without the actions (see layout.tsx).
-  const [userId, media] = await Promise.all([
-    getCurrentUserId(),
-    getMovieMedia(id).catch(() => NO_MEDIA),
-  ]);
-  const listed = userId ? (await getUserMovies(userId)).find((m) => m.tmdbId === id) : undefined;
-
-  const year = releaseYear(movie.release_date);
-  const runtime = formatRuntime(movie.runtime);
-  const directors = movie.credits.crew.filter((c) => c.job === "Director");
-  const cast = [...movie.credits.cast].sort((a, b) => a.order - b.order).slice(0, CAST_SHOWN);
-  const rated = movie.vote_count > 0;
+export function TitleDetails(t: TitleData) {
+  const cast = [...t.cast].sort((a, b) => a.order - b.order).slice(0, CAST_SHOWN);
+  const rated = t.rating.count > 0;
   // The main backdrop first, then the other stills (at most 8 in the loop).
   const bannerPaths = [
-    ...new Set([movie.backdrop_path, ...media.stills.map((s) => s.file_path)].filter((p): p is string => !!p)),
+    ...new Set([t.backdropPath, ...t.media.stills.map((s) => s.file_path)].filter((p): p is string => !!p)),
   ].slice(0, 8);
   const banner = bannerPaths.length > 0;
+  const { media } = t;
 
   return (
     <>
@@ -171,8 +175,8 @@ async function MovieDetails({ id: raw }: { id: string }) {
             rise together, so their tops line up. */}
         <div className={cn("relative flex flex-col gap-6 sm:flex-row sm:gap-8", banner && "sm:-mt-24")}>
           <Poster
-            path={movie.poster_path}
-            title={movie.title}
+            path={t.posterPath}
+            title={t.title}
             size="w500"
             sizes="(min-width: 640px) 240px, 50vw"
             preload
@@ -183,49 +187,40 @@ async function MovieDetails({ id: raw }: { id: string }) {
           />
           <div className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Title title={movie.title} logo={media.logo} />
-              {(rated || year || runtime) && (
+              <Title title={t.title} logo={media.logo} />
+              {(rated || t.facts.length > 0) && (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                  {rated && <FilmRating average={movie.vote_average} count={movie.vote_count} prominent />}
-                  {(year || runtime) && (
-                    <p className="font-mono text-code text-mute">{[year, runtime].filter(Boolean).join(" · ")}</p>
-                  )}
+                  {rated && <FilmRating average={t.rating.average} count={t.rating.count} prominent />}
+                  {t.facts.length > 0 && <p className="font-mono text-code text-mute">{t.facts.join(" · ")}</p>}
                 </div>
               )}
-              {directors.length > 0 && (
-                <ul className="mt-1 flex flex-wrap gap-x-6 gap-y-3" aria-label="Directed by">
-                  {directors.map((d) => (
-                    <li key={d.id} className="flex items-center gap-3">
-                      <PersonAvatar name={d.name} path={d.profile_path} />
-                      <span className="flex flex-col">
-                        <span className="text-caption text-mute">Director</span>
-                        <span className="text-body-md font-semibold text-ink">{d.name}</span>
-                      </span>
+              {t.makers.people.length > 0 && (
+                <ul className="mt-1 flex flex-wrap gap-x-6 gap-y-3" aria-label={`${t.makers.role}s`}>
+                  {t.makers.people.map((d) => (
+                    <li key={d.id}>
+                      <Link
+                        href={`/person/${d.id}`}
+                        className="group flex items-center gap-3 rounded-full pr-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        <PersonAvatar name={d.name} path={d.profile_path} />
+                        <span className="flex flex-col">
+                          <span className="text-caption text-mute">{t.makers.role}</span>
+                          <span className="text-body-md font-semibold text-ink underline-offset-4 group-hover:underline">
+                            {d.name}
+                          </span>
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
               )}
             </div>
-            {userId && (
-              <div className="flex flex-col gap-2">
-                <MovieVerdict
-                  tmdbId={id}
-                  snapshot={{ title: movie.title, posterPath: movie.poster_path, year }}
-                  saved={listed?.signal ?? null}
-                  seenAnswer={listed?.seenSignal ?? null}
-                />
-                {/* Pass it on: it lands at the top of their watchlist. */}
-                <SendToFriend
-                  films={[{ tmdbId: id, title: movie.title, posterPath: movie.poster_path, year }]}
-                  className="h-10 self-start px-3 text-body-sm font-semibold text-body hover:text-ink"
-                />
-              </div>
-            )}
-            {movie.tagline && <p className="text-body-lg text-pretty text-ink">{movie.tagline}</p>}
-            {movie.overview && <p className="max-w-prose text-body-md text-pretty text-body">{movie.overview}</p>}
-            {movie.genres.length > 0 && (
+            {t.actions}
+            {t.tagline && <p className="text-body-lg text-pretty text-ink">{t.tagline}</p>}
+            {t.overview && <p className="max-w-prose text-body-md text-pretty text-body">{t.overview}</p>}
+            {t.genres.length > 0 && (
               <ul className="flex flex-wrap gap-1.5" aria-label="Genres">
-                {movie.genres.map((g) => (
+                {t.genres.map((g) => (
                   <li key={g.id}>
                     <Badge variant="outline" className="h-auto rounded-full px-2.5 py-1 text-caption font-normal text-body">
                       {g.name}
@@ -238,14 +233,14 @@ async function MovieDetails({ id: raw }: { id: string }) {
         </div>
 
         <Suspense fallback={<WhereToWatchSkeleton />}>
-          <WhereToWatch tmdbId={id} title={movie.title} imdbId={movie.external_ids?.imdb_id ?? null} tracked={!!userId} />
+          <WhereToWatch kind={t.kind} tmdbId={t.id} title={t.title} imdbId={t.imdbId} tracked={t.tracked} />
         </Suspense>
 
         {media.trailer && (
           <Section id="trailer" title="Trailer">
             <VideoPlayer
               videoKey={media.trailer.key}
-              label={`Trailer for ${movie.title}`}
+              label={`Trailer for ${t.title}`}
               sizes="(min-width: 896px) 848px, 100vw"
               large
             />
@@ -254,7 +249,7 @@ async function MovieDetails({ id: raw }: { id: string }) {
 
         {media.stills.length > 0 && (
           <Section id="stills" title="Stills">
-            <StillsGallery paths={media.stills.map((s) => s.file_path)} title={movie.title} />
+            <StillsGallery paths={media.stills.map((s) => s.file_path)} title={t.title} />
           </Section>
         )}
 
@@ -262,7 +257,7 @@ async function MovieDetails({ id: raw }: { id: string }) {
           <Section id="cast" title="Cast">
             <ul className={SHELF}>
               {cast.map((c) => (
-                <CastCard key={c.id} name={c.name} character={c.character} path={c.profile_path} />
+                <CastCard key={c.id} id={c.id} name={c.name} character={c.character} path={c.profile_path} />
               ))}
             </ul>
           </Section>
@@ -298,7 +293,7 @@ function WhereToWatchSkeleton() {
   );
 }
 
-function MovieSkeleton() {
+export function TitleSkeleton() {
   return (
     <div aria-hidden>
       <Skeleton className={cn("w-full rounded-none", BANNER)} />
@@ -316,18 +311,15 @@ function MovieSkeleton() {
   );
 }
 
-// The page column; the banner runs full-bleed above it.
-const PAGE = "mx-auto w-full max-w-4xl px-4 sm:px-6";
-
-export default function MoviePage({ params }: PageProps<"/movie/[id]">) {
+// The page frame: a Back button floating over the banner's top edge.
+export function TitleShell({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
   return (
     <section className="relative flex flex-col">
-      {/* Floats over the banner's top edge. */}
       <div className={cn(PAGE, "absolute inset-x-0 top-0 z-10 pt-3 md:pt-5")}>
         {/* "/" sends members on to their picks (proxy.ts). */}
         <BackButton fallback="/" className="bg-canvas/70 backdrop-blur-sm" />
       </div>
-      <Suspense fallback={<MovieSkeleton />}>{params.then(({ id }) => <MovieDetails id={id} />)}</Suspense>
+      <Suspense fallback={fallback ?? <TitleSkeleton />}>{children}</Suspense>
     </section>
   );
 }

@@ -9,7 +9,11 @@ export const MIN_QUERY = 2;
 // Debounced TMDB search. Results are stored with the query they answer, so
 // a slow response for an old query never shows up under a newer one.
 // `initial` seeds a search already answered on the server (/search?q=…).
-export function useMovieSearch(initial?: { query: string; results: SearchResult[] }) {
+export function useMovieSearch(
+  initial?: { query: string; results: SearchResult[] },
+  // /search looks through films and series; the pickers through films only.
+  search: (query: string) => Promise<SearchResult[]> = searchMoviesAction,
+) {
   const [query, setQueryState] = useState(initial?.query ?? "");
   const [found, setFound] = useState<{ query: string; results: SearchResult[] }>(() => ({
     query: initial?.query.trim() ?? "",
@@ -25,7 +29,7 @@ export function useMovieSearch(initial?: { query: string; results: SearchResult[
     const next = value.trim();
     if (next.length < MIN_QUERY) return;
     timer.current = setTimeout(async () => {
-      const hits = await searchMoviesAction(next);
+      const hits = await search(next);
       setFound((prev) => (prev.query === next ? prev : { query: next, results: hits }));
     }, DEBOUNCE_MS);
   };

@@ -24,7 +24,13 @@ export function SendToFriend({
   size = "default",
   films,
   list,
-}: Sending & { className?: string; iconOnly?: boolean; size?: "default" | "lg" }) {
+}: Sending & {
+  className?: string;
+  // Icon alone on phones, label from sm up.
+  iconOnly?: boolean;
+  // "icon": a square icon button at every width.
+  size?: "default" | "lg" | "icon";
+}) {
   const [open, setOpen] = useState(false);
   const sending: Sending = list ? { list } : { films: films ?? [] };
   return (
@@ -34,10 +40,11 @@ export function SendToFriend({
         size={size}
         className={cn(size === "lg" && "px-3 text-body-sm font-semibold", iconOnly && "sm:px-4", className)}
         onClick={() => setOpen(true)}
-        aria-label={iconOnly ? "Send to a friend" : undefined}
+        aria-label={iconOnly || size === "icon" ? "Send to a friend" : undefined}
+        title={size === "icon" ? "Send to a friend" : undefined}
       >
         <SendIcon />
-        <span className={cn(iconOnly && "max-sm:sr-only")}>Send to a friend</span>
+        {size !== "icon" && <span className={cn(iconOnly && "max-sm:sr-only")}>Send to a friend</span>}
       </Button>
       <DialogContent showCloseButton={false} className={SHEET_CONTENT}>
         <SendForm {...sending} onDone={() => setOpen(false)} />

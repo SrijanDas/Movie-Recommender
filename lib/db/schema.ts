@@ -82,6 +82,31 @@ export const userMovies = pgTable(
   ],
 ).enableRLS();
 
+// Series a user saved or said how they were. Kept apart from user_movies:
+// TMDB numbers films and series separately, and everything that reads
+// user_movies (engine, My films, lists, memories) stays films-only. Signal
+// is "watchlist" or a "Seen it" answer. See docs/series.md.
+export const userSeries = pgTable(
+  "user_series",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => authUsers.id, { onDelete: "cascade" }),
+    seriesId: integer("series_id").notNull(),
+    signal: movieSignal("signal").notNull(),
+    // Display snapshot so the watchlist renders without a TMDB round-trip.
+    title: text("title").notNull(),
+    posterPath: text("poster_path"),
+    year: smallint("year"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.seriesId] })],
+).enableRLS();
+
 // One row per user, created at sign-up (which reserves the handle) or, for
 // older accounts, at onboarding. The public profile lives at /@handle.
 export const profiles = pgTable("profiles", {

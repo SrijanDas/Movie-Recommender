@@ -1,14 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { BookmarkIcon, PopcornIcon, SearchIcon, StarIcon, UserRoundIcon, type LucideIcon } from "lucide-react";
+import { BookmarkIcon, HouseIcon, PopcornIcon, SearchIcon, StarIcon, UserRoundIcon, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ProfileAvatar } from "@/components/profile/profile-avatar";
 import { cn } from "@/lib/utils";
 
 export const TABS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/recommendations", label: "Watch", icon: PopcornIcon },
+  { href: "/home", label: "Home", icon: HouseIcon },
+  { href: "/recommendations", label: "For you", icon: PopcornIcon },
   { href: "/watchlist", label: "Watchlist", icon: BookmarkIcon },
   { href: "/my-movies", label: "My films", icon: StarIcon },
   { href: "/search", label: "Search", icon: SearchIcon },
@@ -81,7 +82,7 @@ function BottomTabs({ pathname, me }: { pathname: string | null; me: Me }) {
       aria-label="Main"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
-      <ul className="mx-auto grid h-16 max-w-md grid-cols-4">
+      <ul className="mx-auto grid h-16 max-w-lg grid-cols-5">
         {BOTTOM_TABS.map(({ href, label, icon: Icon }) => {
           const active = isActive(pathname, href);
           return (

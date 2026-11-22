@@ -18,7 +18,7 @@ export function JoinBar({ viewer, title }: { viewer: "member" | "visitor"; title
         </div>
         <Button
           className="shrink-0"
-          render={<Link href={visitor ? "/sign-up" : "/recommendations"} />}
+          render={<Link href={visitor ? "/sign-up" : "/home"} />}
           nativeButton={false}
         >
           {visitor ? "Make yours" : "Open"}

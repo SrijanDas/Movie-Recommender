@@ -24,7 +24,7 @@ async function Picker() {
     getUserMovies(userId),
     isTmdbConfigured() ? getStarterMovies().catch(() => []) : [],
   ]);
-  if (onboarded) redirect("/recommendations");
+  if (onboarded) redirect("/home");
   const saved = await withDetails(favoritesInOrder(movies));
   return (
     <FavoritesPicker

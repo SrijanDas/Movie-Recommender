@@ -24,7 +24,8 @@ import {
   type Recommendation,
   type SeenAnswer,
 } from "@/lib/recommend/types";
-import { searchMovies } from "@/lib/tmdb/client";
+import { searchMovies, searchTitles } from "@/lib/tmdb/client";
+import { toResult } from "@/lib/tmdb/results";
 import { releaseYear } from "@/lib/tmdb/images";
 
 // Every mutation is for the signed-in user and writes to Postgres.
@@ -40,6 +41,8 @@ export type SearchResult = {
   // TMDB's score; missing for films taken from the user's own list.
   voteAverage?: number;
   voteCount?: number;
+  // Films unless said otherwise; only search and shelves list series.
+  kind?: "movie" | "series";
 };
 
 const SIGN_IN_REQUIRED: Failure = { ok: false, error: "Your session ended. Sign in again." };
@@ -95,6 +98,20 @@ export async function searchMoviesAction(query: unknown): Promise<SearchResult[]
       voteAverage: m.vote_average,
       voteCount: m.vote_count,
     }));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
+// /search: films and series together, in TMDB's order. The pickers keep
+// searchMoviesAction (films only).
+export async function searchTitlesAction(query: unknown): Promise<SearchResult[]> {
+  if (typeof query !== "string") return [];
+  const q = query.trim();
+  if (q.length < 2 || q.length > 100) return [];
+  try {
+    return (await searchTitles(q)).slice(0, 12).map(toResult);
   } catch (error) {
     console.error(error);
     return [];

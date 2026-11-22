@@ -12,7 +12,7 @@ const HANDLE = /^[a-z0-9_](?:[a-z0-9_]|\.(?!\.))*[a-z0-9_]$/;
 // Words a handle can't be, so /@handle never reads like part of the app.
 const RESERVED = new Set([
   "account", "admin", "api", "app", "auth", "help", "home", "login", "logout", "me", "movie", "movies",
-  "my-movies", "nextmovie", "next_movie", "offline", "onboarding", "profile", "recommendations", "root",
+  "my-movies", "nextmovie", "next_movie", "offline", "onboarding", "profile", "recommendations", "root", "series", "person",
   "lists", "search", "settings", "signin", "signup", "support", "system", "u", "user", "watchlist",
 ]);
 

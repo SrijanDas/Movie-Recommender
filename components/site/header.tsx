@@ -52,7 +52,7 @@ async function Nav() {
 // Phones get Search here and the rest, Profile included, in <AppTabBar>.
 export function AppHeader() {
   return (
-    <Bar logoHref="/recommendations">
+    <Bar logoHref="/home">
       <div className="flex items-center gap-3">
         <Suspense fallback={<TopNavFallback />}>
           <Nav />

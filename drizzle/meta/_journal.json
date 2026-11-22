@@ -113,6 +113,13 @@
       "when": 1794152145292,
       "tag": "0015_brief_captain_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795369115820,
+      "tag": "0016_sudden_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

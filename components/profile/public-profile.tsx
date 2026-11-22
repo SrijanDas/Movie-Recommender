@@ -191,7 +191,7 @@ export function PageBackdrop({ paths, visitor, back }: { paths: string[]; visito
       {paths.length > 0 && <BannerSlideshow paths={paths} className="[mask-image:linear-gradient(to_bottom,black_35%,transparent)]" />}
       <div className="relative mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:px-6">
         {back && <BackButton fallback={back} className="ml-0 h-11 rounded-full bg-canvas/80 px-3.5 text-ink shadow-[0_2px_8px_rgba(0,0,0,0.35)] hover:bg-canvas" />}
-        <Logo href={visitor ? "/" : "/recommendations"} />
+        <Logo href={visitor ? "/" : "/home"} />
       </div>
     </div>
   );

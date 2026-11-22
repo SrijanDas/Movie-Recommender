@@ -4,7 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { key: "films", href: "/search", label: "Films", icon: FilmIcon },
+  { key: "films", href: "/search", label: "Titles", icon: FilmIcon },
   { key: "people", href: "/search/people", label: "People", icon: UsersRoundIcon },
 ] as const;
 

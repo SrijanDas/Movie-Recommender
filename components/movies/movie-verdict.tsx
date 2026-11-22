@@ -34,16 +34,17 @@ import type { MovieSnapshot } from "@/lib/movies/types";
 import { DEFAULT_SEEN_ANSWER, type Signal } from "@/lib/recommend/types";
 import { cn } from "@/lib/utils";
 
-// The film page's actions: say how it was (or change your answer), make it a
-// favourite, or open the ⋯ menu to save it to the watchlist or (like a
-// recommendation card's menu) pass on it for now or for good. The ⋯ shows a
-// bookmark while the film is on the watchlist. The answer starts from the server and is then kept
+// The film page's actions: say how it was (or change your answer), share it
+// (`share`), or open the ⋯ menu to make it a favourite, save it to the
+// watchlist or (like a recommendation card's menu) pass on it for now or for
+// good. The ⋯ shows a star for a favourite, a bookmark while on the watchlist. The answer starts from the server and is then kept
 // here, since the actions don't refresh the page.
 export function MovieVerdict({
   tmdbId,
   snapshot,
   saved,
   seenAnswer,
+  share,
 }: {
   tmdbId: number;
   snapshot: MovieSnapshot;
@@ -51,6 +52,7 @@ export function MovieVerdict({
   // The "Seen it" answer a favourite carries; it falls back to this when
   // taken out of the favourites.
   seenAnswer: Signal | null;
+  share?: React.ReactNode;
 }) {
   const [answered, setAnswered] = useState<Signal | null>(saved);
   const [signal, setSignal] = useOptimistic<Signal | null, Signal | null>(answered, (_, next) => next);
@@ -71,29 +73,6 @@ export function MovieVerdict({
           action: { label: "Rank it", onClick: () => router.push("/my-movies/favourites") },
         });
     });
-
-  const favouriteButton = (
-    <Button
-      variant="outline"
-      size="icon"
-      className={cn("size-10 shrink-0", favourite ? "border-primary-soft text-primary-soft" : "text-body")}
-      aria-label={favourite ? `Remove ${snapshot.title} from your favourites` : `Add ${snapshot.title} to your favourites`}
-      aria-pressed={favourite}
-      title={favourite ? "One of your favourites" : "Add to favourites"}
-      onClick={toggleFavourite}
-    >
-      <StarIcon className={cn(favourite && "fill-current")} />
-    </Button>
-  );
-
-  if (favourite) {
-    return (
-      <div className="flex items-center gap-1.5 sm:w-96">
-        <p className="flex h-10 min-w-0 flex-1 items-center text-body-sm text-body">One of your favourites</p>
-        {favouriteButton}
-      </div>
-    );
-  }
 
   const rate = (feedback: Feedback) =>
     startTransition(async () => {
@@ -133,51 +112,64 @@ export function MovieVerdict({
     });
 
   const current = ANSWERS.some((a) => a.feedback === signal) ? (signal as Feedback) : null;
+  const TriggerIcon = favourite ? StarIcon : onWatchlist ? BookmarkCheckIcon : EllipsisVerticalIcon;
+  const item = "h-10 gap-2.5 px-2 text-body-sm text-ink";
+  const selected = <CheckIcon className="ml-auto text-primary-soft" aria-label="(selected)" />;
   return (
     <div className="flex items-center gap-1.5 sm:w-96">
-      <SeenItMenu title={snapshot.title} current={current} onRate={rate} className="min-w-0 flex-1" />
-      {favouriteButton}
-      {/* Once you've said how it was, it's no longer something to watch later
-          or pass on, so the menu goes with the answer. */}
-      {!current && (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  "size-10 shrink-0 aria-expanded:text-ink",
-                  onWatchlist ? "border-primary-soft text-primary-soft" : "text-body",
-                )}
-                aria-label={`More options for ${snapshot.title}`}
-                title={onWatchlist ? "On your watchlist" : undefined}
-              />
-            }
-          >
-            {onWatchlist ? <BookmarkCheckIcon /> : <EllipsisVerticalIcon />}
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-52 p-1.5">
-            <DropdownMenuItem className="h-10 gap-2.5 px-2 text-body-sm text-ink" onClick={toggleWatchlist}>
-              {onWatchlist ? <BookmarkCheckIcon /> : <BookmarkPlusIcon />}
-              {onWatchlist ? "Remove from watchlist" : "Add to watchlist"}
-              {onWatchlist && <CheckIcon className="ml-auto text-primary-soft" aria-label="(selected)" />}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1.5" />
-            {PASSES.map(({ choice, label, icon: Icon }) => (
-              <DropdownMenuItem
-                key={choice}
-                className="h-10 gap-2.5 px-2 text-body-sm text-ink"
-                onClick={() => pass(choice)}
-              >
-                <Icon />
-                {label}
-                {signal === choice && <CheckIcon className="ml-auto text-primary-soft" aria-label="(selected)" />}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {favourite ? (
+        <p className="flex h-10 min-w-0 flex-1 items-center gap-2 text-body-sm text-body">
+          <StarIcon className="size-4 fill-current text-primary-soft" aria-hidden />
+          One of your favourites
+        </p>
+      ) : (
+        <SeenItMenu title={snapshot.title} current={current} onRate={rate} className="min-w-0 flex-1" />
       )}
+      {share}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button
+              variant="outline"
+              size="icon"
+              className={cn(
+                "size-10 shrink-0 aria-expanded:text-ink",
+                favourite || onWatchlist ? "border-primary-soft text-primary-soft" : "text-body",
+              )}
+              aria-label={`More options for ${snapshot.title}`}
+              title={favourite ? "One of your favourites" : onWatchlist ? "On your watchlist" : undefined}
+            />
+          }
+        >
+          <TriggerIcon className={cn(favourite && "fill-current")} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="min-w-52 p-1.5">
+          <DropdownMenuItem className={item} onClick={toggleFavourite}>
+            <StarIcon className={cn(favourite && "fill-current text-primary-soft")} />
+            {favourite ? "Remove from favourites" : "Add to favourites"}
+          </DropdownMenuItem>
+          {/* Once you've said how it was, it's no longer something to watch
+              later or pass on, so those go with the answer. */}
+          {!current && !favourite && (
+            <>
+              <DropdownMenuSeparator className="my-1.5" />
+              <DropdownMenuItem className={item} onClick={toggleWatchlist}>
+                {onWatchlist ? <BookmarkCheckIcon /> : <BookmarkPlusIcon />}
+                {onWatchlist ? "Remove from watchlist" : "Add to watchlist"}
+                {onWatchlist && selected}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1.5" />
+              {PASSES.map(({ choice, label, icon: Icon }) => (
+                <DropdownMenuItem key={choice} className={item} onClick={() => pass(choice)}>
+                  <Icon />
+                  {label}
+                  {signal === choice && selected}
+                </DropdownMenuItem>
+              ))}
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

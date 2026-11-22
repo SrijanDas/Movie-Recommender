@@ -2,13 +2,14 @@ import type { NextRequest } from "next/server";
 import { redirectWithSession, updateSession } from "@/lib/supabase/proxy";
 
 // Signed-out visitors may only see these and public profiles (/@handle,
-// served from /u/handle with its share image) and film pages (/movie/id);
+// served from /u/handle with its share image) and film, series and person
+// pages (/movie/id, /series/id, /person/id);
 // everything else needs an account. Cron jobs (/api/cron/) check their own
 // secret.
 const PUBLIC = new Set(["/", "/sign-in", "/sign-up", "/offline", "/credits"]);
 const isPublic = (pathname: string) =>
   PUBLIC.has(pathname) ||
-  ["/auth/", "/@", "/u/", "/movie/", "/api/cron/"].some((prefix) => pathname.startsWith(prefix));
+  ["/auth/", "/@", "/u/", "/movie/", "/series/", "/person/", "/api/cron/"].some((prefix) => pathname.startsWith(prefix));
 // Signed-in users skip the landing page, sign-in and sign-up.
 const SIGNED_OUT_ONLY = new Set(["/", "/sign-in", "/sign-up"]);
 
@@ -23,7 +24,7 @@ export async function proxy(request: NextRequest) {
   }
   if (userId && SIGNED_OUT_ONLY.has(pathname)) {
     // The app layout sends users who haven't onboarded yet to /onboarding.
-    return redirectWithSession(response, new URL("/recommendations", request.url));
+    return redirectWithSession(response, new URL("/home", request.url));
   }
   return response;
 }

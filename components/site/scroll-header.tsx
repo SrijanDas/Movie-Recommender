@@ -57,9 +57,9 @@ export function ScrollHeader({ viewer, watchId, back }: { viewer: "member" | "vi
       <div className="mx-auto flex h-14 max-w-3xl items-center justify-between gap-4 px-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-1">
           {back && <BackButton fallback={back} iconOnly />}
-          <Logo href={visitor ? "/" : "/recommendations"} />
+          <Logo href={visitor ? "/" : "/home"} />
         </div>
-        <Button size="sm" render={<Link href={visitor ? "/sign-up" : "/recommendations"} />} nativeButton={false}>
+        <Button size="sm" render={<Link href={visitor ? "/sign-up" : "/home"} />} nativeButton={false}>
           {visitor ? "Make yours" : "Your picks"}
         </Button>
       </div>

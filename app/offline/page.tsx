@@ -19,7 +19,7 @@ export default function OfflinePage() {
       </div>
       {/* A plain link reloads the page, which is what we want once back online. */}
       <a
-        href="/recommendations"
+        href="/home"
         className="inline-flex h-11 items-center rounded-lg bg-primary px-4 text-body-md font-semibold text-primary-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         Try again

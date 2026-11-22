@@ -27,5 +27,5 @@ export async function markOnboarded(userId: string) {
 
 // Where a signed-in user starts: the picker until onboarded, then the app.
 export async function homeFor(userId: string): Promise<string> {
-  return (await isOnboarded(userId)) ? "/recommendations" : "/onboarding";
+  return (await isOnboarded(userId)) ? "/home" : "/onboarding";
 }

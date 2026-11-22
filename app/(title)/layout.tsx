@@ -4,7 +4,7 @@ import { AppHeader, AppTabBar, PlainHeader, SignedOutNav } from "@/components/si
 import { getCurrentUserId } from "@/lib/auth";
 import { isOnboarded } from "@/lib/onboarding";
 
-// Film pages are public (proxy.ts), so profiles can link to them. Members get
+// Film, series and person pages are public (proxy.ts), so profiles can link to them. Members get
 // the app shell; visitors get the plain header with Sign in. Members who
 // haven't onboarded are sent to /onboarding, as in the (app) layout.
 async function Header() {
@@ -25,7 +25,7 @@ async function Bottom() {
   );
 }
 
-export default function MovieLayout({ children }: LayoutProps<"/movie">) {
+export default function TitleLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Suspense fallback={<PlainHeader />}>

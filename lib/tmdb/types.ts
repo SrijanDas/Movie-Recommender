@@ -103,3 +103,70 @@ export type TmdbPage<T> = {
   total_pages: number;
   total_results: number;
 };
+
+// A series as it appears in list endpoints (search, discover, popular).
+export type TmdbSeriesSummary = {
+  id: number;
+  name: string;
+  first_air_date: string;
+  poster_path: string | null;
+  vote_average: number;
+  vote_count: number;
+};
+
+// `/search/multi`: films, series and people in one ranked list.
+export type TmdbMultiResult =
+  | (TmdbMovieSummary & { media_type: "movie" })
+  | (TmdbSeriesSummary & { media_type: "tv" })
+  | { media_type: "person"; id: number };
+
+// `/tv/{id}?append_to_response=credits,external_ids`
+export type TmdbSeriesDetails = {
+  id: number;
+  name: string;
+  first_air_date: string;
+  last_air_date: string | null;
+  // "Returning Series", "Ended", "Canceled", "In Production", …
+  status: string;
+  number_of_seasons: number;
+  episode_run_time: number[];
+  poster_path: string | null;
+  backdrop_path: string | null;
+  overview: string;
+  tagline: string;
+  vote_average: number;
+  vote_count: number;
+  genres: TmdbGenre[];
+  created_by: { id: number; name: string; profile_path: string | null }[];
+  credits: { cast: TmdbCastMember[] };
+  external_ids?: { imdb_id: string | null };
+};
+
+// One film or series a person worked on (`combined_credits`).
+export type TmdbPersonCredit = {
+  id: number;
+  media_type: "movie" | "tv";
+  title?: string;
+  name?: string;
+  release_date?: string;
+  first_air_date?: string;
+  poster_path: string | null;
+  vote_average: number;
+  vote_count: number;
+  genre_ids: number[];
+  character?: string;
+  job?: string;
+};
+
+// `/person/{id}?append_to_response=combined_credits`
+export type TmdbPerson = {
+  id: number;
+  name: string;
+  biography: string;
+  birthday: string | null;
+  deathday: string | null;
+  place_of_birth: string | null;
+  known_for_department: string;
+  profile_path: string | null;
+  combined_credits: { cast: TmdbPersonCredit[]; crew: TmdbPersonCredit[] };
+};
