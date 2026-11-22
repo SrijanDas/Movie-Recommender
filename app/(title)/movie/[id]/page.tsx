@@ -59,8 +59,10 @@ async function MovieDetails({ id: raw }: { id: string }) {
             saved={listed?.signal ?? null}
             seenAnswer={listed?.seenSignal ?? null}
             share={
+              // One button: send to a friend in the app, or share the link anywhere.
               <SendToFriend
                 films={[{ tmdbId: id, title: movie.title, posterPath: movie.poster_path, year }]}
+                link={{ path: `/movie/${id}`, title: movie.title, text: year ? `${movie.title} (${year})` : movie.title }}
                 size="icon"
                 className="size-10 shrink-0 text-body hover:text-ink"
               />

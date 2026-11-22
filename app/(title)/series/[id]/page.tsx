@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { SeriesVerdict } from "@/components/movies/series-verdict";
+import { ShareButton } from "@/components/profile/share-profile";
 import { NO_MEDIA, NotConnected, parseId, TitleDetails, TitleShell } from "@/components/movies/title-page";
 import { getCurrentUserId } from "@/lib/auth";
 import { getSeriesSignal } from "@/lib/series/store";
@@ -54,7 +55,26 @@ async function SeriesDetails({ id: raw }: { id: string }) {
       cast={series.credits.cast}
       imdbId={series.external_ids?.imdb_id ?? null}
       media={media}
-      actions={userId && <SeriesVerdict seriesId={id} title={series.name} saved={saved} />}
+      actions={
+        userId && (
+          <SeriesVerdict
+            seriesId={id}
+            title={series.name}
+            saved={saved}
+            share={
+              <ShareButton
+                path={`/series/${id}`}
+                title={series.name}
+                text={series.name}
+                label={`Share ${series.name}`}
+                variant="outline"
+                iconOnly
+                className="size-10 shrink-0 text-body hover:text-ink"
+              />
+            }
+          />
+        )
+      }
       // Series take weeks, so where-to-watch doesn't start a "Did you finish it?".
       tracked={false}
     />

@@ -19,8 +19,18 @@ import { cn } from "@/lib/utils";
 
 // The series page's actions, laid out like a film's (MovieVerdict): Seen it
 // in view, the watchlist in the ⋯ menu, which shows a bookmark while saved.
-// Series have no favourites or passes yet.
-export function SeriesVerdict({ seriesId, title, saved }: { seriesId: number; title: string; saved: Signal | null }) {
+// `share` sits between them. Series have no favourites or passes yet.
+export function SeriesVerdict({
+  seriesId,
+  title,
+  saved,
+  share,
+}: {
+  seriesId: number;
+  title: string;
+  saved: Signal | null;
+  share?: React.ReactNode;
+}) {
   const [answered, setAnswered] = useState<Signal | null>(saved);
   const [signal, setSignal] = useOptimistic<Signal | null, Signal | null>(answered, (_, next) => next);
   const [, startTransition] = useTransition();
@@ -48,6 +58,7 @@ export function SeriesVerdict({ seriesId, title, saved }: { seriesId: number; ti
   return (
     <div className="flex items-center gap-1.5 sm:w-96">
       <SeenItMenu title={title} current={current} onRate={rate} className="min-w-0 flex-1" />
+      {share}
       {/* Once you've said how it was, it's no longer something to watch later. */}
       {!current && (
         <DropdownMenu>

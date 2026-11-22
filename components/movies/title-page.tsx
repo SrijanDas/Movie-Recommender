@@ -26,8 +26,10 @@ export const NO_MEDIA: MovieMedia = { logo: null, stills: [], trailer: null, ext
 export const PAGE = "mx-auto w-full max-w-4xl px-4 sm:px-6";
 
 // A row that scrolls sideways, bleeding to the screen edge on phones.
+// `relative` makes the row the containing block for absolutely placed
+// children (sr-only text), so they're clipped by it instead of widening the page.
 export const SHELF =
-  "-mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6";
+  "relative -mx-4 flex snap-x scroll-px-4 gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6";
 
 const CAST_SHOWN = 15;
 

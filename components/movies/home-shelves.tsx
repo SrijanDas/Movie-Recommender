@@ -28,7 +28,7 @@ export async function HomeShelves() {
               </h2>
               <ul className={SHELF}>
                 {row.titles.slice(0, SHELF_SIZE).map((t) => (
-                  <TitleTile key={titleHref(t)} title={t} sizes="128px" className="w-28 shrink-0 snap-start sm:w-32" />
+                  <TitleTile key={titleHref(t)} title={t} sizes="(min-width: 640px) 128px, 104px" className="w-26 shrink-0 snap-start sm:w-32" />
                 ))}
               </ul>
             </section>
@@ -44,7 +44,7 @@ export function HomeShelvesSkeleton() {
       <Skeleton className="h-7 w-36" />
       <div className="flex gap-3 overflow-hidden">
         {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className="aspect-2/3 w-28 shrink-0 rounded-xl sm:w-32" />
+          <Skeleton key={i} className="aspect-2/3 w-26 shrink-0 rounded-xl sm:w-32" />
         ))}
       </div>
     </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import { ListIcon, Loader2Icon, SendIcon } from "lucide-react";
+import { ListIcon, Loader2Icon, SendIcon, Share2Icon } from "lucide-react";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { sendTip } from "@/app/social/actions";
 import { Poster } from "@/components/movies/poster";
+import { shareLink } from "@/components/profile/share-profile";
 import { PeoplePicker } from "@/components/social/people-picker";
 import { SHEET_CONTENT, SheetBody, SheetFooter, SheetHeader } from "@/components/social/sheet";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,11 @@ import { MAX_TIP_NOTE, type Person } from "@/lib/social/rules";
 import type { TipFilm } from "@/lib/social/store";
 import { cn } from "@/lib/utils";
 
-type Sending = { films: TipFilm[]; list?: undefined } | { list: { id: string; name: string }; films?: undefined };
+type Sending = ({ films: TipFilm[]; list?: undefined } | { list: { id: string; name: string }; films?: undefined }) & {
+  // With a link, the sheet also shares it outside the app (share sheet or
+  // copy), and the trigger reads "Share".
+  link?: { path: string; title: string; text: string };
+};
 
 // "Send to a friend" for a film or a shared list: pick who, add a note,
 // send. They see it on their watchlist.
@@ -24,6 +29,7 @@ export function SendToFriend({
   size = "default",
   films,
   list,
+  link,
 }: Sending & {
   className?: string;
   // Icon alone on phones, label from sm up.
@@ -32,7 +38,8 @@ export function SendToFriend({
   size?: "default" | "lg" | "icon";
 }) {
   const [open, setOpen] = useState(false);
-  const sending: Sending = list ? { list } : { films: films ?? [] };
+  const sending: Sending = list ? { list, link } : { films: films ?? [], link };
+  const label = link ? "Share" : "Send to a friend";
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button
@@ -40,11 +47,11 @@ export function SendToFriend({
         size={size}
         className={cn(size === "lg" && "px-3 text-body-sm font-semibold", iconOnly && "sm:px-4", className)}
         onClick={() => setOpen(true)}
-        aria-label={iconOnly || size === "icon" ? "Send to a friend" : undefined}
-        title={size === "icon" ? "Send to a friend" : undefined}
+        aria-label={iconOnly || size === "icon" ? label : undefined}
+        title={size === "icon" ? label : undefined}
       >
-        <SendIcon />
-        {size !== "icon" && <span className={cn(iconOnly && "max-sm:sr-only")}>Send to a friend</span>}
+        {link ? <Share2Icon /> : <SendIcon />}
+        {size !== "icon" && <span className={cn(iconOnly && "max-sm:sr-only")}>{label}</span>}
       </Button>
       <DialogContent showCloseButton={false} className={SHEET_CONTENT}>
         <SendForm {...sending} onDone={() => setOpen(false)} />
@@ -54,12 +61,13 @@ export function SendToFriend({
 }
 
 function SendForm({ onDone, ...sending }: Sending & { onDone: () => void }) {
-  const { films, list } = sending;
+  const { films, list, link } = sending;
   const [to, setTo] = useState<Person | null>(null);
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
 
-  const title = list ? `Send “${list.name}”` : films.length === 1 ? `Send “${films[0].title}”` : `Send ${films.length} films`;
+  const verb = link ? "Share" : "Send";
+  const title = list ? `${verb} “${list.name}”` : films.length === 1 ? `${verb} “${films[0].title}”` : `${verb} ${films.length} films`;
 
   const send = () =>
     startTransition(async () => {
@@ -79,8 +87,25 @@ function SendForm({ onDone, ...sending }: Sending & { onDone: () => void }) {
 
   return (
     <>
-      <SheetHeader title={title} description="Pick who gets it. It shows up at the top of their watchlist.">
-        <SendingPreview {...sending} />
+      <SheetHeader
+        title={title}
+        description={
+          link
+            ? "Send it to a friend here (it shows up at the top of their watchlist), or share the link anywhere."
+            : "Pick who gets it. It shows up at the top of their watchlist."
+        }
+      >
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <SendingPreview {...sending} />
+          </div>
+          {link && (
+            <Button variant="outline" className="h-10 shrink-0 px-3 text-body-sm" onClick={() => void shareLink(link)}>
+              <Share2Icon />
+              Share link
+            </Button>
+          )}
+        </div>
       </SheetHeader>
       <SheetBody>
         <PeoplePicker value={to} onChange={setTo} />

@@ -26,6 +26,20 @@ async function copy(url: string) {
 
 // The phone's share sheet (Instagram, WhatsApp, Messages…) where there is
 // one; otherwise copy the link.
+export async function shareLink({ path, title, text }: { path: string; title: string; text: string }) {
+  const url = absoluteUrl(path);
+  if (navigator.share) {
+    try {
+      await navigator.share({ title, text, url });
+      return;
+    } catch (error) {
+      // Dismissing the sheet isn't a failure.
+      if (error instanceof DOMException && error.name === "AbortError") return;
+    }
+  }
+  await copy(url);
+}
+
 export function ShareButton({
   path,
   title,
@@ -33,6 +47,7 @@ export function ShareButton({
   className,
   variant = "default",
   label = "Share",
+  iconOnly,
 }: {
   path: string;
   title: string;
@@ -40,24 +55,21 @@ export function ShareButton({
   className?: string;
   variant?: "default" | "outline";
   label?: string;
+  // A square icon button; `label` becomes its accessible name and tooltip.
+  iconOnly?: boolean;
 }) {
-  const share = async () => {
-    const url = absoluteUrl(path);
-    if (navigator.share) {
-      try {
-        await navigator.share({ title, text, url });
-        return;
-      } catch (error) {
-        // Dismissing the sheet isn't a failure.
-        if (error instanceof DOMException && error.name === "AbortError") return;
-      }
-    }
-    await copy(url);
-  };
+  const share = () => shareLink({ path, title, text });
   return (
-    <Button variant={variant} className={className} onClick={() => void share()}>
+    <Button
+      variant={variant}
+      size={iconOnly ? "icon" : "default"}
+      className={className}
+      onClick={() => void share()}
+      aria-label={iconOnly ? label : undefined}
+      title={iconOnly ? label : undefined}
+    >
       <Share2Icon />
-      {label}
+      {!iconOnly && label}
     </Button>
   );
 }
