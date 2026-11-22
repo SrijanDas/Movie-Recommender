@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   Carousel,
@@ -13,6 +12,7 @@ import {
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { backdropUrl } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
+import { LoadingImage } from "@/components/movies/loading-image";
 
 // A row of the film's stills. Tapping one opens them all full-width, at that
 // still, to swipe through (arrow keys and buttons on bigger screens).
@@ -42,7 +42,7 @@ export function StillsGallery({ paths, title }: { paths: string[]; title: string
               aria-label={`Open still ${i + 1} of ${paths.length}`}
               className="group/still relative block aspect-video w-full overflow-hidden rounded-xl border border-border bg-muted outline-none transition-[border-color] duration-200 hover:border-hairline-soft/50 focus-visible:ring-3 focus-visible:ring-ring/50"
             >
-              <Image
+              <LoadingImage
                 src={backdropUrl(path, "w780")!}
                 alt=""
                 fill
@@ -65,7 +65,7 @@ export function StillsGallery({ paths, title }: { paths: string[]; title: string
                 {paths.map((path, i) => (
                   <CarouselItem key={path}>
                     <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
-                      <Image
+                      <LoadingImage
                         src={backdropUrl(path)!}
                         alt={`Still ${i + 1} of ${paths.length} from ${title}`}
                         fill

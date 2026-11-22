@@ -10,7 +10,7 @@ export const titleHref = (t: Pick<SearchResult, "tmdbId" | "kind">) =>
   t.kind === "series" ? `/series/${t.tmdbId}` : `/movie/${t.tmdbId}`;
 
 // A poster that opens the film's or series' page, with its title, year and
-// score. Series carry a small "Series" label so the two can't be confused.
+// score.
 export function TitleTile({
   title: t,
   preload,
@@ -31,16 +31,13 @@ export function TitleTile({
         href={titleHref(t)}
         className="group flex flex-col gap-1.5 rounded-xl outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
       >
-        <div className="relative">
-          <Poster
-            path={t.posterPath}
-            title={t.title}
-            preload={preload}
-            sizes={sizes}
-            className="transition-shadow duration-150 group-hover:shadow-glow"
-          />
-          {t.kind === "series" && <SeriesLabel />}
-        </div>
+        <Poster
+          path={t.posterPath}
+          title={t.title}
+          preload={preload}
+          sizes={sizes}
+          className="transition-shadow duration-150 group-hover:shadow-glow"
+        />
         <span className="flex flex-col gap-0.5">
           <span className="line-clamp-2 text-caption leading-tight text-body group-hover:text-ink">{t.title}</span>
           {note && <span className="line-clamp-1 text-caption text-mute">{note}</span>}
@@ -57,11 +54,3 @@ export function TitleTile({
   );
 }
 
-// Marks a series' poster, top-left.
-export function SeriesLabel() {
-  return (
-    <span className="absolute top-1.5 left-1.5 rounded-md bg-canvas/80 px-1.5 py-0.5 text-caption leading-none font-medium text-ink backdrop-blur-sm">
-      Series
-    </span>
-  );
-}

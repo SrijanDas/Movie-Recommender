@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { posterUrl, type PosterSize } from "@/lib/tmdb/images";
+import { LoadingImage } from "@/components/movies/loading-image";
 
 // A 2:3 poster frame. Falls back to the title set in type when TMDB has no
 // art or the image fails to load.
@@ -33,7 +33,7 @@ export function Poster({
     >
       {src ? (
         // TMDB serves pre-sized posters from its CDN, so skip the optimizer.
-        <Image
+        <LoadingImage
           src={src}
           alt={`Poster for ${title}`}
           fill

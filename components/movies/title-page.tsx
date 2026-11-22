@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { BannerSlideshow } from "@/components/movies/banner-slideshow";
 import { FilmRating } from "@/components/movies/film-meta";
+import { LoadingImage } from "@/components/movies/loading-image";
 import { Poster } from "@/components/movies/poster";
 import { Notice } from "@/components/movies/recommendation-grid";
 import { StillsGallery } from "@/components/movies/stills-gallery";
@@ -111,7 +112,7 @@ function CastCard({ id, name, character, path }: { id: number; name: string; cha
       >
         <div className="relative flex aspect-2/3 items-center justify-center overflow-hidden rounded-xl border border-border bg-canvas-soft transition-shadow duration-150 group-hover:shadow-glow">
           {src ? (
-            <Image src={src} alt="" fill unoptimized loading="lazy" sizes="112px" className="object-cover object-top" />
+            <LoadingImage src={src} alt="" fill unoptimized loading="lazy" sizes="112px" className="object-cover object-top" />
           ) : (
             <span aria-hidden className="text-display-sm text-mute">
               {initials(name)}

@@ -11,7 +11,6 @@ import { GenreFilterButton, inGenre } from "@/components/movies/film-filter";
 import { forgetSeries, setSeriesSignal } from "@/app/series/actions";
 import { forgetMovie, rateMovie, undoRating, watchLater, type Feedback } from "@/components/movies/movie-actions";
 import { Poster } from "@/components/movies/poster";
-import { SeriesLabel } from "@/components/movies/title-tile";
 import { GRID } from "@/components/movies/recommendation-grid";
 import { SeenItMenu } from "@/components/movies/seen-it-menu";
 import { CARD_PRESENCE, CARD_TRANSITION } from "@/components/site/motion";
@@ -22,8 +21,8 @@ import { isWatching, type ListedMovie } from "@/lib/movies/types";
 // Saved-for-later films, the ones being watched first with a "Watching"
 // mark on the poster. Saying how one was (it moves to My films → Seen it)
 // or removing it takes the card away at once, with Undo. Filter narrows the
-// grid to one genre, once applied. Series (`kind: "series"`) mix in with a
-// "Series" label; their answers and removals go to user_series.
+// grid to one genre, once applied. Series (`kind: "series"`) mix in; their
+// answers and removals go to user_series.
 export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const [genre, setGenre] = useState<string | null>(null);
@@ -113,7 +112,6 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
                     sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 50vw"
                     className="transition-shadow duration-200 group-hover:shadow-glow"
                   />
-                  {movie.kind === "series" && <SeriesLabel />}
                   {isWatching(movie) && (
                     <Badge className="absolute top-2 left-2 h-6 gap-1 bg-primary pl-1.5 text-caption font-medium text-primary-foreground shadow-md">
                       <PlayIcon className="fill-current" />

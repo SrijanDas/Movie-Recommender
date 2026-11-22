@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { SearchResult } from "@/app/actions";
+import { LoadingImage } from "@/components/movies/loading-image";
 import { NotConnected, PAGE, parseId, initials, Section, TitleShell } from "@/components/movies/title-page";
 import { TILE_GRID, TitleTile, titleHref } from "@/components/movies/title-tile";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -75,7 +75,7 @@ async function PersonDetails({ id: raw }: { id: string }) {
       <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
         <div className="relative flex aspect-2/3 w-1/2 max-w-60 shrink-0 items-center justify-center self-start overflow-hidden rounded-xl border border-border bg-canvas-soft shadow-glow sm:w-60">
           {photo ? (
-            <Image src={photo} alt={person.name} fill unoptimized preload sizes="(min-width: 640px) 240px, 50vw" className="object-cover object-top" />
+            <LoadingImage src={photo} alt={person.name} fill unoptimized preload sizes="(min-width: 640px) 240px, 50vw" className="object-cover object-top" />
           ) : (
             <span aria-hidden className="text-display-lg text-mute">
               {initials(person.name)}

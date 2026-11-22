@@ -41,7 +41,7 @@ fetched server-side); store in `lib/series/store.ts`.
 ## Search
 
 `/search` uses `searchTitlesAction` (`/search/multi`, people removed): films and series together in TMDB's
-order, series tiles labelled "Series" (`TitleTile` in `components/movies/title-tile.tsx`). The pre-typing
+order, as `TitleTile`s (`components/movies/title-tile.tsx`). The pre-typing
 grid samples from the most-voted films and series. Pickers (onboarding, lists, send) keep the films-only
 `searchMoviesAction`. `SearchResult.kind` is `"series"` for series; absent or `"movie"` means a film.
 

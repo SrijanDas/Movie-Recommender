@@ -1,10 +1,10 @@
 "use client";
 
 import { PlayIcon } from "lucide-react";
-import Image from "next/image";
 import { useState } from "react";
 import { videoThumbUrl } from "@/lib/tmdb/images";
 import { cn } from "@/lib/utils";
+import { LoadingImage } from "@/components/movies/loading-image";
 
 // A 16:9 video that is only a thumbnail until tapped, so the page loads one
 // image per video instead of a player. Tapping swaps in the privacy-enhanced
@@ -42,7 +42,7 @@ export function VideoPlayer({
           aria-label={`Play ${label}`}
           className="group/play absolute inset-0 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
         >
-          <Image
+          <LoadingImage
             src={videoThumbUrl(videoKey)}
             alt=""
             fill

@@ -40,13 +40,21 @@ export async function HomeShelves() {
 
 export function HomeShelvesSkeleton() {
   return (
-    <div className="flex flex-col gap-3" aria-hidden>
-      <Skeleton className="h-7 w-36" />
-      <div className="flex gap-3 overflow-hidden">
-        {Array.from({ length: 6 }, (_, i) => (
-          <Skeleton key={i} className="aspect-2/3 w-26 shrink-0 rounded-xl sm:w-32" />
-        ))}
-      </div>
+    <div className="flex flex-col gap-8" aria-hidden>
+      {Array.from({ length: 4 }, (_, row) => (
+        <div key={row} className="flex flex-col gap-3">
+          <Skeleton className="h-7 w-36" />
+          <div className="flex gap-3 overflow-hidden">
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="flex w-26 shrink-0 flex-col gap-1.5 sm:w-32">
+                <Skeleton className="aspect-2/3 rounded-xl" />
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
