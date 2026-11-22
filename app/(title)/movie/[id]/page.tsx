@@ -7,6 +7,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { getUserMovies } from "@/lib/movies/store";
 import { getMovie, getMovieMedia, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
+import { previewMetadata, shareMessage } from "@/lib/tmdb/results";
 
 function formatRuntime(minutes: number | null) {
   if (!minutes) return null;
@@ -19,7 +20,13 @@ export async function generateMetadata({ params }: PageProps<"/movie/[id]">): Pr
   const id = parseId((await params).id);
   const movie = id && isTmdbConfigured() ? await getMovie(id) : null;
   if (!movie) return { title: "Film" };
-  return { title: movie.title, description: movie.overview || undefined };
+  const year = releaseYear(movie.release_date);
+  return previewMetadata(
+    `/movie/${movie.id}`,
+    year ? `${movie.title} (${year})` : movie.title,
+    shareMessage(movie.title, year, movie.tagline || movie.overview),
+    movie.poster_path,
+  );
 }
 
 async function MovieDetails({ id: raw }: { id: string }) {
@@ -62,7 +69,7 @@ async function MovieDetails({ id: raw }: { id: string }) {
               // One button: send to a friend in the app, or share the link anywhere.
               <SendToFriend
                 films={[{ tmdbId: id, title: movie.title, posterPath: movie.poster_path, year }]}
-                link={{ path: `/movie/${id}`, title: movie.title, text: year ? `${movie.title} (${year})` : movie.title }}
+                link={{ path: `/movie/${id}`, title: movie.title, text: shareMessage(movie.title, year, movie.tagline || movie.overview) }}
                 size="icon"
                 className="size-10 shrink-0 text-body hover:text-ink"
               />

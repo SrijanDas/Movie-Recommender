@@ -7,6 +7,7 @@ import { getCurrentUserId } from "@/lib/auth";
 import { getSeriesSignal } from "@/lib/series/store";
 import { getMovieMedia, getSeries, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
+import { previewMetadata, shareMessage } from "@/lib/tmdb/results";
 import type { TmdbSeriesDetails } from "@/lib/tmdb/types";
 
 // "2019–2023", "2019–" while it's still running, or "2019" for one that
@@ -24,7 +25,13 @@ export async function generateMetadata({ params }: PageProps<"/series/[id]">): P
   const id = parseId((await params).id);
   const series = id && isTmdbConfigured() ? await getSeries(id) : null;
   if (!series) return { title: "Series" };
-  return { title: series.name, description: series.overview || undefined };
+  const when = years(series);
+  return previewMetadata(
+    `/series/${series.id}`,
+    when ? `${series.name} (${when})` : series.name,
+    shareMessage(series.name, when, series.tagline || series.overview),
+    series.poster_path,
+  );
 }
 
 // A series' page: the film page's layout, with creators for directors and
@@ -65,7 +72,7 @@ async function SeriesDetails({ id: raw }: { id: string }) {
               <ShareButton
                 path={`/series/${id}`}
                 title={series.name}
-                text={series.name}
+                text={shareMessage(series.name, years(series), series.tagline || series.overview)}
                 label={`Share ${series.name}`}
                 variant="outline"
                 iconOnly
