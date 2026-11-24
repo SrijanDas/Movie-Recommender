@@ -13,7 +13,6 @@ export async function HomeShelves() {
   if (!shelves) return null;
   const rows = [
     { id: "new-films", title: "New films", titles: shelves.newMovies.map(movieResult) },
-    { id: "new-series", title: "New episodes", titles: shelves.newSeries.map(seriesResult) },
     { id: "popular-films", title: "Popular films", titles: shelves.popularMovies.map(movieResult) },
     { id: "popular-series", title: "Popular series", titles: shelves.popularSeries.map(seriesResult) },
   ];
@@ -41,7 +40,7 @@ export async function HomeShelves() {
 export function HomeShelvesSkeleton() {
   return (
     <div className="flex flex-col gap-8" aria-hidden>
-      {Array.from({ length: 4 }, (_, row) => (
+      {Array.from({ length: 3 }, (_, row) => (
         <div key={row} className="flex flex-col gap-3">
           <Skeleton className="h-7 w-36" />
           <div className="flex gap-3 overflow-hidden">

@@ -52,8 +52,8 @@ grid samples from the most-voted films and series. Pickers (onboarding, lists, s
 ## Home
 
 `/home` is where members land (`homeFor`, the logo, the PWA start URL, signed-in redirects in `proxy.ts`).
-It shows four sideways shelves (`components/movies/home-shelves.tsx`):
-New films (`/movie/now_playing`), New episodes (`/tv/on_the_air`), Popular films and Popular series
+It shows three sideways shelves (`components/movies/home-shelves.tsx`):
+New films (`/movie/now_playing`), Popular films and Popular series
 (`/movie/popular`, `/tv/popular`), cached for hours via `getHomeShelves`. Recommendations have their own tab,
 "For you" (`/recommendations`). Onboarding ends on Home too.
 

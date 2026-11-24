@@ -138,15 +138,13 @@ async function getMostVotedSeries(): Promise<TmdbSeriesSummary[]> {
 export async function getHomeShelves() {
   "use cache";
   cacheLife("hours");
-  const [newMovies, newSeries, popularMovies, popularSeries] = await Promise.all([
+  const [newMovies, popularMovies, popularSeries] = await Promise.all([
     tmdbFetch<TmdbPage<TmdbMovieSummary>>("/movie/now_playing"),
-    tmdbFetch<TmdbPage<TmdbSeriesSummary>>("/tv/on_the_air"),
     tmdbFetch<TmdbPage<TmdbMovieSummary>>("/movie/popular"),
     tmdbFetch<TmdbPage<TmdbSeriesSummary>>("/tv/popular"),
   ]);
   return {
     newMovies: newMovies.results,
-    newSeries: newSeries.results,
     popularMovies: popularMovies.results,
     popularSeries: popularSeries.results,
   };
