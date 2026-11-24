@@ -11,7 +11,7 @@ import { isTmdbConfigured } from "@/lib/tmdb/client";
 export const metadata: Metadata = { title: "Home" };
 
 // Members land here: what's new and popular, films and series. Picks made
-// for them live on their own tab (/recommendations).
+// for them live on their own tab (/for-you).
 // Sideloads the For you tab: once Home has been sent, work out the first
 // batch of picks so it's cached when the tab opens. Renders nothing.
 async function WarmRecommendations() {

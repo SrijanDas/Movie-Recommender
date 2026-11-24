@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 
 export const TABS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/home", label: "Home", icon: HouseIcon },
-  { href: "/recommendations", label: "For you", icon: PopcornIcon },
+  { href: "/for-you", label: "For you", icon: PopcornIcon },
   { href: "/watchlist", label: "Watchlist", icon: BookmarkIcon },
   { href: "/my-movies", label: "My films", icon: StarIcon },
   { href: "/search", label: "Search", icon: SearchIcon },

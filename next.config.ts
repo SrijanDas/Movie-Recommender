@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "image.tmdb.org", port: "", pathname: "/t/p/**", search: "" },
     ],
   },
+  async redirects() {
+    // For you used to live here and was the installed app's start page; old
+    // installs keep opening it, so send them Home.
+    return [{ source: "/recommendations", destination: "/home", permanent: false }];
+  },
   async rewrites() {
     // Public profiles are shared as /@handle, their lists as
     // /@handle/lists/slug, their Seen it lists as /@handle/seen/answer and

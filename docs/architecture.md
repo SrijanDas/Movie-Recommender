@@ -7,7 +7,7 @@
 ```
 app/
   layout.tsx          # root layout: fonts, viewport/PWA meta, toaster, service worker
-  manifest.ts         # PWA manifest (start_url /recommendations); icons in public/icons, app/icon.svg, app/apple-icon.png
+  manifest.ts         # PWA manifest (start_url /home); icons in public/icons, app/icon.svg, app/apple-icon.png
   page.tsx            # "/" — public landing page (poster wall, how it works)
   sign-in/            # "/sign-in" — email + password, or an email link (public)
   sign-up/            # "/sign-up" — name → email → password, one field per screen (public)
@@ -15,7 +15,7 @@ app/
   offline/            # "/offline" — served by public/sw.js when the network is down (public)
   onboarding/         # "/onboarding" — favourites picker; shown once, until profiles.onboarded_at is set
   (app)/layout.tsx    # app shell: top bar, bottom tab bar (phones), onboarding gate
-  (app)/recommendations/  # poster grid with reasons, feedback, film search
+  (app)/for-you/        # poster grid with reasons, feedback, film search
   (app)/watchlist/    # films saved for later, under the "From friends" shelf of tips (see docs/social.md)
   (app)/my-movies/    # favourites + seen films, add more; favourites/ edits favourites (drag, Move menu, remove), saved on Done
   (app)/account/      # Profile: picture, name, @handle, share link; email, install, Credits link, sign out

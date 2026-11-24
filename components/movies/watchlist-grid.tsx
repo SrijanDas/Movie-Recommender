@@ -78,7 +78,7 @@ export function WatchlistGrid({ movies }: { movies: ListedMovie[] }) {
         <p className="max-w-prose text-body-md text-body">
           Tap the bookmark on a recommendation, or in the ⋯ menu on any film or series page, to keep it here for movie night.
         </p>
-        <Button render={<Link href="/recommendations" />} nativeButton={false}>
+        <Button render={<Link href="/for-you" />} nativeButton={false}>
           See what to watch
         </Button>
       </div>

@@ -55,7 +55,7 @@ grid samples from the most-voted films and series. Pickers (onboarding, lists, s
 It shows three sideways shelves (`components/movies/home-shelves.tsx`):
 New films (`/movie/now_playing`), Popular films and Popular series
 (`/movie/popular`, `/tv/popular`), cached for hours via `getHomeShelves`. Recommendations have their own tab,
-"For you" (`/recommendations`). Onboarding ends on Home too.
+"For you" (`/for-you`; the old `/recommendations` address redirects to Home, since apps installed before Home existed still open there). Onboarding ends on Home too.
 
 **Sideloading For you:** Home's `WarmRecommendations` reads the member's films during render, then calls
 `getFirstRecommendations` inside `after()`, once the page has been sent. That function is
