@@ -6,8 +6,9 @@ export function posterUrl(path: string | null, size: PosterSize = "w342") {
   return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 }
 
-// Wide film stills. w1280 covers a full-width phone or laptop header.
-export function backdropUrl(path: string | null, size: "w780" | "w1280" = "w1280") {
+// Wide film stills. w1280 covers a full-width phone or laptop header; w300
+// covers an episode thumbnail.
+export function backdropUrl(path: string | null, size: "w300" | "w780" | "w1280" = "w1280") {
   return path ? `https://image.tmdb.org/t/p/${size}${path}` : null;
 }
 

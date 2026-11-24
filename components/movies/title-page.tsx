@@ -158,6 +158,8 @@ export type TitleData = {
   actions?: React.ReactNode;
   // Tapping a where-to-watch option marks a member's film as being watched.
   tracked: boolean;
+  // Shown under where-to-watch: a series' seasons.
+  children?: React.ReactNode;
 };
 
 export function TitleDetails(t: TitleData) {
@@ -238,6 +240,8 @@ export function TitleDetails(t: TitleData) {
         <Suspense fallback={<WhereToWatchSkeleton />}>
           <WhereToWatch kind={t.kind} tmdbId={t.id} title={t.title} imdbId={t.imdbId} tracked={t.tracked} />
         </Suspense>
+
+        {t.children}
 
         {media.trailer && (
           <Section id="trailer" title="Trailer">

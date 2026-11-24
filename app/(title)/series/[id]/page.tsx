@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Seasons } from "@/components/movies/seasons";
 import { SeriesVerdict } from "@/components/movies/series-verdict";
 import { ShareButton } from "@/components/profile/share-profile";
-import { NO_MEDIA, NotConnected, parseId, TitleDetails, TitleShell } from "@/components/movies/title-page";
+import { NO_MEDIA, NotConnected, parseId, Section, TitleDetails, TitleShell } from "@/components/movies/title-page";
 import { getCurrentUserId } from "@/lib/auth";
 import { getSeriesSignal } from "@/lib/series/store";
-import { getMovieMedia, getSeries, isTmdbConfigured } from "@/lib/tmdb/client";
+import { getMovieMedia, getSeasonEpisodes, getSeries, isTmdbConfigured } from "@/lib/tmdb/client";
 import { releaseYear } from "@/lib/tmdb/images";
 import { previewMetadata, shareMessage } from "@/lib/tmdb/results";
 import type { TmdbSeriesDetails } from "@/lib/tmdb/types";
@@ -42,7 +43,16 @@ async function SeriesDetails({ id: raw }: { id: string }) {
   const id = parseId(raw);
   const series = id ? await getSeries(id) : null;
   if (!id || !series) notFound();
-  const [userId, media] = await Promise.all([getCurrentUserId(), getMovieMedia(id, "tv").catch(() => NO_MEDIA)]);
+  // Specials (season 0) go last; the picker opens on the first real season.
+  const seasonList = [...(series.seasons ?? [])].sort(
+    (a, b) => (a.season_number || Infinity) - (b.season_number || Infinity),
+  );
+  const firstSeason = seasonList[0]?.season_number;
+  const [userId, media, firstEpisodes] = await Promise.all([
+    getCurrentUserId(),
+    getMovieMedia(id, "tv").catch(() => NO_MEDIA),
+    firstSeason === undefined ? null : getSeasonEpisodes(id, firstSeason).catch(() => null),
+  ]);
   const saved = userId ? await getSeriesSignal(userId, id) : null;
   const seasons = series.number_of_seasons;
 
@@ -84,7 +94,13 @@ async function SeriesDetails({ id: raw }: { id: string }) {
       }
       // Series take weeks, so where-to-watch doesn't start a "Did you finish it?".
       tracked={false}
-    />
+    >
+      {firstSeason !== undefined && firstEpisodes && (
+        <Section id="seasons" title={seasonList.length === 1 ? "Episodes" : "Seasons"}>
+          <Seasons seriesId={id} seasons={seasonList} initial={{ season: firstSeason, episodes: firstEpisodes }} />
+        </Section>
+      )}
+    </TitleDetails>
   );
 }
 

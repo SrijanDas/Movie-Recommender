@@ -140,6 +140,21 @@ export type TmdbSeriesDetails = {
   created_by: { id: number; name: string; profile_path: string | null }[];
   credits: { cast: TmdbCastMember[] };
   external_ids?: { imdb_id: string | null };
+  // Season 0 is "Specials".
+  seasons: { season_number: number; name: string; episode_count: number; air_date: string | null }[];
+};
+
+// `/tv/{id}/season/{n}`
+export type TmdbEpisode = {
+  id: number;
+  episode_number: number;
+  name: string;
+  overview: string;
+  air_date: string | null;
+  runtime: number | null;
+  still_path: string | null;
+  vote_average: number;
+  vote_count: number;
 };
 
 // One film or series a person worked on (`combined_credits`).

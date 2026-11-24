@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUserId } from "@/lib/auth";
 import { SEEN_ANSWERS, type Signal } from "@/lib/recommend/types";
 import { deleteSeries, getSeriesSnapshot, putSeries } from "@/lib/series/store";
+import { getSeasonEpisodes } from "@/lib/tmdb/client";
+import type { TmdbEpisode } from "@/lib/tmdb/types";
 
 // Saving a series and saying how it was. Touches only user_series; see
 // docs/series.md.
@@ -48,5 +50,17 @@ export async function forgetSeries(seriesId: unknown): Promise<SeriesResult> {
     return { ok: true };
   } catch (error) {
     return failure(error);
+  }
+}
+
+// A season's episodes for the series page's season picker. Read-only and
+// public, like the page itself.
+export async function getSeasonAction(seriesId: unknown, season: unknown): Promise<TmdbEpisode[] | null> {
+  if (!isId(seriesId) || typeof season !== "number" || !Number.isInteger(season) || season < 0 || season > 999) return null;
+  try {
+    return await getSeasonEpisodes(seriesId, season);
+  } catch (error) {
+    console.error(error);
+    return null;
   }
 }

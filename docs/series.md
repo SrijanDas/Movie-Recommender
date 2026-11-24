@@ -10,6 +10,10 @@ members, plain header for visitors). All three prefixes are public in `proxy.ts`
 - `/movie/[id]`: a film.
 - `/series/[id]`: a series (`getSeries`, `/tv/{id}` with credits and external ids). Year range from
   first/last air dates ("2019–" while running), number of seasons, creators instead of directors.
+  Under where-to-watch, a Seasons section (`components/movies/seasons.tsx`): season chips (Specials last),
+  then each episode's still, number, name, rating, air date, runtime and overview (tap to expand). The first
+  season renders with the page (`getSeasonEpisodes`, `/tv/{id}/season/{n}`); others load on tap through
+  `getSeasonAction` in `app/series/actions.ts`.
 - `/person/[id]`: a cast or crew member (`getPerson`, `/person/{id}` with `combined_credits`): portrait,
   department, birth/death, biography (first paragraph, rest behind "Read more"), and up to 60 films and
   series, best known (most votes) first, with their role. Talk/news shows, "as Self" appearances and

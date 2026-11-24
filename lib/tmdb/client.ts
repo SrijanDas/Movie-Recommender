@@ -2,6 +2,7 @@ import "server-only";
 import { cacheLife } from "next/cache";
 import type { RelatedMovies } from "@/lib/recommend/source";
 import type {
+  TmdbEpisode,
   TmdbImage,
   TmdbMovieDetails,
   TmdbMovieSummary,
@@ -159,6 +160,18 @@ export async function getSeries(id: number): Promise<TmdbSeriesDetails | null> {
     return await tmdbFetch<TmdbSeriesDetails>(`/tv/${id}`, { append_to_response: "credits,external_ids" });
   } catch (error) {
     if (error instanceof TmdbError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+// One season's episodes; [] for a season TMDB doesn't know.
+export async function getSeasonEpisodes(seriesId: number, season: number): Promise<TmdbEpisode[]> {
+  "use cache";
+  cacheLife("days");
+  try {
+    return (await tmdbFetch<{ episodes: TmdbEpisode[] }>(`/tv/${seriesId}/season/${season}`)).episodes;
+  } catch (error) {
+    if (error instanceof TmdbError && error.status === 404) return [];
     throw error;
   }
 }
